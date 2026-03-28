@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktype=globalThis.webpackChunktype||[]).push([[1903],{1912(o){o.exports=JSON.parse('{"blogBasePath":"/homecore-io/blog","blogTitle":"Blog","authorsListPath":"/homecore-io/blog/authors"}')}}]);

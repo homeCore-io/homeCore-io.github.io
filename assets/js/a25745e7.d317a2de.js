@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktype=globalThis.webpackChunktype||[]).push([[3555],{9836(e){e.exports=JSON.parse('{"metadata":{"permalink":"/homecore-io/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
