@@ -22,7 +22,7 @@ const config: Config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'homecore-io', // Usually your GitHub org/user name.
+  organizationName: 'homeCore-io', // Usually your GitHub org/user name.
   projectName: 'homeCore-io.github.io', // Usually your repo name.
 
   onBrokenLinks: 'throw',
