@@ -154,7 +154,7 @@ self.state.update().await?;
 
 An `async fn` that captures a non-`Send` type (e.g. `Rc`, `RefCell`) passed to `tokio::spawn`. Either use `Arc<Mutex<>>` instead, or restructure so the non-Send value is dropped before the first `await`.
 
-### "the trait bound is not satisfied for Box<dyn Future>"
+### "the trait bound is not satisfied for `Box<dyn Future>`"
 
 Recursive async functions need `Box::pin`:
 
