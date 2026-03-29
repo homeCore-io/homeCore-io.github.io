@@ -8,7 +8,7 @@ import styles from './index.module.css';
 function Hero() {
   return (
     <section className={styles.hero}>
-      <img src="/img/logo-2.png" className={styles.heroLogo} alt="homeCore logo" />
+      <img src="/img/logo-1.png" className={styles.heroLogo} alt="homeCore logo" />
       <h1 className={styles.heroTitle}>
         <span className={styles.heroTitleHome}>home</span>Core
       </h1>

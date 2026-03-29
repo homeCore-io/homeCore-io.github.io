@@ -72,13 +72,21 @@
   border-bottom-color: #1B35CC;
 }
 
-/* ── Navbar logo: blue pill so the white icon is visible on white navbar ── */
+/* ── Navbar logo: crop logo-1.png to icon only (text lives in navbar__title) ── */
 .navbar__logo {
-  height: 28px;
+  height: 36px;
+  width: 36px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.navbar__logo img {
+  height: 68px;
   width: auto;
-  background: #1B35CC;
-  border-radius: 8px;
-  padding: 4px 6px;
+  max-width: none;
 }
 
 /* ── Navbar brand title: homeCore styling ── */

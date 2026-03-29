@@ -78,7 +78,7 @@ const config: Config = {
       title: 'homeCore',
       logo: {
         alt: 'homeCore logo',
-        src: 'img/logo-2.png',
+        src: 'img/logo-1.png',
       },
       items: [
         {
