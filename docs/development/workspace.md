@@ -19,7 +19,7 @@ homeCore/
 │   ├── deploy.sh               ← build + install to /var/tmp/homeCore
 │   └── workspace-clone.sh      ← clone all repos in workspace.toml
 │
-├── core/                       ← main HomeCore server (git repo: jeubanks/homeCore)
+├── core/                       ← main HomeCore server (git repo: homeCore-io/homeCore)
 │   ├── Cargo.toml              ← workspace Cargo manifest
 │   ├── Cargo.lock
 │   ├── config/

@@ -46,7 +46,7 @@ sudo dnf install -y gcc pkg-config openssl-devel git
 
 ```bash
 # Clone the repository
-git clone https://github.com/jeubanks/homeCore.git
+git clone https://github.com/homeCore-io/homeCore.git
 cd homeCore/core
 
 # Build (debug — fast compile, slower binary)
