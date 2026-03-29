@@ -1,0 +1,120 @@
+---
+id: yolink
+title: YoLink
+sidebar_label: YoLink
+sidebar_position: 5
+---
+
+# YoLink (`hc-yolink`)
+
+The hc-yolink plugin bridges the YoLink cloud MQTT service to HomeCore. YoLink devices (door sensors, motion sensors, temperature sensors, outlets, etc.) are registered as HomeCore devices.
+
+## Prerequisites
+
+- A YoLink account and hub
+- Your YoLink MQTT credentials (UAID and secret key — available in the YoLink app under Account settings)
+
+## Configuration
+
+```toml
+[homecore]
+broker_host = "127.0.0.1"
+broker_port = 1883
+plugin_id   = "plugin.yolink"
+password    = ""
+
+[yolink]
+# MQTT credentials from YoLink app
+uaid      = "your-uaid"
+secret    = "your-secret-key"
+mqtt_host = "mqtt.yosmart.com"
+mqtt_port = 8003
+```
+
+## Running
+
+```bash
+cd /path/to/hc-yolink
+./hc-yolink config/config.toml
+```
+
+The plugin connects to the YoLink cloud MQTT broker, discovers all devices associated with your account, and registers them with HomeCore.
+
+## Device IDs
+
+YoLink device IDs follow the pattern `yolink_{device_id}` where `device_id` is the YoLink-assigned device identifier (16 hex characters):
+
+```
+yolink_d88b4c01000e82eb    ← door sensor
+yolink_a3f291b200045c12    ← temperature sensor
+yolink_cc8102a3000b7e45    ← smart outlet
+```
+
+## Supported device types
+
+| YoLink device | `device_type` | Key attributes |
+|---|---|---|
+| Door/window sensor | `door_sensor` | `open` (bool), `battery` (int) |
+| Motion sensor | `motion_sensor` | `motion` (bool), `battery` (int) |
+| Temperature/humidity | `sensor` | `temperature` (float), `humidity` (float), `battery` (int) |
+| Smart outlet | `switch` | `on` (bool), `power_w` (float) |
+| Leak sensor | `sensor` | `wet` (bool), `battery` (int) |
+| Vibration sensor | `sensor` | `vibration` (bool), `battery` (int) |
+
+## Common rule patterns
+
+### Door open alert
+
+```toml
+name = "Front door — alert"
+enabled = true
+
+[trigger]
+type      = "device_state_changed"
+device_id = "yolink_d88b4c01000e82eb"
+attribute = "open"
+to        = true
+
+[[actions]]
+type    = "notify"
+channel = "telegram"
+message = "Front door opened"
+```
+
+### Low battery alert
+
+```toml
+name = "YoLink — low battery"
+enabled = true
+cooldown_secs = 86400   # alert once per day max
+
+[trigger]
+type      = "device_state_changed"
+device_id = "yolink_d88b4c01000e82eb"
+attribute = "battery"
+
+[[conditions]]
+type      = "device_state"
+device_id = "yolink_d88b4c01000e82eb"
+attribute = "battery"
+op        = "Lt"
+value     = 20
+
+[[actions]]
+type    = "notify"
+channel = "telegram"
+message = "YoLink front door sensor battery is low: {{device.battery}}%"
+```
+
+## Device name sync
+
+When a device is renamed in the YoLink app, the new name is synced to HomeCore at the next state update from that device. The update only takes effect after a confirmed state message — not immediately on registration. Restarting hc-yolink forces a full re-registration that syncs all names immediately.
+
+## Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| Plugin fails to connect | Check UAID and secret in config; verify YoLink account credentials |
+| Devices not appearing | Check that devices are online in the YoLink app and have been used recently |
+| State not updating | YoLink cloud MQTT may have a delay; check YoLink app for offline sensors |
+| `online`/`offline` flapping | Check device battery level and WiFi/LoRa range |
