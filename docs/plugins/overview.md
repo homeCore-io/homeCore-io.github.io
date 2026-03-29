@@ -35,7 +35,7 @@ Each plugin:
 | [hc-hue](./hue) | Rust | Philips Hue lights, groups, scenes |
 | [hc-yolink](./yolink) | Rust | YoLink sensors, door sensors, outlets |
 | [hc-lutron](./lutron) | Rust | Lutron RadioRA2 dimmers, switches, scenes |
-| [hc-sonos](./sonos) | Rust | Sonos speakers (via UPnP) |
+| hc-sonos | Rust | Sonos speakers (via UPnP) |
 | [hc-zwave](./zwave) | Rust | Z-Wave devices via zwave-js WebSocket |
 | [hc-wled](./wled) | Rust | WLED LED controllers |
 | [hc-isy](./isy) | Rust | ISY/IoX hub (Insteon, Z-Wave, Zigbee) |

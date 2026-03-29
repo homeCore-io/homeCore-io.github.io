@@ -233,7 +233,7 @@ Response: `{ "updated": N, "rules": [...full rule objects...] }`
 
 ## Clone a rule
 
-Duplicate a rule with a new UUID. The clone is disabled by default, named "Copy of {original}".
+Duplicate a rule with a new UUID. The clone is disabled by default, named `Copy of {original}`.
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/automations/RULE_ID/clone \
