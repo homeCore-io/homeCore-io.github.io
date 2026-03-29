@@ -147,3 +147,21 @@ brightness = 80
 | Scene not activating | Check `available` attribute — phantom buttons may not always be available |
 | Devices not appearing | Ensure all devices are programmed in Lutron Designer and the repeater is online |
 | Dim level off by 1% | Lutron uses integer 0-100; minor rounding in conversion is expected |
+
+## Log rotation
+
+hc-lutron writes logs to `logs/hc-lutron.log`. Rotation and compression are configured in `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| File | Description |
+|---|---|
+| `logs/hc-lutron.log` | Active log (always uncompressed) |
+| `logs/hc-lutron.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-lutron.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |

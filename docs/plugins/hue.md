@@ -152,3 +152,21 @@ state     = { action = "activate_scene" }
 | Lights not responding | Check `reachable` attribute — Zigbee mesh issues can cause individual bulbs to go unreachable |
 | Scenes not activating | Verify `available = true` on the scene device (`GET /devices/{id}`) |
 | `zigbee_connectivity` devices cluttering device list | Filter with `device_type != "zigbee_connectivity"` in your UI |
+
+## Log rotation
+
+hc-hue writes logs to `logs/hc-hue.log`. Rotation and compression are configured in `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| File | Description |
+|---|---|
+| `logs/hc-hue.log` | Active log (always uncompressed) |
+| `logs/hc-hue.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-hue.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |

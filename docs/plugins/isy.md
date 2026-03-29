@@ -140,10 +140,26 @@ state     = { on = true, brightness = 100 }
 | TLS errors | Set `tls = false` unless you've explicitly enabled HTTPS on the ISY hub |
 | Scenes not appearing | ISY scenes must have at least one member device to be discoverable |
 
-## Logs
+## Log rotation
+
+hc-isy writes logs to `logs/hc-isy.log`. Rotation and compression are configured in `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| File | Description |
+|---|---|
+| `logs/hc-isy.log` | Active log (always uncompressed) |
+| `logs/hc-isy.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-isy.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |
+
+For verbose debugging of ISY API responses and WebSocket events:
 
 ```bash
 RUST_LOG=hc_isy=debug ./hc-isy config/config.toml
 ```
-
-Debug logging shows all ISY API responses and WebSocket events for diagnosing integration issues.

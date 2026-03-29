@@ -118,3 +118,21 @@ When a device is renamed in the YoLink app, the new name is synced to HomeCore a
 | Devices not appearing | Check that devices are online in the YoLink app and have been used recently |
 | State not updating | YoLink cloud MQTT may have a delay; check YoLink app for offline sensors |
 | `online`/`offline` flapping | Check device battery level and WiFi/LoRa range |
+
+## Log rotation
+
+hc-yolink writes logs to `logs/hc-yolink.log`. Rotation and compression are configured in `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| File | Description |
+|---|---|
+| `logs/hc-yolink.log` | Active log (always uncompressed) |
+| `logs/hc-yolink.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-yolink.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |

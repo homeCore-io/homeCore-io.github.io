@@ -226,3 +226,33 @@ websocat "ws://localhost:8080/api/v1/logs/stream?token=$TOKEN&module=hc_core"
 ```
 
 The log stream replays the last 100 buffered log lines on connect, then streams new lines in real time.
+
+## Plugin logging
+
+Each hc-* plugin manages its own log file and rotation independently of the homeCore server. All plugins share the same `[logging]` config schema, configured in the plugin's own `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `level` | `"info"` | Stderr log level when `RUST_LOG` is not set. Accepts any tracing filter directive, e.g. `"debug"` or `"hc_hue=debug,rumqttc=warn"`. |
+| `rotation` | `"daily"` | Time-based rotation strategy: `daily`, `hourly`, `weekly`, or `never`. |
+| `max_size_mb` | `100` | Size-based rotation threshold. Combined with `rotation` as "whichever comes first". Set `0` to disable size-based rotation. |
+| `compress` | `true` | Gzip-compress rotated files in a background thread immediately after rotation. The active log file is never compressed. |
+
+Plugin log files follow the same naming convention as the server:
+
+| File | Description |
+|---|---|
+| `logs/hc-{plugin}.log` | Active log (always uncompressed) |
+| `logs/hc-{plugin}.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-{plugin}.2026-03-27_14.log.gz` | Rotated hourly file (compressed) |
+| `logs/hc-{plugin}.2026-03-27.1.log.gz` | Second size-triggered rotation in the same period |
+
+Defaults preserve the previous behavior if the `[logging]` section is absent from a plugin config.

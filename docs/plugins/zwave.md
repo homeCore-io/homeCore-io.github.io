@@ -188,3 +188,21 @@ message = "Front door unlocked"
 ## Node name sync
 
 Node names set in Z-Wave JS UI are synced to HomeCore device names automatically when state is published. Renaming a node in the UI takes effect at the next state update. Restarting hc-zwave forces immediate re-registration of all node names.
+
+## Log rotation
+
+hc-zwave writes logs to `logs/hc-zwave.log`. Rotation and compression are configured in `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| File | Description |
+|---|---|
+| `logs/hc-zwave.log` | Active log (always uncompressed) |
+| `logs/hc-zwave.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-zwave.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |

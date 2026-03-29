@@ -137,3 +137,21 @@ state     = { on = false }
 ## Architecture note
 
 hc-wled uses WebSocket connections to each WLED device for real-time state updates (rather than polling). If a WLED device goes offline and comes back, the plugin automatically reconnects.
+
+## Log rotation
+
+hc-wled writes logs to `logs/hc-wled.log`. Rotation and compression are configured in `config/config.toml`:
+
+```toml
+[logging]
+level       = "info"   # stderr log level; RUST_LOG overrides this
+rotation    = "daily"  # daily | hourly | weekly | never
+max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
+compress    = true     # gzip rotated files in a background thread
+```
+
+| File | Description |
+|---|---|
+| `logs/hc-wled.log` | Active log (always uncompressed) |
+| `logs/hc-wled.2026-03-27.log.gz` | Rotated daily file (compressed) |
+| `logs/hc-wled.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |
