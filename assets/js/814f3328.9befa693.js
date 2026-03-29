@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktype=globalThis.webpackChunktype||[]).push([[7472],{5513(t){t.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"First Blog Post","permalink":"/blog/first-blog-post","unlisted":false,"date":"2026-03-29T00:00:00.000Z"}]}')}}]);

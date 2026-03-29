@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktype=globalThis.webpackChunktype||[]).push([[8947],{6600(e){e.exports=JSON.parse('{"authors":[{"name":"John Eubanks","title":"Mostly Useless Generalist","url":"https://www.linkedin.com/in/eubanksj/","page":{"permalink":"/blog/authors/eubanks"},"key":"eubanks","count":1}]}')}}]);
