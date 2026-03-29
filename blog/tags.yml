@@ -8,10 +8,10 @@ hello:
   permalink: /hello
   description: Hello tag description
 
-docusaurus:
-  label: Docusaurus
-  permalink: /docusaurus
-  description: Docusaurus tag description
+homeCore:
+  label: homeCore
+  permalink: /homeCore
+  description: homeCore tag description
 
 hola:
   label: Hola

@@ -1,6 +1,7 @@
 .idea/
 # Dependencies
 /node_modules
+mockups/
 
 # Production
 /build
