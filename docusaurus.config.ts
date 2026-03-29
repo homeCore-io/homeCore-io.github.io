@@ -77,19 +77,19 @@ const config: Config = {
     navbar: {
       title: 'homeCore',
       logo: {
-        alt: 'My Site Logo',
-        src: 'img/logo.svg',
+        alt: 'homeCore logo',
+        src: 'img/logo-2.png',
       },
       items: [
         {
           type: 'docSidebar',
           sidebarId: 'docs',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Docs',
         },
         {to: '/blog', label: 'Blog', position: 'left'},
         {
-          href: 'https://github.com/homeCore-io',
+          href: 'https://github.com/homeCore-io/homeCore',
           label: 'GitHub',
           position: 'right',
         },
