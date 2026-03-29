@@ -76,10 +76,6 @@ const config: Config = {
     },
     navbar: {
       title: 'homeCore',
-      logo: {
-        alt: 'homeCore logo',
-        src: 'img/logo-1.png',
-      },
       items: [
         {
           type: 'docSidebar',
