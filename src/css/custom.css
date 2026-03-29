@@ -72,10 +72,13 @@
   border-bottom-color: #1B35CC;
 }
 
-/* ── Navbar logo: ensure it renders cleanly ── */
+/* ── Navbar logo: blue pill so the white icon is visible on white navbar ── */
 .navbar__logo {
-  height: 32px;
+  height: 28px;
   width: auto;
+  background: #1B35CC;
+  border-radius: 8px;
+  padding: 4px 6px;
 }
 
 /* ── Navbar brand title: homeCore styling ── */
