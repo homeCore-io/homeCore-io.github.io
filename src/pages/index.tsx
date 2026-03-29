@@ -21,7 +21,7 @@ function HomepageHeader() {
           <Link
             className="button button--secondary button--lg"
             to="/docs/getting-started/quickstart">
-            Docusaurus Tutorial - 5min ⏱️
+            homeCore Tutorial
           </Link>
         </div>
       </div>
