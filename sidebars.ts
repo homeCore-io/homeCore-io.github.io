@@ -13,6 +13,7 @@ const sidebars = {
         'getting-started/quickstart',
         'getting-started/configuration',
         'getting-started/docker',
+        'getting-started/migration',
       ],
     },
     {
