@@ -3,6 +3,7 @@
  */
 
 :root {
+  /* ── Primary palette ── */
   --ifm-color-primary: #1B35CC;
   --ifm-color-primary-dark: #1830b8;
   --ifm-color-primary-darker: #162dae;
@@ -10,11 +11,34 @@
   --ifm-color-primary-light: #1e3ae0;
   --ifm-color-primary-lighter: #203de8;
   --ifm-color-primary-lightest: #2c48f0;
+
+  /* ── Code ── */
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(27, 53, 204, 0.08);
+
+  /* ── Navbar ── */
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-navbar-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --ifm-navbar-link-color: #1c1e21;
+  --ifm-navbar-link-hover-color: #1B35CC;
+  --ifm-navbar-link-active-color: #1B35CC;
+
+  /* ── Sidebar ── */
+  --ifm-menu-color-active: #1B35CC;
+  --ifm-menu-color-background-active: rgba(27, 53, 204, 0.08);
+  --ifm-menu-color-background-hover: rgba(27, 53, 204, 0.05);
+
+  /* ── Links ── */
+  --ifm-link-color: #1B35CC;
+  --ifm-link-hover-color: #1830b8;
+
+  /* ── Table of contents ── */
+  --ifm-toc-link-color: #555;
+  --ifm-toc-border-color: #e3e7f0;
 }
 
 [data-theme='dark'] {
+  /* ── Primary palette ── */
   --ifm-color-primary: #7eb3ff;
   --ifm-color-primary-dark: #5d9eff;
   --ifm-color-primary-darker: #4d94ff;
@@ -22,5 +46,84 @@
   --ifm-color-primary-light: #9fc4ff;
   --ifm-color-primary-lighter: #afceff;
   --ifm-color-primary-lightest: #d0e4ff;
+
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  /* ── Navbar ── */
+  --ifm-navbar-link-hover-color: #7eb3ff;
+  --ifm-navbar-link-active-color: #7eb3ff;
+
+  /* ── Sidebar ── */
+  --ifm-menu-color-active: #7eb3ff;
+  --ifm-menu-color-background-active: rgba(126, 179, 255, 0.1);
+  --ifm-menu-color-background-hover: rgba(126, 179, 255, 0.06);
+
+  /* ── Links ── */
+  --ifm-link-color: #7eb3ff;
+  --ifm-link-hover-color: #9fc4ff;
+}
+
+/* ── Navbar: blue bottom border for brand connection ── */
+.navbar {
+  border-bottom: 2px solid #1B35CC;
+}
+
+[data-theme='dark'] .navbar {
+  border-bottom-color: #1B35CC;
+}
+
+/* ── Navbar logo: ensure it renders cleanly ── */
+.navbar__logo {
+  height: 32px;
+  width: auto;
+}
+
+/* ── Navbar brand title: homeCore styling ── */
+.navbar__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1c1e21;
+}
+
+[data-theme='dark'] .navbar__title {
+  color: #ffffff;
+}
+
+/* ── Sidebar: active item left accent ── */
+.menu__link--active {
+  font-weight: 600;
+  border-left: 3px solid #1B35CC;
+  padding-left: calc(var(--ifm-menu-link-padding-horizontal) - 3px);
+}
+
+[data-theme='dark'] .menu__link--active {
+  border-left-color: #7eb3ff;
+}
+
+/* ── Doc content: inline code accent ── */
+.markdown code {
+  background: rgba(27, 53, 204, 0.06);
+  border: 1px solid rgba(27, 53, 204, 0.12);
+  color: #1B35CC;
+}
+
+[data-theme='dark'] .markdown code {
+  background: rgba(126, 179, 255, 0.1);
+  border-color: rgba(126, 179, 255, 0.2);
+  color: #9fc4ff;
+}
+
+/* ── Blog: post title hover ── */
+.blog-post-title a:hover {
+  color: #1B35CC;
+}
+
+/* ── Pagination: prev/next links ── */
+.pagination-nav__link:hover {
+  border-color: #1B35CC;
+}
+
+/* ── Admonitions: note callout ── */
+.alert--info {
+  --ifm-alert-border-color: #1B35CC;
 }
