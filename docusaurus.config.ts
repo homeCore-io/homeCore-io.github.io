@@ -74,7 +74,11 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'homeCore',
+      title: '',
+      logo: {
+        alt: 'homeCore',
+        src: 'img/homecore-wordmark.svg',
+      },
       items: [
         {
           type: 'docSidebar',
