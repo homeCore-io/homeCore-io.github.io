@@ -20,7 +20,7 @@ Checks the current value of a device attribute in the database.
 ```toml
 [[conditions]]
 type      = "device_state"
-device_id = "yolink_front_door"
+device    = "entryway.front_door"
 attribute = "open"
 op        = "Eq"
 value     = false   # door must be closed
@@ -28,7 +28,8 @@ value     = false   # door must be closed
 
 | Field | Description |
 |---|---|
-| `device_id` | Device to read from |
+| `device` | Preferred device reference: canonical name, unique display name, or raw device ID |
+| `device_id` | Backward-compatible alias for `device` |
 | `attribute` | Attribute name |
 | `op` | Comparison operator |
 | `value` | Expected value |
@@ -50,7 +51,7 @@ value     = false   # door must be closed
 # Light is off
 [[conditions]]
 type      = "device_state"
-device_id = "hue_main_light"
+device    = "living_room.main_light"
 attribute = "on"
 op        = "Eq"
 value     = false
@@ -58,7 +59,7 @@ value     = false
 # Temperature above 80°F
 [[conditions]]
 type      = "device_state"
-device_id = "thermostat_main"
+device    = "hallway.thermostat"
 attribute = "temperature"
 op        = "Gt"
 value     = 80
@@ -66,7 +67,7 @@ value     = 80
 # Motion was detected (any truthy state)
 [[conditions]]
 type      = "device_state"
-device_id = "motion_hallway"
+device    = "hallway.motion"
 attribute = "motion"
 op        = "Eq"
 value     = true
@@ -74,7 +75,7 @@ value     = true
 # Battery level below 20%
 [[conditions]]
 type      = "device_state"
-device_id = "yolink_door_sensor"
+device    = "entryway.door_sensor"
 attribute = "battery"
 op        = "Lt"
 value     = 20
@@ -104,7 +105,7 @@ Checks how long an attribute has held its current value. Uses an in-memory per-a
 ```toml
 [[conditions]]
 type          = "time_elapsed"
-device_id     = "yolink_garage_door"
+device        = "garage.main_door"
 attribute     = "open"
 duration_secs = 600   # 10 minutes
 ```

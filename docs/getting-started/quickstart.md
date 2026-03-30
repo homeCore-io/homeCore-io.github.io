@@ -110,7 +110,7 @@ RULE_ID=$(curl -s -X POST http://localhost:8080/api/v1/automations \
     "priority": 10,
     "trigger": {
       "type": "DeviceStateChanged",
-      "device_id": "light.virtual_01",
+      "device": "lab.virtual_light",
       "attribute": "on"
     },
     "conditions": [],

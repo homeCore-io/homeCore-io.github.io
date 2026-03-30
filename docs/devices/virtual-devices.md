@@ -55,7 +55,7 @@ Both `{"command":"on"}` and `{"on": true}` payloads are accepted.
 # Condition: away mode is ON
 [[conditions]]
 type      = "device_state"
-device_id = "switch_away_mode"
+device    = "mode.away_switch"
 attribute = "on"
 op        = "Eq"
 value     = true
@@ -63,7 +63,7 @@ value     = true
 # Action: turn away mode on
 [[actions]]
 type      = "set_device_state"
-device_id = "switch_away_mode"
+device    = "mode.away_switch"
 state     = { command = "on" }
 ```
 
@@ -133,13 +133,13 @@ name = "Garage close — lights off"
 
 [trigger]
 type      = "device_state_changed"
-device_id = "timer_garage_close"
+device    = "garage.close_timer"
 attribute = "state"
 to        = "finished"
 
 [[actions]]
 type      = "set_device_state"
-device_id = "light_garage"
+device    = "garage.main_light"
 state     = { on = false }
 ```
 
@@ -152,13 +152,13 @@ enabled = true
 
 [trigger]
 type      = "device_state_changed"
-device_id = "yolink_garage_door"
+device    = "garage.main_door"
 attribute = "open"
 to        = true
 
 [[actions]]
 type      = "set_device_state"
-device_id = "timer_garage_close"
+device    = "garage.close_timer"
 state     = { command = "restart", duration_secs = 600 }
 
 ---
@@ -169,13 +169,13 @@ enabled = true
 
 [trigger]
 type      = "device_state_changed"
-device_id = "timer_garage_close"
+device    = "garage.close_timer"
 attribute = "state"
 to        = "finished"
 
 [[conditions]]
 type      = "device_state"
-device_id = "yolink_garage_door"
+device    = "garage.main_door"
 attribute = "open"
 op        = "Eq"
 value     = true
@@ -193,13 +193,13 @@ enabled = true
 
 [trigger]
 type      = "device_state_changed"
-device_id = "yolink_garage_door"
+device    = "garage.main_door"
 attribute = "open"
 to        = false
 
 [[actions]]
 type      = "set_device_state"
-device_id = "timer_garage_close"
+device    = "garage.close_timer"
 state     = { command = "cancel" }
 ```
 

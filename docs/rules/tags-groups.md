@@ -182,7 +182,7 @@ Deleting a group does **not** delete the rules themselves. It only removes the g
 |---|---|---|
 | `tag` | `?tag=deck` | Only rules containing this tag |
 | `trigger` | `?trigger=time_of_day` | Only rules with this trigger type |
-| `device_id` | `?device_id=yolink_abc` | Only rules referencing this device (trigger, conditions, or actions) |
+| `device_id` | `?device_id=yolink_abc` | Only rules referencing this internal device ID (filtering uses the real `device_id`, even if the rule source uses `device = "canonical.name"`) |
 | `stale` | `?stale=true` | Only rules with an `error` field (broken or references deleted device) |
 | `limit` | `?limit=10` | Pagination |
 | `offset` | `?offset=20` | Pagination offset |

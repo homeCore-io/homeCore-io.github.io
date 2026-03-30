@@ -14,6 +14,7 @@ A **device** in HomeCore is any physical or virtual entity that has a state you 
 ```json
 {
   "device_id": "yolink_d88b4c01000e82eb",
+  "canonical_name": "entryway.front_door",
   "name": "Front Door",
   "plugin_id": "plugin.yolink",
   "area": "entryway",
@@ -30,7 +31,8 @@ A **device** in HomeCore is any physical or virtual entity that has a state you 
 
 | Field | Description |
 |---|---|
-| `device_id` | Unique identifier; set by the plugin at registration |
+| `device_id` | Unique internal identifier; set by the plugin at registration |
+| `canonical_name` | Stable HomeCore name used for rules and logs when available |
 | `name` | Human-readable name; set by plugin, editable via API |
 | `plugin_id` | Which plugin owns this device |
 | `area` | Room/zone assignment (optional) |
@@ -38,6 +40,36 @@ A **device** in HomeCore is any physical or virtual entity that has a state you 
 | `available` | Whether the device is online |
 | `last_seen` | Last MQTT state update |
 | `attributes` | All current attribute values as a flat JSON object |
+
+## `device_id` vs `canonical_name`
+
+HomeCore now distinguishes between three kinds of names:
+
+- `device_id`: the plugin-owned internal ID used on MQTT topics and for runtime execution
+- `canonical_name`: the stable HomeCore name intended for rules, API consumers, and logs
+- `name`: the display label shown to humans
+
+Example:
+
+```json
+{
+  "device_id": "hue_001788fffe6841b3_1",
+  "canonical_name": "living_room.floor_lamp",
+  "name": "Floor Lamp"
+}
+```
+
+In normal rule authoring, prefer `canonical_name`. Keep `device_id` for low-level API work, debugging, or when you need the exact plugin identifier.
+
+### Why this exists
+
+Display names are not always unique. You may have:
+
+- `Floor Lamp` in the living room
+- `Floor Lamp` in the bedroom
+- two separate `Floor Lamp` devices in the same room
+
+`canonical_name` gives HomeCore a stable automation reference that remains readable without forcing rules to hardcode plugin IDs.
 
 ## Device CRUD
 
@@ -122,14 +154,31 @@ This is deliberate. The device ID stays stable inside HomeCore while the plugin 
 
 ### Update device metadata
 
-Change the display name or area without touching state:
+Change the display name, area, or canonical rule name without touching state:
 
 ```bash
 curl -s -X PATCH http://localhost:8080/api/v1/devices/yolink_front_door \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Front Door Sensor", "area": "entryway"}'
+  -d '{"name": "Front Door Sensor", "area": "entryway", "canonical_name": "entryway.front_door"}'
 ```
+
+### Canonical naming guidance
+
+Good canonical names are:
+
+- lowercase
+- stable over time
+- area-qualified when useful
+- descriptive enough to avoid collisions
+
+Examples:
+
+- `living_room.floor_lamp`
+- `bedroom.floor_lamp`
+- `living_room.floor_lamp_sofa`
+
+Avoid using temporary or positional labels that are likely to change.
 
 ### Delete a device
 

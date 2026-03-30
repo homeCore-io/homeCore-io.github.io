@@ -307,7 +307,7 @@ Start a named Sonos favorite when a virtual switch turns on.
 
 This example demonstrates the preferred pattern for media playback in HomeCore:
 
-- target the HomeCore device ID
+- target the HomeCore canonical device name
 - send a structured command payload
 - let the plugin resolve the favorite internally
 
@@ -322,20 +322,20 @@ tags     = ["music", "sonos", "kitchen"]
 
 [trigger]
 type      = "device_state_changed"
-device_id = "switch_kitchen_music"
+device    = "kitchen.music_switch"
 attribute = "on"
 to        = true
 
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_kitchen"
+device    = "kitchen.sonos"
 state     = { action = "play_favorite", favorite = "Morning Jazz" }
 ```
 
 ### What the rule does
 
 1. A virtual switch named `switch_kitchen_music` turns on
-2. HomeCore publishes a command to `homecore/devices/sonos_kitchen/cmd`
+2. HomeCore resolves `kitchen.sonos` to the real device ID and publishes a command to `homecore/devices/{device_id}/cmd`
 3. `hc-sonos` receives that command
 4. The plugin looks up the Sonos favorite named `Morning Jazz`
 5. The plugin starts playback on the kitchen speaker
@@ -345,6 +345,7 @@ state     = { action = "play_favorite", favorite = "Morning Jazz" }
 Use this form when:
 
 - the target is a HomeCore media player device such as `sonos_kitchen`
+- the target is a HomeCore media player device such as `kitchen.sonos`
 - the content is a named Sonos favorite or playlist
 - you want the rule to stay stable even if the speaker IP or Sonos URI changes
 
@@ -354,7 +355,7 @@ Use this form when:
 # Play a playlist by name
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_kitchen"
+device    = "kitchen.sonos"
 state     = { action = "play_playlist", playlist = "Dinner" }
 
 # Use the generic media command shape

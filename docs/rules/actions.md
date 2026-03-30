@@ -17,24 +17,34 @@ Every action accepts an optional `enabled` field (default `true`). Set `enabled 
 
 Commands a device by publishing to `homecore/devices/{device_id}/cmd`. The plugin receives the command and applies it.
 
+For authored rules, prefer `device = "canonical.name"` instead of `device_id = "plugin_specific_id"`.
+
 ```toml
 [[actions]]
 type      = "set_device_state"
-device_id = "hue_001788fffe6841b3_1"
+device    = "living_room.floor_lamp"
 state     = { on = true, brightness = 200 }
 
 # Turn off
 [[actions]]
 type      = "set_device_state"
-device_id = "smart_plug_coffee"
+device    = "kitchen.coffee_plug"
 state     = { on = false }
 
 # Multiple attributes
 [[actions]]
 type      = "set_device_state"
-device_id = "thermostat_main"
+device    = "hallway.thermostat"
 state     = { mode = "heat", target_temp = 68 }
 ```
+
+`device_id` still works and remains supported for backward compatibility. `device` is the preferred field because it can take:
+
+- a canonical device name such as `living_room.floor_lamp`
+- a unique display name such as `Kitchen Speaker`
+- a raw device ID if you need it
+
+If a display name matches more than one device, HomeCore marks the rule invalid instead of guessing.
 
 `SetDeviceState` is also the standard way to send **command-style** payloads to plugins. This is common for scenes, media players, and any device where the payload represents an action rather than a simple state assignment.
 
@@ -44,37 +54,37 @@ state     = { mode = "heat", target_temp = 68 }
 # Start playback
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_living_room"
+device    = "living_room.sonos"
 state     = { action = "play" }
 
 # Pause playback
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_living_room"
+device    = "living_room.sonos"
 state     = { action = "pause" }
 
 # Set volume
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_living_room"
+device    = "living_room.sonos"
 state     = { action = "set_volume", volume = 30 }
 
 # Play a Sonos favorite by name
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_living_room"
+device    = "living_room.sonos"
 state     = { action = "play_favorite", favorite = "Dinner Jazz" }
 
 # Use the generic media command shape
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_living_room"
+device    = "living_room.sonos"
 state     = { action = "play_media", media_type = "playlist", name = "Dinner" }
 ```
 
 ### Why this matters
 
-The rule references the HomeCore device ID, not the plugin's private HTTP API, not a speaker IP address, and not a raw Sonos URI. The plugin resolves the named favorite or playlist at execution time.
+The rule references the HomeCore canonical device name, not the plugin's private HTTP API, not a speaker IP address, and not a raw Sonos URI. The plugin resolves the named favorite or playlist at execution time.
 
 That gives you:
 

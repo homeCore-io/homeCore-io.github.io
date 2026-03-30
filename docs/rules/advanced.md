@@ -20,13 +20,13 @@ cooldown_secs = 60   # won't fire again for 60 seconds after firing
 
 [trigger]
 type      = "device_state_changed"
-device_id = "motion_hallway"
+device    = "hallway.motion"
 attribute = "motion"
 to        = true
 
 [[actions]]
 type      = "set_device_state"
-device_id = "light_hallway"
+device    = "hallway.light"
 state     = { on = true }
 ```
 
@@ -72,7 +72,7 @@ priority = 100
 
 [trigger]
 type      = "device_state_changed"
-device_id = "keypad_main"
+device    = "entryway.keypad"
 attribute = "code"
 
 [[conditions]]
@@ -81,7 +81,7 @@ script = 'device_state("keypad_main")["code"] == "1234"'
 
 [[actions]]
 type      = "set_device_state"
-device_id = "virtual_switch_armed"
+device    = "security.armed_switch"
 state     = { on = false }
 
 [[actions]]
@@ -96,7 +96,7 @@ priority = 0
 
 [trigger]
 type      = "device_state_changed"
-device_id = "keypad_main"
+device    = "entryway.keypad"
 attribute = "code"
 
 [[actions]]
@@ -118,13 +118,13 @@ name = "Motion light — on"
 
 [trigger]
 type      = "device_state_changed"
-device_id = "motion_hallway"
+device    = "hallway.motion"
 attribute = "motion"
 to        = true
 
 [[actions]]
 type      = "set_device_state"
-device_id = "light_hallway"
+device    = "hallway.light"
 state     = { on = true }
 
 [[actions]]
@@ -135,7 +135,7 @@ cancel_key    = "motion_off_delay"
 
 [[actions]]
 type      = "set_device_state"
-device_id = "light_hallway"
+device    = "hallway.light"
 state     = { on = false }
 ```
 
@@ -147,7 +147,7 @@ priority = 5   # higher than rule 1 so it fires first
 
 [trigger]
 type      = "device_state_changed"
-device_id = "motion_hallway"
+device    = "hallway.motion"
 attribute = "motion"
 to        = true
 
@@ -168,7 +168,7 @@ Variables scoped to a single rule. Persist across firings (in-memory; cleared on
 # Count door openings; notify at every 5th
 [trigger]
 type      = "device_state_changed"
-device_id = "front_door"
+device    = "entryway.front_door"
 attribute = "open"
 to        = true
 
@@ -249,7 +249,7 @@ type = "system_started"
 
 [[conditions]]
 type      = "device_state"
-device_id = "yolink_garage_door"
+device    = "garage.main_door"
 attribute = "open"
 op        = "Eq"
 value     = true
@@ -283,7 +283,7 @@ Any action can be disabled without removing it. Set `enabled = false` to skip th
 ```toml
 [[actions]]
 type      = "set_device_state"
-device_id = "light_desk"
+device    = "office.desk_light"
 state     = { on = true }
 
 [[actions]]
@@ -342,7 +342,7 @@ to        = true
 
 [[actions]]
 type      = "set_device_state"
-device_id = "light_porch"
+device    = "porch.light"
 state     = { on = true, brightness = 100 }
 
 ---

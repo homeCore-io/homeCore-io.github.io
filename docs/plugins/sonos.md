@@ -177,19 +177,19 @@ priority = 10
 
 [trigger]
 type      = "device_state_changed"
-device_id = "switch_dinner_music"
+device    = "dining_room.music_switch"
 attribute = "on"
 to        = true
 
 [[actions]]
 type      = "set_device_state"
-device_id = "sonos_living_room"
+device    = "living_room.sonos"
 state     = { action = "play_favorite", favorite = "Dinner Jazz" }
 ```
 
 This is preferable to an HTTP `CallService` action because:
 
-- the rule references a stable HomeCore device ID
+- the rule references a stable HomeCore canonical device name
 - the plugin remains free to rediscover speakers and change IPs
 - Sonos favorites and playlists stay named content, not embedded transport details
 

@@ -18,7 +18,7 @@ Fires when any MQTT state publish arrives for a device.
 ```toml
 [trigger]
 type      = "device_state_changed"
-device_id = "yolink_front_door"
+device    = "entryway.front_door"
 
 # Optional: only fire when this attribute changes
 attribute = "open"
@@ -29,9 +29,12 @@ to = true
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` | yes | Device ID exactly as registered |
+| `device` | yes | Preferred device reference: canonical name, unique display name, or raw device ID |
+| `device_id` | yes | Backward-compatible alias for `device` |
 | `attribute` | no | Narrow to one attribute (e.g. `"on"`, `"open"`, `"temperature"`) |
 | `to` | no | Only fire when the attribute's new value equals this |
+
+If you use a display name and more than one device matches it, HomeCore marks the rule invalid with an ambiguity error.
 
 **Examples:**
 
@@ -39,18 +42,18 @@ to = true
 # Fire on any state change for a device
 [trigger]
 type      = "device_state_changed"
-device_id = "zwave_23"
+device    = "hallway.dimmer"
 
 # Fire only when the "on" attribute changes (either direction)
 [trigger]
 type      = "device_state_changed"
-device_id = "hue_001788fffe6841b3_1"
+device    = "living_room.floor_lamp"
 attribute = "on"
 
 # Fire only when a door opens (open = true)
 [trigger]
 type      = "device_state_changed"
-device_id = "yolink_garage_door"
+device    = "garage.main_door"
 attribute = "open"
 to        = true
 ```

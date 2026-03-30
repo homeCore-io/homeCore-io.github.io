@@ -9,6 +9,34 @@ sidebar_position: 1
 
 Automation rules are the core of HomeCore. A rule defines what happens when a specific event occurs. Rules are stored as TOML files in the `rules/` directory and hot-reloaded on every file change — no restarts needed.
 
+## Device references
+
+For device-based triggers, conditions, and actions, prefer `device = "canonical.name"` instead of `device_id = "plugin_specific_id"`.
+
+Preferred:
+
+```toml
+[trigger]
+type   = "device_state_changed"
+device = "entryway.front_door"
+```
+
+Still supported:
+
+```toml
+[trigger]
+type      = "device_state_changed"
+device_id = "yolink_front_door"
+```
+
+The `device` field can contain:
+
+- a canonical name such as `living_room.floor_lamp`
+- a unique display name such as `Kitchen Speaker`
+- a raw `device_id` if needed
+
+If a display name matches more than one device, HomeCore disables the rule with an explicit ambiguity error instead of guessing.
+
 ## Data model
 
 Every rule has exactly three parts:
@@ -55,7 +83,7 @@ tags     = ["lighting", "morning"]   # optional; used for filtering and bulk ops
 
 [trigger]
 type      = "device_state_changed"
-device_id = "yolink_front_door"
+device    = "entryway.front_door"
 attribute = "open"
 # to = true   # optional: only fire when attribute changes TO this value
 
@@ -83,7 +111,7 @@ RULE_ID=$(curl -s -X POST http://localhost:8080/api/v1/automations \
     "tags": ["security"],
     "trigger": {
       "type": "DeviceStateChanged",
-      "device_id": "yolink_front_door",
+      "device": "entryway.front_door",
       "attribute": "open"
     },
     "conditions": [
