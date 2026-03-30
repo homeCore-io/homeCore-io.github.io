@@ -36,6 +36,52 @@ device_id = "thermostat_main"
 state     = { mode = "heat", target_temp = 68 }
 ```
 
+`SetDeviceState` is also the standard way to send **command-style** payloads to plugins. This is common for scenes, media players, and any device where the payload represents an action rather than a simple state assignment.
+
+### Media player examples
+
+```toml
+# Start playback
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_living_room"
+state     = { action = "play" }
+
+# Pause playback
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_living_room"
+state     = { action = "pause" }
+
+# Set volume
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_living_room"
+state     = { action = "set_volume", volume = 30 }
+
+# Play a Sonos favorite by name
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_living_room"
+state     = { action = "play_favorite", favorite = "Dinner Jazz" }
+
+# Use the generic media command shape
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_living_room"
+state     = { action = "play_media", media_type = "playlist", name = "Dinner" }
+```
+
+### Why this matters
+
+The rule references the HomeCore device ID, not the plugin's private HTTP API, not a speaker IP address, and not a raw Sonos URI. The plugin resolves the named favorite or playlist at execution time.
+
+That gives you:
+
+- stable rule files when a speaker IP changes
+- one consistent automation pattern across plugins
+- room for plugin-specific capabilities without leaking transport details into rules
+
 ---
 
 ### `SetDeviceStatePerMode`
@@ -103,6 +149,8 @@ method         = "GET"
 retries        = 3        # retry on network errors and 5xx (not 4xx)
 response_event = "weather_update"   # fires CustomEvent with response body
 ```
+
+Use `CallService` when you genuinely need an external HTTP request. Do **not** use it for normal device control when the target is already represented as a HomeCore device. For example, a Sonos speaker registered as `sonos_living_room` should usually be controlled with `SetDeviceState`, not by calling the plugin's HTTP endpoint directly.
 
 **Retry backoff:** 500 ms → 1000 ms → 2000 ms → 4000 ms (on network errors and 5xx only).
 

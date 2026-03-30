@@ -69,6 +69,7 @@ const sidebars = {
         'plugins/hue',
         'plugins/yolink',
         'plugins/lutron',
+        'plugins/sonos',
         'plugins/zwave',
         'plugins/wled',
         'plugins/isy',

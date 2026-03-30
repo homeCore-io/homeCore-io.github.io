@@ -34,7 +34,7 @@ A **device** in HomeCore is any physical or virtual entity that has a state you 
 | `name` | Human-readable name; set by plugin, editable via API |
 | `plugin_id` | Which plugin owns this device |
 | `area` | Room/zone assignment (optional) |
-| `device_type` | Category hint (e.g. `light`, `door_sensor`, `thermostat`); used to filter scenes from device lists |
+| `device_type` | Canonical category such as `light`, `door_sensor`, `thermostat`, or `media_player` |
 | `available` | Whether the device is online |
 | `last_seen` | Last MQTT state update |
 | `attributes` | All current attribute values as a flat JSON object |
@@ -53,8 +53,12 @@ curl -s "http://localhost:8080/api/v1/devices?limit=50&offset=0" \
   -H "Authorization: Bearer $TOKEN" | jq
 # X-Total-Count header gives total
 
-# Filter by area
-curl -s "http://localhost:8080/api/v1/devices?area=garage" \
+# Filter by device type
+curl -s "http://localhost:8080/api/v1/devices?device_type=media_player" \
+  -H "Authorization: Bearer $TOKEN" | jq '.[].device_id'
+
+# Include resolved capability schema inline
+curl -s "http://localhost:8080/api/v1/devices?device_type=media_player&include_schema=true" \
   -H "Authorization: Bearer $TOKEN" | jq '.[].name'
 ```
 
@@ -91,6 +95,30 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_lock_front/state \
 ```
 
 The command is published to `homecore/devices/{id}/cmd`. The plugin receives it and publishes the updated state back.
+
+For some device types, especially `media_player`, the command payload is action-oriented rather than simple attribute assignment. Examples:
+
+```bash
+# Start playback on a media player
+curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "play"}'
+
+# Play a Sonos favorite by name
+curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "play_favorite", "favorite": "Dinner Jazz"}'
+
+# Use the generic media command shape
+curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "play_media", "media_type": "playlist", "name": "Dinner"}'
+```
+
+This is deliberate. The device ID stays stable inside HomeCore while the plugin handles the Sonos-specific lookup and transport details internally.
 
 ### Update device metadata
 
@@ -197,3 +225,22 @@ curl -s -X PUT http://localhost:8080/api/v1/areas/AREA_ID/devices \
 | Modes | `mode_{name}` | `mode_night` |
 | Lutron scenes | `lutron_scene_{id}` | `lutron_scene_42` |
 | Hue scenes | `hue_{bridge}_scene_{id}` | `hue_001788fffe6841b3_scene_abc123` |
+
+## Media players as first-class devices
+
+HomeCore now understands `media_player` as a built-in device type. A plugin can discover players and register them without manual configuration, and those players immediately become available in:
+
+- `GET /api/v1/devices`
+- `GET /api/v1/devices?device_type=media_player`
+- rules using `set_device_state`
+- scenes and any UI built on the device registry
+
+For Sonos specifically, the player device can expose:
+
+- transport state such as `playing`, `paused`, and current position
+- volume and mute state
+- currently playing title, artist, and album
+- group topology
+- discovered Sonos favorites and playlists
+
+That lets HomeCore rules refer to a logical device such as `sonos_living_room` instead of embedding `http://speaker-ip:port/...` URLs in automation logic.

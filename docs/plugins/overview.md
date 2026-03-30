@@ -28,6 +28,8 @@ Each plugin:
 4. Publishes availability to `homecore/devices/{device_id}/availability` (retained)
 5. Subscribes to `homecore/devices/{device_id}/cmd` for commands from HomeCore
 
+HomeCore treats the plugin as the source of truth for device discovery. In normal operation you do **not** pre-create devices manually. When the plugin discovers a light, sensor, speaker, or scene, it registers that device and HomeCore adds it to the registry automatically.
+
 ## Available plugins
 
 | Plugin | Language | Devices |
@@ -35,7 +37,7 @@ Each plugin:
 | [hc-hue](./hue) | Rust | Philips Hue lights, groups, scenes |
 | [hc-yolink](./yolink) | Rust | YoLink sensors, door sensors, outlets |
 | [hc-lutron](./lutron) | Rust | Lutron RadioRA2 dimmers, switches, scenes |
-| hc-sonos | Rust | Sonos speakers (via UPnP) |
+| [hc-sonos](./sonos) | Rust | Sonos speakers, transport controls, favorites, playlists |
 | [hc-zwave](./zwave) | Rust | Z-Wave devices via zwave-js WebSocket |
 | [hc-wled](./wled) | Rust | WLED LED controllers |
 | [hc-isy](./isy) | Rust | ISY/IoX hub (Insteon, Z-Wave, Zigbee) |
@@ -78,7 +80,32 @@ Or with `run-dev.sh` for local development (relative paths from the workspace ro
 
 ## Plugin device registration
 
-Plugins register devices by publishing a JSON payload to `homecore/plugins/{plugin_id}/register`:
+Plugins register devices by publishing a JSON payload to `homecore/plugins/{plugin_id}/register`.
+
+For well-known device classes, the recommended path is **typed registration**. The plugin sends a canonical `device_type`, and HomeCore resolves the built-in schema automatically. This is how different plugins can expose lights, switches, and now media players in a consistent way.
+
+### Typed registration example
+
+```json
+{
+  "device_id": "sonos_living_room",
+  "plugin_id": "plugin.sonos",
+  "name": "Living Room",
+  "area": "living_room",
+  "device_type": "media_player"
+}
+```
+
+When HomeCore receives that registration it:
+
+1. Creates or updates the device record
+2. Stores the `device_type`
+3. Resolves the matching built-in device schema
+4. Exposes the device to the API, UI, and rule engine without manual setup
+
+### Explicit capabilities example
+
+Plugins can also publish an explicit schema when they need a custom device shape:
 
 ```json
 {
@@ -95,7 +122,24 @@ Plugins register devices by publishing a JSON payload to `homecore/plugins/{plug
 }
 ```
 
-HomeCore stores the device in the registry. Subsequent registrations (on plugin restart) are upserts — the device's name and capabilities are updated.
+Use explicit capabilities when the device does not fit a built-in type cleanly. Use `device_type` when you want HomeCore to understand the device as a known category.
+
+### Known device types
+
+The built-in catalog includes common categories such as:
+
+- `switch`
+- `light`
+- `lock`
+- `cover`
+- `climate`
+- `binary_sensor`
+- `temperature_sensor`
+- `media_player`
+
+This matters because HomeCore can now treat media players from different plugins the same way at the automation layer. A plugin such as `hc-sonos` can register speakers as `media_player`, and rules can target those players by HomeCore device ID instead of plugin-local URLs or IP addresses.
+
+HomeCore stores the device in the registry. Subsequent registrations on plugin restart are upserts, so names, areas, types, and schemas stay in sync with what the plugin reports.
 
 ## Plugin startup race condition
 

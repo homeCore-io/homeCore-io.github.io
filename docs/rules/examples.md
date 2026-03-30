@@ -301,7 +301,72 @@ method = "GET"
 
 ---
 
-## 7. Hysteresis control — humidifier
+## 7. Play a Sonos favorite by name
+
+Start a named Sonos favorite when a virtual switch turns on.
+
+This example demonstrates the preferred pattern for media playback in HomeCore:
+
+- target the HomeCore device ID
+- send a structured command payload
+- let the plugin resolve the favorite internally
+
+You do **not** need to hardcode a Sonos player IP, plugin-local HTTP endpoint, or a raw transport URI.
+
+```toml
+id       = ""
+name     = "Kitchen music — play favorite"
+enabled  = true
+priority = 10
+tags     = ["music", "sonos", "kitchen"]
+
+[trigger]
+type      = "device_state_changed"
+device_id = "switch_kitchen_music"
+attribute = "on"
+to        = true
+
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_kitchen"
+state     = { action = "play_favorite", favorite = "Morning Jazz" }
+```
+
+### What the rule does
+
+1. A virtual switch named `switch_kitchen_music` turns on
+2. HomeCore publishes a command to `homecore/devices/sonos_kitchen/cmd`
+3. `hc-sonos` receives that command
+4. The plugin looks up the Sonos favorite named `Morning Jazz`
+5. The plugin starts playback on the kitchen speaker
+
+### When to use this pattern
+
+Use this form when:
+
+- the target is a HomeCore media player device such as `sonos_kitchen`
+- the content is a named Sonos favorite or playlist
+- you want the rule to stay stable even if the speaker IP or Sonos URI changes
+
+### Related variants
+
+```toml
+# Play a playlist by name
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_kitchen"
+state     = { action = "play_playlist", playlist = "Dinner" }
+
+# Use the generic media command shape
+[[actions]]
+type      = "set_device_state"
+device_id = "sonos_kitchen"
+state     = { action = "play_media", media_type = "favorite", name = "Morning Jazz" }
+```
+
+---
+
+## 8. Hysteresis control — humidifier
 
 Turn a humidifier on when humidity drops below 35%, off when it rises above 50%.
 
@@ -371,7 +436,7 @@ state     = { on = false }
 
 ---
 
-## 8. Webhook — doorbell integration
+## 9. Webhook — doorbell integration
 
 Flash a light when a smart doorbell POSTS to a webhook.
 
@@ -415,7 +480,7 @@ curl -X POST http://homecore.local/api/v1/webhooks/doorbell-secret-path-a3f9c2
 
 ---
 
-## 9. Security alert — multi-condition with script logic
+## 10. Security alert — multi-condition with script logic
 
 Alert when motion is detected at night AND the house is not in "expected motion" mode.
 
@@ -467,7 +532,7 @@ state     = { on = true, brightness = 255 }
 
 ---
 
-## 10. Startup state check
+## 11. Startup state check
 
 Check critical devices when HomeCore starts, alert if anything is in a wrong state.
 
