@@ -114,7 +114,7 @@ This creates the full workspace layout:
 ~/homeCore/
   core/
   plugins/hc-yolink/  hc-lutron/  hc-sonos/  ...
-  clients/hc-web/  hc-tui/
+  clients/hc-web/  hc-web-svelte/  hc-tui/
 ```
 
 ---

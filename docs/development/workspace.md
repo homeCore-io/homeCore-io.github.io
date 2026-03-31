@@ -67,6 +67,7 @@ homeCore/
 │
 └── clients/                    ← UI and API consumers (each is its own git repo)
     ├── hc-web/                 ← Flutter web dashboard
+    ├── hc-web-svelte/          ← Svelte web client
     ├── hc-tui/                 ← Terminal UI (ratatui)
     └── hc-mcp/                 ← MCP server for Claude integration
 ```
