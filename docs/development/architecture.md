@@ -153,7 +153,7 @@ for rule in &rules_snapshot {
 
 ### Fire history ring buffer
 
-The engine records the last 20 evaluation attempts for every rule in `Arc<DashMap<Uuid, VecDeque<RuleFiring>>>`. Each `RuleFiring` contains:
+The engine records the last 500 evaluation attempts for every rule in `Arc<DashMap<Uuid, VecDeque<RuleFiring>>>`. Each `RuleFiring` contains:
 
 - `timestamp` — when the rule was evaluated
 - `trigger_type` — which trigger variant fired
@@ -192,7 +192,7 @@ The executor is pure async Rust — it does not call back into the engine. Actio
 
 - Each rule firing is dispatched as a `tokio::spawn` task (non-blocking from the select loop).
 - An `Arc<AtomicUsize>` (`in_flight`) tracks running tasks for graceful shutdown.
-- Per-rule `run_mode` (`Single` or `Queued`) uses a per-rule `Arc<AtomicUsize>` to enforce the policy.
+- Per-rule `run_mode` (`Parallel`, `Single`, `Restart`, or `Queued` with optional `max_queue`) uses a per-rule `Arc<AtomicUsize>` to enforce the policy.
 - `Delay` actions yield their task without blocking other firings.
 - `Parallel { actions }` runs sub-actions via `tokio::join!` within the same task.
 - Cancellable delays register a `tokio::sync::Notify` in `delay_registry` keyed by a label; `CancelDelays` looks up and triggers the notify.
@@ -219,15 +219,55 @@ Solar times are computed locally from the `[location]` lat/lon config using the 
 
 ## Managers
 
-Three subsystems run as independent tokio tasks spawned from `Core::start()`. Each subscribes to `internal_bus` for MQTT commands and publishes to `pub_bus` for state changes.
+Four subsystems run as independent tokio tasks spawned from `Core::start()`. The device managers subscribe to `internal_bus` for MQTT commands and publish to `pub_bus` for state changes. The PluginManager monitors plugin heartbeats and handles management commands.
 
 | Manager | Device prefix | Purpose |
 |---|---|---|
 | `TimerManager` | `timer_` | Countdown timer devices with start/pause/resume/cancel/restart commands |
 | `SwitchManager` | `switch_` | Virtual on/off boolean switches |
 | `ModeManager` | `mode_` | Solar modes (`mode_night`, `mode_day`) + named boolean modes from `modes.toml` |
+| `PluginManager` | — | Per-plugin supervisor, heartbeat monitoring, start/stop/restart, exponential backoff |
 
 All managers persist their state to redb via `StateStore` so state survives restarts.
+
+---
+
+## PluginManager
+
+The `PluginManager` supervises managed plugins as independent processes. It runs as a tokio task spawned from `Core::start()`.
+
+### Per-plugin supervisor
+
+Each managed plugin gets its own supervisor task that:
+
+1. Spawns the plugin process
+2. Monitors its heartbeat via `homecore/plugins/{id}/heartbeat`
+3. Handles start/stop/restart commands
+4. Applies exponential backoff on crashes
+
+### MQTT management channel
+
+| Topic | Direction | Purpose |
+|---|---|---|
+| `homecore/plugins/{id}/heartbeat` | Plugin → Core | Liveness signal (30-60s) |
+| `homecore/plugins/{id}/manage/cmd` | Core → Plugin | Management commands |
+| `homecore/plugins/{id}/manage/response` | Plugin → Core | Command responses |
+
+Available commands: `ping`, `get_config`, `set_config`, `set_log_level`.
+
+### Timeout sweep
+
+The PluginManager runs a periodic sweep checking heartbeat timestamps. Plugins that have not sent a heartbeat within 90 seconds are marked offline and a `plugin_offline` event is published to `pub_bus`.
+
+### REST API
+
+- `GET /api/v1/plugins/:id` — plugin status and details
+- `PATCH /api/v1/plugins/:id` — update plugin metadata
+- `POST /api/v1/plugins/:id/start` — start a managed plugin
+- `POST /api/v1/plugins/:id/stop` — stop a managed plugin
+- `POST /api/v1/plugins/:id/restart` — restart a managed plugin
+- `GET /api/v1/plugins/:id/config` — read plugin configuration
+- `PUT /api/v1/plugins/:id/config` — push configuration changes
 
 ---
 
@@ -256,6 +296,7 @@ The `hc-scripting` crate exposes the Rhai engine with the `sync` feature enabled
 | `crates/hc-core/src/timer_manager.rs` | Virtual timer devices |
 | `crates/hc-core/src/switch_manager.rs` | Virtual switch devices |
 | `crates/hc-core/src/mode_manager.rs` | Solar + boolean mode devices |
+| `crates/hc-core/src/plugin_manager.rs` | Plugin supervisor, heartbeat monitoring, management commands |
 | `crates/hc-core/src/rule_loader.rs` | TOML rule file loading, UUID write-back, hot-reload watcher |
 | `crates/hc-mqtt-client/src/lib.rs` | rumqttc client, `internal_bus` publisher, `PublishHandle` |
 | `crates/hc-state/src/lib.rs` | redb device registry, SQLite history, `StateStore` |

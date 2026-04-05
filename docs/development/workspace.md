@@ -39,12 +39,10 @@ homeCore/
 │   │   ├── hc-auth/            ← JWT HS256, Argon2id passwords, MQTT bcrypt creds
 │   │   ├── hc-scripting/       ← Rhai sandboxed runtime (conditions + action scripts)
 │   │   ├── hc-logging/         ← tracing setup, rolling files, log stream ring buffer
-│   │   └── hc-notify/          ← notification delivery (Pushover, email, Telegram)
+│   │   ├── hc-notify/          ← notification delivery (Pushover, email, Telegram)
+│   │   └── hc-web-admin/       ← bundled admin UI assets
 │   ├── src/                    ← homecore binary crate (main.rs)
 │   ├── plugins/
-│   │   ├── plugin-sdk-rs/      ← Rust plugin SDK
-│   │   ├── plugin-sdk-py/      ← Python plugin SDK
-│   │   ├── plugin-sdk-js/      ← Node.js plugin SDK
 │   │   └── examples/
 │   │       ├── virtual-device/ ← software-only test device (Rust)
 │   │       └── http-poller/    ← generic HTTP polling adapter (Rust)
@@ -65,11 +63,21 @@ homeCore/
 │   ├── hc-isy/
 │   └── hc-plugin-template/
 │
-└── clients/                    ← UI and API consumers (each is its own git repo)
-    ├── hc-web/                 ← Flutter web dashboard
-    ├── hc-web-svelte/          ← Svelte web client
-    ├── hc-tui/                 ← Terminal UI (ratatui)
-    └── hc-mcp/                 ← MCP server for Claude integration
+├── clients/                    ← UI and API consumers (each is its own git repo)
+│   ├── hc-web-leptos/          ← Leptos/WASM admin UI (default bundled)
+│   ├── hc-web-admin-react/     ← React admin UI (alternative)
+│   ├── hc-tui/                 ← Terminal UI (ratatui)
+│   ├── hc-web/                 ← Flutter web (legacy)
+│   ├── hc-web-dioxus/          ← Dioxus prototype
+│   ├── hc-web-svelte/          ← Svelte prototype
+│   ├── hc-dashboard/           ← Dashboard
+│   └── hc-mcp/                 ← MCP server (planned)
+│
+└── sdks/                       ← Plugin SDKs (each is its own git repo)
+    ├── hc-plugin-sdk-rs/       ← Rust SDK
+    ├── hc-plugin-sdk-py/       ← Python SDK
+    ├── hc-plugin-sdk-js/       ← Node.js SDK
+    └── hc-plugin-sdk-dotnet/   ← .NET Core SDK
 ```
 
 ## Crate dependency order

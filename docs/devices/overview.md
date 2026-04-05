@@ -265,6 +265,7 @@ curl -s -X PUT http://localhost:8080/api/v1/areas/AREA_ID/devices \
 | hc-hue | `hue_{bridge_id}_{resource_id}` | `hue_001788fffe6841b3_1` |
 | hc-yolink | `yolink_{device_id}` | `yolink_d88b4c01000e82eb` |
 | hc-lutron | `lutron_{device_id}` | `lutron_21` |
+| hc-lutron (Pico) | `lutron_pico_{id}` | `lutron_pico_5` |
 | hc-zwave | `zwave_{node_id}` | `zwave_23` |
 | hc-sonos | `sonos_{room_name}` | `sonos_living_room` |
 | hc-wled | `wled_{name}` | `wled_deck` |

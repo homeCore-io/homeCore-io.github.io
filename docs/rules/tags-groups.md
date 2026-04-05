@@ -197,7 +197,7 @@ curl -s "http://localhost:8080/api/v1/automations?tag=security&limit=10" \
 ```
 
 Valid `trigger` values:
-`device_state_changed` `mqtt_message` `time_of_day` `sun_event` `webhook_received` `manual_trigger` `custom_event` `system_started` `cron` `device_availability_changed` `mode_changed` `calendar_event`
+`device_state_changed` `device_availability_changed` `time_of_day` `sun_event` `cron` `periodic` `webhook_received` `mqtt_message` `custom_event` `system_started` `mode_changed` `button_event` `numeric_threshold` `hub_variable_changed` `calendar_event` `manual_trigger`
 
 ---
 

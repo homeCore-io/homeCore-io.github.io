@@ -31,8 +31,8 @@ Every protected API route enforces a specific scope. A `403 Forbidden` response 
 | `areas:write` | `POST /areas`, `PUT /areas/{id}/devices` |
 | `scenes:read` | `GET /scenes` |
 | `scenes:write` | `POST /scenes`, `POST /scenes/{id}/activate` |
-| `plugins:read` | `GET /plugins` |
-| `plugins:write` | `DELETE /plugins/{id}` |
+| `plugins:read` | `GET /plugins`, `GET /plugins/{id}`, `GET /plugins/{id}/config` |
+| `plugins:write` | `DELETE /plugins/{id}`, `PATCH /plugins/{id}`, `PUT /plugins/{id}/config`, `POST /plugins/{id}/start`, `POST /plugins/{id}/stop`, `POST /plugins/{id}/restart` |
 | `users:write` | `POST /auth/users`, `PUT /auth/users/{id}`, `DELETE /auth/users/{id}` |
 
 Public routes (no auth required): `GET /health`, `POST /auth/login`, `POST /webhooks/{path}`, `GET /api/v1/events/stream` (token in query param).

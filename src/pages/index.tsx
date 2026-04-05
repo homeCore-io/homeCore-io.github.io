@@ -91,7 +91,7 @@ const FEATURES = [
   {
     icon: '🔌',
     title: 'Plugin Architecture',
-    body: 'Connect anything via Rust, Python, or Node.js SDKs. Plugins run as separate processes with per-plugin MQTT ACL enforcement.',
+    body: 'Connect anything via Rust, Python, Node.js, or .NET SDKs. Managed plugins with heartbeat monitoring, remote config, and dynamic log levels.',
   },
   {
     icon: '🌐',

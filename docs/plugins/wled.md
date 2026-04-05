@@ -136,7 +136,15 @@ state     = { on = false }
 
 ## Architecture note
 
-hc-wled uses WebSocket connections to each WLED device for real-time state updates (rather than polling). If a WLED device goes offline and comes back, the plugin automatically reconnects.
+hc-wled is a fully managed plugin built on the official HomeCore plugin SDK. It supports the management protocol including heartbeat monitoring, remote configuration, and dynamic log level changes.
+
+The plugin uses WebSocket connections to each WLED device for real-time state updates (preferred), with HTTP polling as a fallback when WebSocket is unavailable. If a WLED device goes offline and comes back, the plugin automatically reconnects.
+
+### Management protocol support
+
+- Heartbeat published every 30 seconds
+- Log level can be changed at runtime via `POST /api/v1/plugins/plugin.wled/config` or the `set_log_level` management command
+- Plugin can be started, stopped, and restarted via the management API
 
 ## Log rotation
 

@@ -39,7 +39,7 @@ HomeCore kernel
 Plugins (separate processes, any language)
   ├── hc-hue, hc-yolink, hc-lutron, hc-sonos
   ├── hc-zwave, hc-wled, hc-isy
-  └── Your plugin (Rust/Python/Node SDK)
+  └── Your plugin (Rust/Python/Node/.NET SDK)
 ```
 
 ## Key design principles

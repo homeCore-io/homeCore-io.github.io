@@ -106,6 +106,26 @@ channel = "telegram"
 message = "YoLink front door sensor battery is low: {{device.battery}}%"
 ```
 
+## Background initial state fetch
+
+On startup, hc-yolink fetches the current state of all devices from the YoLink cloud API. This fetch runs as a non-blocking background task (`tokio::spawn`) so it does not delay plugin startup or MQTT subscription.
+
+The fetch begins after `initial_fetch_delay_secs` (default: 10 seconds) to allow the MQTT connection to stabilize first:
+
+```toml
+[yolink]
+initial_fetch_delay_secs = 10   # seconds before background getState begins
+poll_interval            = 3600  # periodic refresh interval (seconds, default: 3600)
+```
+
+:::caution YoLink hub rate sensitivity
+The YoLink hub is sensitive to burst API traffic. The background fetch spaces getState calls to avoid overwhelming the hub. If you have many devices, the initial fetch may take a minute or more to complete.
+:::
+
+The default `poll_interval` is 3600 seconds (1 hour). Shorter intervals increase API traffic and are generally unnecessary since real-time state updates arrive via the YoLink cloud MQTT stream.
+
+---
+
 ## Device name sync
 
 When a device is renamed in the YoLink app, the new name is synced to HomeCore at the next state update from that device. The update only takes effect after a confirmed state message — not immediately on registration. Restarting hc-yolink forces a full re-registration that syncs all names immediately.

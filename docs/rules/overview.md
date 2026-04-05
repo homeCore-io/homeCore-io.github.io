@@ -72,6 +72,10 @@ enabled  = true
 priority = 10          # higher = evaluated first; range [-1000, 1000]
 tags     = ["lighting", "morning"]   # optional; used for filtering and bulk ops
 
+# Optional: run mode for concurrent firings
+# run_mode = "parallel"   # parallel | single | restart | queued
+# max_queue = 5           # only for queued mode
+
 # Optional: cooldown between firings (seconds)
 # cooldown_secs = 300
 
@@ -136,6 +140,31 @@ vim rules/front-door-alert.toml
 # Check it was reloaded (watch the server log)
 # INFO hc_core::rule_loader: Hot-reloaded rule "Front door alert"
 ```
+
+## Run modes
+
+Every rule has a `run_mode` that controls how concurrent firings are handled when the rule is triggered while a previous firing is still executing.
+
+| Run mode | Behavior |
+|---|---|
+| `Parallel` | Default. Multiple firings run concurrently. |
+| `Single` | Only one firing at a time. Additional triggers while a firing is in progress are dropped. |
+| `Restart` | A new trigger cancels any in-progress firing and starts fresh. |
+| `Queued` | Firings queue up and execute sequentially. Optional `max_queue` limits queue depth. |
+
+```toml
+id       = ""
+name     = "Motion light — single mode"
+enabled  = true
+run_mode = "single"     # parallel | single | restart | queued
+
+# For queued mode, optionally limit the queue
+# max_queue = 5
+```
+
+Use `Single` for idempotent rules where re-firing is wasteful. Use `Restart` for rules with long delays where a new trigger should reset the sequence. Use `Queued` when every trigger must be processed but order matters.
+
+---
 
 ## Priority
 

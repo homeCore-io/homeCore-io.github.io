@@ -42,6 +42,32 @@ Example response:
 | `state_db_bytes` | Size of `data/state.redb` in bytes |
 | `history_db_bytes` | Size of `data/history.db` in bytes |
 
+## Stale device reference detection
+
+`GET /api/v1/automations/stale-refs` returns rules that reference devices no longer in the registry. This helps catch broken automations after device removal or plugin changes.
+
+```bash
+curl -s http://localhost:8080/api/v1/automations/stale-refs \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+---
+
+## Dynamic log level
+
+Change the server's log level at runtime without restart:
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/system/log-level \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"target": "hc_core", "level": "debug"}'
+```
+
+See [Logging: Log level API](./logging#log-level-api) for details.
+
+---
+
 ## Graceful shutdown
 
 HomeCore handles `SIGINT` and `SIGTERM` with a graceful shutdown sequence:

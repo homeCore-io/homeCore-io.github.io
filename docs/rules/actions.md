@@ -405,6 +405,20 @@ response_event = "router_ping_result"
 
 ---
 
+### `SetVariable`
+
+Set a rule-local variable. Variables persist across firings (in-memory; cleared on restart). See [Advanced: Rule-local variables](./advanced#rule-local-variables) for full usage.
+
+```toml
+[[actions]]
+type  = "set_variable"
+name  = "open_count"
+op    = "Add"      # Set | Add | Subtract | Multiply | Divide | Toggle | Append | Clear
+value = 1.0
+```
+
+---
+
 ### `SetHubVariable`
 
 Write a cross-rule hub variable. Fires a `hub_variable_changed` event.
@@ -604,6 +618,42 @@ duration_secs = 300   # 5 minutes at night
 [[actions.modes]]
 mode_name = "mode_away"
 duration_secs = 0     # no delay when away (skip the delayed action)
+```
+
+---
+
+### `SetMode`
+
+Set a named mode on or off.
+
+```toml
+[[actions]]
+type  = "set_mode"
+name  = "mode_away"
+value = true
+
+# Turn off a mode
+[[actions]]
+type  = "set_mode"
+name  = "mode_vacation"
+value = false
+```
+
+---
+
+### `RunScript`
+
+Execute a Rhai script as an action. The script runs synchronously inside `spawn_blocking` and can collect side effects (device state changes, MQTT publishes, notifications) that are applied asynchronously after the script returns.
+
+```toml
+[[actions]]
+type   = "run_script"
+script = '''
+  let temp = device_state("thermostat_main")["temperature"];
+  if temp > 80 {
+      set_device("fan_living_room", #{"on": true});
+  }
+'''
 ```
 
 ---

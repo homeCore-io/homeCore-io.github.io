@@ -160,6 +160,25 @@ format     = "json"
 # facility  = "daemon"
 # app_name  = "homecore"
 
+# ── Engine ────────────────────────────────────────────────────────────────────
+[engine]
+drain_timeout_secs = 10   # time to wait for in-flight rule tasks on shutdown
+fire_history_limit = 500  # max evaluation records per rule
+
+# ── Plugins (managed) ────────────────────────────────────────────────────────
+# Each [[plugins]] entry defines a managed plugin that HomeCore supervises.
+# [[plugins]]
+# id      = "plugin.hue"
+# binary  = "plugins/hc-hue/bin/hc-hue"    # relative to HOMECORE_HOME
+# config  = "plugins/hc-hue/config/config.toml"
+# enabled = true
+
+# [[plugins]]
+# id      = "plugin.wled"
+# binary  = "plugins/hc-wled/bin/hc-wled"
+# config  = "plugins/hc-wled/config/config.toml"
+# enabled = true
+
 # ── Ecosystem profiles ────────────────────────────────────────────────────────
 # [ecosystem]
 # profiles_dir = "config/profiles"   # directory of .toml profile files
@@ -224,6 +243,26 @@ Required for `SunEvent` and `SunEvent` offset triggers.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `plugin_ready_delay_secs` | integer | `10` | Grace period before mode manager publishes initial states. Prevents command-before-subscribe race with plugins. |
+
+### `[engine]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `drain_timeout_secs` | integer | `10` | Time to wait for in-flight rule tasks on shutdown before force-stopping |
+| `fire_history_limit` | integer | `500` | Maximum evaluation records stored per rule |
+
+### `[[plugins]]`
+
+Each entry defines a managed plugin that HomeCore supervises. Managed plugins support heartbeat monitoring, start/stop/restart, and remote configuration.
+
+| Key | Type | Description |
+|---|---|---|
+| `id` | string | Plugin ID (matches the plugin's `plugin_id` config) |
+| `binary` | string | Path to the plugin binary (relative to `HOMECORE_HOME`) |
+| `config` | string | Path to the plugin config file (relative to `HOMECORE_HOME`) |
+| `enabled` | boolean | Whether the plugin should be started automatically |
+
+---
 
 ## modes.toml reference
 

@@ -7,15 +7,17 @@ sidebar_position: 2
 
 # Developing Plugins
 
-Plugins can be written in any language that has an MQTT client library. HomeCore provides first-class SDKs for Rust, Python, and Node.js.
+Plugins can be written in any language that has an MQTT client library. HomeCore provides first-class SDKs for Rust, Python, Node.js, and .NET Core.
 
-## Rust SDK (`plugin-sdk-rs`)
+SDKs live in the `sdks/` directory of the workspace, each as an independent git repo.
+
+## Rust SDK (`hc-plugin-sdk-rs`)
 
 ### Add to Cargo.toml
 
 ```toml
 [dependencies]
-hc-plugin-sdk = { path = "../homeCore/core/plugins/plugin-sdk-rs" }
+hc-plugin-sdk = { path = "../homeCore/sdks/hc-plugin-sdk-rs" }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 ```
@@ -101,7 +103,11 @@ client.subscribe_commands("my_device_001", |cmd: serde_json::Value| {
 }).await?;
 ```
 
-## Python SDK (`plugin-sdk-py`)
+The Rust SDK includes `DevicePublisher` for spawned tasks and full management protocol support (heartbeat, remote config, dynamic log level).
+
+---
+
+## Python SDK (`hc-plugin-sdk-py`)
 
 ```python
 from hc_plugin_sdk import PluginClient, PluginConfig
@@ -143,7 +149,11 @@ async def main():
 asyncio.run(main())
 ```
 
-## Node.js SDK (`plugin-sdk-js`)
+The Python SDK provides a `PluginBase` class with env var config support and uses paho-mqtt under the hood.
+
+---
+
+## Node.js SDK (`hc-plugin-sdk-js`)
 
 ```javascript
 const { PluginClient } = require('hc-plugin-sdk');
@@ -181,6 +191,78 @@ async function main() {
 
 main().catch(console.error);
 ```
+
+The Node.js SDK provides a `PluginBase` class using mqtt.js v5.
+
+---
+
+## .NET Core SDK (`hc-plugin-sdk-dotnet`)
+
+```csharp
+using HcPluginSdk;
+
+var config = new PluginConfig
+{
+    PluginId = "plugin.my-device",
+    BrokerHost = "127.0.0.1",
+    BrokerPort = 1883,
+    Password = ""
+};
+
+await using var client = new PluginClient(config);
+await client.ConnectAsync();
+
+// Register a device
+await client.RegisterDeviceAsync(new DeviceRegistration
+{
+    DeviceId = "my_device_001",
+    PluginId = "plugin.my-device",
+    Name = "My Device",
+    DeviceType = "sensor",
+    Capabilities = new Dictionary<string, object>
+    {
+        ["temperature"] = new { type = "number" },
+        ["humidity"] = new { type = "number" }
+    }
+});
+
+// Publish state
+await client.PublishStateAsync("my_device_001", new
+{
+    temperature = 72.5,
+    humidity = 45.0
+});
+
+await client.SetAvailabilityAsync("my_device_001", true);
+
+// Handle commands
+client.OnCommand("my_device_001", async (cmd) =>
+{
+    Console.WriteLine($"Received command: {cmd}");
+});
+
+// Keep running
+await client.RunAsync();
+```
+
+The .NET SDK uses MQTTnet 4.x, provides an async Task-based API, and supports the management protocol (heartbeat, remote config, dynamic log level).
+
+---
+
+## Management protocol
+
+Plugins built with the official SDKs can opt into the management protocol, which enables:
+
+- **Heartbeat monitoring** — the plugin publishes to `homecore/plugins/{id}/heartbeat` every 30-60 seconds. HomeCore marks the plugin offline after 90 seconds without a heartbeat.
+- **Remote configuration** — HomeCore can push config changes via `homecore/plugins/{id}/manage/cmd` with `set_config`.
+- **Dynamic log level** — change the plugin's log verbosity at runtime via `set_log_level` without restarting.
+- **Health checks** — `ping` command with `pong` response.
+
+The Rust and .NET SDKs handle the management protocol automatically when enabled. Python and Node.js SDKs provide helper methods to integrate it manually.
+
+See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
+
+---
 
 ## Raw MQTT (any language)
 
@@ -311,6 +393,7 @@ Register a `device_type` string to help UIs categorize devices correctly and fil
 | `cover` | Blinds, shade, garage door |
 | `media_player` | Speaker, TV |
 | `scene` | Scene activator (device_type prevents it from appearing in device control lists) |
+| `pico` | Button-only remote (read-only, reports button events) |
 | `timer` | Virtual countdown timer |
 
 ## Testing your plugin

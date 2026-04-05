@@ -85,11 +85,17 @@ value     = 20
 
 ### `TimeWindow`
 
-Checks whether the current wall-clock time falls within a window.
+Checks whether the current wall-clock time falls within a window. `between` is accepted as an alias for `time_window`.
 
 ```toml
 [[conditions]]
 type  = "time_window"
+start = "08:00"
+end   = "22:00"
+
+# Alias form
+[[conditions]]
+type  = "between"
 start = "08:00"
 end   = "22:00"
 ```
@@ -267,9 +273,84 @@ value     = true
 
 ---
 
+### `And`
+
+Explicitly groups conditions with AND logic. All wrapped conditions must pass. This is equivalent to listing conditions at the top level (which also AND together), but useful for nesting inside `Or` or `Xor`.
+
+```toml
+[[conditions]]
+type = "and"
+
+[[conditions.conditions]]
+type      = "device_state"
+device_id = "mode_night"
+attribute = "on"
+op        = "Eq"
+value     = true
+
+[[conditions.conditions]]
+type  = "time_window"
+start = "22:00"
+end   = "06:00"
+```
+
+---
+
+### `Or`
+
+At least one of the wrapped conditions must pass.
+
+```toml
+[[conditions]]
+type = "or"
+
+[[conditions.conditions]]
+type      = "device_state"
+device_id = "yolink_front_door"
+attribute = "open"
+op        = "Eq"
+value     = true
+
+[[conditions.conditions]]
+type      = "device_state"
+device_id = "yolink_back_door"
+attribute = "open"
+op        = "Eq"
+value     = true
+```
+
+---
+
+### `Xor`
+
+Exactly one of the wrapped conditions must pass (exclusive or).
+
+```toml
+[[conditions]]
+type = "xor"
+
+[[conditions.conditions]]
+type      = "device_state"
+device_id = "switch_away_mode"
+attribute = "on"
+op        = "Eq"
+value     = true
+
+[[conditions.conditions]]
+type      = "device_state"
+device_id = "switch_vacation_mode"
+attribute = "on"
+op        = "Eq"
+value     = true
+```
+
+This fires only if exactly one of away mode or vacation mode is active, but not both.
+
+---
+
 ## Combining conditions
 
-All conditions AND together by default. For OR logic, use a `ScriptExpression`:
+All top-level conditions AND together by default. Use `Or`, `And`, and `Xor` for compound logic, or use a `ScriptExpression` for complex expressions:
 
 ```toml
 # OR: fire if EITHER door is open

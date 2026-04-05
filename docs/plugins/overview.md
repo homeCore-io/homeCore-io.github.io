@@ -161,6 +161,54 @@ plugin_id   = "plugin.hue"
 password    = "hue-password"
 ```
 
+## Plugin management protocol
+
+HomeCore includes a PluginManager that supervises managed plugins. Each managed plugin runs under a per-plugin supervisor task with start/stop/restart support and exponential backoff on crashes.
+
+### Management MQTT topics
+
+| Direction | Topic | Purpose |
+|---|---|---|
+| Plugin → HC | `homecore/plugins/{id}/heartbeat` | Plugin liveness signal (30-60s interval) |
+| HC → Plugin | `homecore/plugins/{id}/manage/cmd` | Management commands from core |
+| Plugin → HC | `homecore/plugins/{id}/manage/response` | Plugin response to management commands |
+
+### Management commands
+
+| Command | Description |
+|---|---|
+| `ping` | Health check — plugin responds with `pong` |
+| `get_config` | Request plugin's current configuration |
+| `set_config` | Push configuration changes to the plugin |
+| `set_log_level` | Change the plugin's log level at runtime |
+
+### Heartbeat and timeout
+
+Managed plugins publish a heartbeat message every 30-60 seconds. The PluginManager runs a timeout sweep and marks a plugin as offline after 90 seconds without a heartbeat.
+
+### Management API
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/v1/plugins/:id` | Get plugin status and details |
+| `PATCH /api/v1/plugins/:id` | Update plugin metadata |
+| `POST /api/v1/plugins/:id/start` | Start a managed plugin |
+| `POST /api/v1/plugins/:id/stop` | Stop a managed plugin |
+| `POST /api/v1/plugins/:id/restart` | Restart a managed plugin |
+| `GET /api/v1/plugins/:id/config` | Get plugin configuration |
+| `PUT /api/v1/plugins/:id/config` | Update plugin configuration |
+
+### Managed plugins
+
+The following plugins have adopted the official SDK with full management protocol support:
+
+- **hc-hue** — heartbeat, remote config, dynamic log level
+- **hc-wled** — heartbeat, remote config, dynamic log level
+
+Other plugins function without management protocol support and are monitored through their MQTT registration and availability topics only.
+
+---
+
 ## Plugin MQTT topics (reference)
 
 | Direction | Topic | Purpose |
@@ -170,3 +218,6 @@ password    = "hue-password"
 | Plugin → HC | `homecore/devices/{id}/availability` | `"online"` or `"offline"` (retained) |
 | Plugin → HC | `homecore/plugins/{id}/register` | Device registration |
 | HC → Plugin | `homecore/devices/{id}/cmd` | Command from HomeCore/API |
+| Plugin → HC | `homecore/plugins/{id}/heartbeat` | Liveness signal (managed plugins) |
+| HC → Plugin | `homecore/plugins/{id}/manage/cmd` | Management command (managed plugins) |
+| Plugin → HC | `homecore/plugins/{id}/manage/response` | Management response (managed plugins) |

@@ -318,6 +318,92 @@ to        = true   # fires when mode_night turns on
 
 ---
 
+### `ButtonEvent`
+
+Fires when a physical button device (e.g. a Pico remote, keypad, or smart switch) reports a button press.
+
+```toml
+[trigger]
+type      = "button_event"
+device_id = "lutron_pico_bedroom"
+button    = 2          # optional: specific button number
+action    = "press"    # optional: "press" | "release"
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `device_id` | yes | Button device |
+| `button` | no | Specific button number to match |
+| `action` | no | `"press"` or `"release"` |
+
+---
+
+### `NumericThreshold`
+
+Fires when a numeric attribute crosses a threshold value in a specified direction.
+
+```toml
+[trigger]
+type      = "numeric_threshold"
+device_id = "sensor_basement_temp"
+attribute = "temperature"
+threshold = 80
+direction = "above"    # "above" | "below"
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `device_id` | yes | Device to monitor |
+| `attribute` | yes | Numeric attribute name |
+| `threshold` | yes | Threshold value |
+| `direction` | yes | `"above"` (fires when value crosses from below to above) or `"below"` (fires when value crosses from above to below) |
+
+Only fires on the crossing transition, not on every update while the value remains past the threshold.
+
+---
+
+### `HubVariableChanged`
+
+Fires when a hub variable is written to (via `SetHubVariable` action or API).
+
+```toml
+[trigger]
+type = "hub_variable_changed"
+name = "alarm_armed"
+
+# Optional: only fire when variable changes to this value
+to = true
+```
+
+---
+
+### `Periodic`
+
+Fires at a fixed interval. Simpler than `Cron` for basic repeating tasks.
+
+```toml
+[trigger]
+type         = "periodic"
+interval_secs = 300   # every 5 minutes
+```
+
+---
+
+### `CalendarEvent`
+
+Fires based on `.ics` calendar events. See [Advanced: Calendar triggers](./advanced#calendar-triggers) for full configuration.
+
+```toml
+[trigger]
+type        = "calendar_event"
+calendar_id = "work"
+event_match = "contains"
+summary     = "Team meeting"
+offset_minutes = -15
+```
+
+---
+
 ## Trigger context in conditions
 
 For `WebhookReceived` triggers, the request body is available in `ScriptExpression` conditions as `event.body`. For `DeviceStateChanged`, `event.device_id`, `event.attribute`, and `event.value` are available.

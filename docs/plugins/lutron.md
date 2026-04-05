@@ -46,6 +46,7 @@ The plugin connects via telnet, queries the full device list, registers all devi
 | Device type | ID pattern | Example |
 |---|---|---|
 | Dimmer/switch | `lutron_{integration_id}` | `lutron_21` |
+| Pico remote | `lutron_pico_{integration_id}` | `lutron_pico_5` |
 | Scene (button) | `lutron_scene_{id}` | `lutron_scene_42` |
 | Phantom button scene | `lutron_scene_{id}_phantom` | `lutron_scene_42_phantom` |
 
@@ -60,11 +61,27 @@ The integration ID matches the ID shown in Lutron Designer software.
 | `on` | boolean | Power state |
 | `brightness` | integer 0-100 | Level percentage (0 = off, 100 = full) |
 
+### Pico remotes
+
+Pico remotes are registered with `DeviceKind::Pico`. They are read-only button devices — they report button press events but cannot be commanded.
+
+| Attribute | Type | Description |
+|---|---|---|
+| `button` | integer | Last pressed button number |
+| `action` | string | `"press"` or `"release"` |
+
+Pico remotes are distinct from keypads. They do not have LED feedback and cannot be used as scene controllers from HomeCore.
+
 ### Scenes
 
 | Attribute | Type | Description |
 |---|---|---|
 | `available` | boolean | Whether the scene can be activated |
+| `on` | boolean | Scene active state (phantom scenes with LED feedback) |
+
+### Phantom scene LED feedback
+
+Phantom scene buttons now report on/off state via LED feedback. The plugin queries LED state at connect and handles LED change events in real time. When a phantom scene's LED turns on, the scene device's `on` attribute becomes `true`, allowing rules to react to scene activation from physical keypads.
 
 :::note Scene availability
 Always check `available = true` before activating a Lutron scene. Some phantom button scenes may be unavailable at certain times depending on your Lutron configuration.

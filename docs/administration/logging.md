@@ -206,7 +206,7 @@ Change log levels at runtime without restart (Admin required):
 
 ```bash
 # Temporarily enable debug for rule engine
-curl -s -X PATCH http://localhost:8080/api/v1/system/log-level \
+curl -s -X POST http://localhost:8080/api/v1/system/log-level \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"target":"hc_core","level":"debug"}'

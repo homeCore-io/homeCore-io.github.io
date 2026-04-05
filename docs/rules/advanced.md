@@ -7,6 +7,49 @@ sidebar_position: 5
 
 # Advanced Rule Patterns
 
+## Run modes
+
+Every rule has a `run_mode` that controls concurrency when the rule is triggered while a previous firing is still executing.
+
+| Run mode | Behavior |
+|---|---|
+| `Parallel` | Default. Multiple firings run concurrently with no restrictions. |
+| `Single` | Only one firing at a time. Additional triggers while in progress are silently dropped. |
+| `Restart` | A new trigger cancels any in-progress firing (including pending delays) and starts fresh. |
+| `Queued` | Firings queue up and execute one at a time in order. Use `max_queue` to limit depth. |
+
+```toml
+# Motion light with restart mode — re-motion resets the off timer
+id       = ""
+name     = "Motion light — restart on motion"
+enabled  = true
+run_mode = "restart"
+
+[trigger]
+type      = "device_state_changed"
+device    = "hallway.motion"
+attribute = "motion"
+to        = true
+
+[[actions]]
+type      = "set_device_state"
+device    = "hallway.light"
+state     = { on = true }
+
+[[actions]]
+type          = "delay"
+duration_secs = 300
+
+[[actions]]
+type      = "set_device_state"
+device    = "hallway.light"
+state     = { on = false }
+```
+
+With `restart` mode, new motion during the 5-minute delay cancels the entire firing and starts a fresh sequence. This eliminates the need for separate cancel-delay rules in many cases.
+
+---
+
 ## Cooldown (`cooldown_secs`)
 
 Prevents a rule from firing more than once within a window, regardless of how many triggering events arrive.

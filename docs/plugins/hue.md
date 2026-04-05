@@ -143,6 +143,35 @@ device_id = "hue_001788fffe6841b3_scene_evening_relaxing"
 state     = { action = "activate_scene" }
 ```
 
+## Management protocol
+
+hc-hue is a fully managed plugin built on the official HomeCore plugin SDK. It supports:
+
+- **Heartbeat monitoring** — published every 30 seconds; HomeCore marks the plugin offline after 90 seconds without a heartbeat
+- **Remote configuration** — `SyncConfig` struct consolidates refresh parameters and can be updated via the management API
+- **Dynamic log level** — change verbosity at runtime without restarting the plugin
+- **Eventstream metrics** — `EventstreamMetrics` consolidates 26 metric fields for monitoring SSE event processing
+
+### Management API
+
+```bash
+# Get current plugin config
+curl -s http://localhost:8080/api/v1/plugins/plugin.hue/config \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Update plugin config
+curl -s -X PUT http://localhost:8080/api/v1/plugins/plugin.hue/config \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_interval_secs": 30}'
+
+# Restart the plugin
+curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.hue/restart \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
 ## Troubleshooting
 
 | Problem | Solution |

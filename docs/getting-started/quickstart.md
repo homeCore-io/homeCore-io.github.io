@@ -152,7 +152,7 @@ curl -s http://localhost:8080/api/v1/automations/$RULE_ID/history \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-This shows the last 20 evaluations with full condition/action traces.
+This shows the last 500 evaluations with full condition/action traces.
 
 ## 9. Dry-run the rule (test without executing)
 
