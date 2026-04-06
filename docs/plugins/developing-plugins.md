@@ -105,6 +105,10 @@ client.subscribe_commands("my_device_001", |cmd: serde_json::Value| {
 
 The Rust SDK includes `DevicePublisher` for spawned tasks and full management protocol support (heartbeat, remote config, dynamic log level).
 
+:::note Plugin isolation via per-device subscriptions
+The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to. This ensures plugin isolation at the MQTT transport layer: one plugin can never accidentally receive or interfere with commands destined for another plugin's devices.
+:::
+
 ---
 
 ## Python SDK (`hc-plugin-sdk-py`)

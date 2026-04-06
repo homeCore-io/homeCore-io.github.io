@@ -28,6 +28,8 @@ Each plugin:
 4. Publishes availability to `homecore/devices/{device_id}/availability` (retained)
 5. Subscribes to `homecore/devices/{device_id}/cmd` for commands from HomeCore
 
+**Plugin isolation:** The SDK subscribes to specific device command topics (`homecore/devices/{device_id}/cmd`) rather than using wildcards. This prevents cross-plugin command contamination — a plugin only receives commands for devices it owns. Subscriptions are tracked internally and restored automatically on MQTT reconnect.
+
 HomeCore treats the plugin as the source of truth for device discovery. In normal operation you do **not** pre-create devices manually. When the plugin discovers a light, sensor, speaker, or scene, it registers that device and HomeCore adds it to the registry automatically.
 
 ## Available plugins

@@ -51,6 +51,7 @@ hc-lutron is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supp
 |---|---|---|
 | Dimmer/switch | `lutron_{integration_id}` | `lutron_21` |
 | Pico remote | `lutron_pico_{integration_id}` | `lutron_pico_5` |
+| VCRX | `lutron_{integration_id}` | `lutron_36` |
 | Scene (button) | `lutron_scene_{id}` | `lutron_scene_42` |
 | Phantom button scene | `lutron_scene_{id}_phantom` | `lutron_scene_42_phantom` |
 
@@ -76,6 +77,34 @@ Pico remotes are registered with `DeviceKind::Pico`. They are read-only button d
 
 Pico remotes are distinct from keypads. They do not have LED feedback and cannot be used as scene controllers from HomeCore.
 
+### VCRX
+
+The VCRX (Visor Control Receiver) is registered with `DeviceKind::Vcrx`. It exposes buttons, LEDs, and CCI (Contact Closure Input) terminals.
+
+**Configuration:**
+
+```toml
+[[devices]]
+integration_id = 36
+name           = "Garage VCRX"
+kind           = "vcrx"
+area           = "garage"
+buttons        = [1, 2, 3, 4, 5, 6]
+ccis           = [31, 32, 33, 34]
+```
+
+**Device ID:** `lutron_36`
+
+| Attribute | Type | Description |
+|---|---|---|
+| `button_N` | string | Button press/release/hold event (`"press"`, `"release"`, `"hold"`) |
+| `led_N` | boolean | LED on/off state for each button |
+| `cci_N` | string | Contact closure state: `"open"` or `"closed"` |
+
+**Commands:** `press_button` and `set_led` (same as Keypad).
+
+**Typical use case:** HomeLink visor control for garage doors, with CCIs wired to contact closure sensors for door open/closed state.
+
 ### Scenes
 
 | Attribute | Type | Description |
@@ -86,6 +115,8 @@ Pico remotes are distinct from keypads. They do not have LED feedback and cannot
 ### Phantom scene LED feedback
 
 Phantom scene buttons now report on/off state via LED feedback. The plugin queries LED state at connect and handles LED change events in real time. When a phantom scene's LED turns on, the scene device's `on` attribute becomes `true`, allowing rules to react to scene activation from physical keypads.
+
+Main repeater phantom buttons use LED component = button number + 100 (not +80 like physical keypads). The plugin handles this offset automatically. Scene state is published whenever an LED event arrives from the repeater. Activating a scene also performs an optimistic state update, immediately publishing `on=true` so downstream rules can react without waiting for the LED round-trip. For paired on/off scenes, the state tracks the actual Lutron LED state so both the "on" and "off" scene devices stay in sync.
 
 :::note Scene availability
 Always check `available = true` before activating a Lutron scene. Some phantom button scenes may be unavailable at certain times depending on your Lutron configuration.
