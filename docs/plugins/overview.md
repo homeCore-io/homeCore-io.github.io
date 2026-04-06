@@ -200,12 +200,13 @@ Managed plugins publish a heartbeat message every 30-60 seconds. The PluginManag
 
 ### Managed plugins
 
-The following plugins have adopted the official SDK with full management protocol support:
+All five Rust device plugins have adopted the official SDK with full management protocol support:
 
 - **hc-hue** — heartbeat, remote config, dynamic log level
 - **hc-wled** — heartbeat, remote config, dynamic log level
-
-Other plugins function without management protocol support and are monitored through their MQTT registration and availability topics only.
+- **hc-yolink** — heartbeat, remote config, dynamic log level
+- **hc-lutron** — heartbeat, remote config, dynamic log level
+- **hc-sonos** — heartbeat, remote config, dynamic log level
 
 ---
 

@@ -64,7 +64,7 @@ homeCore/
 │   └── hc-plugin-template/
 │
 ├── clients/                    ← UI and API consumers (each is its own git repo)
-│   ├── hc-web-leptos/          ← Leptos/WASM admin UI (default bundled)
+│   ├── hc-web-leptos/          ← Leptos/WASM admin UI (default bundled, see below)
 │   ├── hc-web-admin-react/     ← React admin UI (alternative)
 │   ├── hc-tui/                 ← Terminal UI (ratatui)
 │   ├── hc-web/                 ← Flutter web (legacy)
@@ -79,6 +79,18 @@ homeCore/
     ├── hc-plugin-sdk-js/       ← Node.js SDK
     └── hc-plugin-sdk-dotnet/   ← .NET Core SDK
 ```
+
+## Leptos Admin UI (`hc-web-leptos`)
+
+The `hc-web-leptos` client in `clients/hc-web-leptos/` is a Leptos/WASM single-page application built with Trunk. It includes an admin page at `/admin` with:
+
+- User management (CRUD, password change)
+- System status overview
+- Backup download
+- Dynamic log level adjustment
+- Stale device reference detection and device cleanup
+
+See [Dev Workflow: Admin UI development](./dev-workflow#admin-ui-development) for the development and production build workflow.
 
 ## Crate dependency order
 

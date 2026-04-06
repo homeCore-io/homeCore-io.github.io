@@ -51,6 +51,10 @@ Plugins (separate processes, any language)
 5. **Side-effect-free conditions** — rule conditions only read state. Dry-run and test mode work because conditions never have side effects.
 6. **Plugin isolation via MQTT ACL** — each plugin gets its own credential, restricting it to its own device topics.
 
+## License
+
+All HomeCore repositories are dual-licensed under **MIT** and **Apache-2.0**. You may use either license at your option.
+
 ## Quick navigation
 
 | I want to… | Go to |

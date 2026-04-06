@@ -106,6 +106,10 @@ channel = "telegram"
 message = "YoLink front door sensor battery is low: {{device.battery}}%"
 ```
 
+## SDK adoption
+
+hc-yolink is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
+
 ## Background initial state fetch
 
 On startup, hc-yolink fetches the current state of all devices from the YoLink cloud API. This fetch runs as a non-blocking background task (`tokio::spawn`) so it does not delay plugin startup or MQTT subscription.

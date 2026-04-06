@@ -41,6 +41,10 @@ cd /path/to/hc-lutron
 
 The plugin connects via telnet, queries the full device list, registers all devices, and subscribes to real-time state updates.
 
+## SDK adoption
+
+hc-lutron is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
+
 ## Device IDs
 
 | Device type | ID pattern | Example |

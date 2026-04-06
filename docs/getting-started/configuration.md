@@ -160,6 +160,11 @@ format     = "json"
 # facility  = "daemon"
 # app_name  = "homecore"
 
+# ── Web Admin UI ──────────────────────────────────────────────────────────────
+[web_admin]
+enabled = false              # serve pre-built Leptos/WASM admin UI
+# dist_path = "ui/dist"     # path to trunk build output, relative to home dir
+
 # ── Engine ────────────────────────────────────────────────────────────────────
 [engine]
 drain_timeout_secs = 10   # time to wait for in-flight rule tasks on shutdown
@@ -250,6 +255,15 @@ Required for `SunEvent` and `SunEvent` offset triggers.
 |---|---|---|---|
 | `drain_timeout_secs` | integer | `10` | Time to wait for in-flight rule tasks on shutdown before force-stopping |
 | `fire_history_limit` | integer | `500` | Maximum evaluation records stored per rule |
+
+### `[web_admin]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | boolean | `false` | Serve the pre-built Leptos/WASM admin UI as static files via tower-http `ServeDir` |
+| `dist_path` | string | `"ui/dist"` | Path to the `trunk build` output directory, relative to `HOMECORE_HOME` |
+
+When enabled, HomeCore serves the Leptos admin UI at the root path. API routes at `/api/v1` take priority over static file serving. A SPA fallback returns `index.html` for any unmatched path, enabling client-side routing. Disabled by default so that during development you can use `trunk serve` separately.
 
 ### `[[plugins]]`
 

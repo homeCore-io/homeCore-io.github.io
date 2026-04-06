@@ -98,6 +98,24 @@ cargo watch -x "test -p hc-api"
 | `homecore` (integration) | 1 | Full stack: virtual device → MQTT → rule fires → command |
 | **Total** | **69** | |
 
+## Admin UI development
+
+The Leptos/WASM admin UI (`hc-web-leptos`) has its own dev workflow that coexists with the server.
+
+**Development:** Run `trunk serve` on port 3000 from the `hc-web-leptos` directory. Trunk proxies `/api` requests to HomeCore on port 8080 automatically. Leave `[web_admin] enabled = false` in `homecore.toml` (the default) so the server does not serve static files that conflict with trunk's dev server.
+
+**Production:** Build with `trunk build --release`, copy the `dist/` directory to the deploy location, and enable in `homecore.toml`:
+
+```toml
+[web_admin]
+enabled   = true
+dist_path = "ui/dist"   # relative to HOMECORE_HOME
+```
+
+HomeCore serves the built assets via tower-http `ServeDir` with SPA fallback. API routes at `/api/v1` take priority.
+
+**Both can coexist:** Disabling `web_admin` does not affect the trunk dev workflow. You can develop the UI with `trunk serve` while HomeCore runs with `web_admin` disabled, then switch to built-in serving for production.
+
 ## Isolated dev environment
 
 Use a throwaway directory to keep state separate from your main installation:

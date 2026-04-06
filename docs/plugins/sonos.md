@@ -11,6 +11,10 @@ The `hc-sonos` plugin discovers Sonos speakers on your network, registers them a
 
 It also keeps its own standalone HTTP API. That is intentional. You can use the plugin directly if you want, but once a speaker is registered in HomeCore the preferred automation path is through the HomeCore device ID.
 
+## SDK adoption
+
+hc-sonos is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
+
 ## What the plugin provides
 
 Each discovered speaker is registered automatically as a `media_player` device. You do not need to pre-create the device in HomeCore.
