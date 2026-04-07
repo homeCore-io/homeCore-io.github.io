@@ -96,13 +96,14 @@ ansi    = true       # set false for systemd journal / Docker
 
 ```toml
 [logging.file]
-enabled     = false
-dir         = "logs"              # created automatically
-prefix      = "homecore"
-rotation    = "daily"             # "daily" | "hourly" | "weekly" | "never"
-max_size_mb = 100                 # rotate when file exceeds this (0 = size-only rotation off)
-compress    = true                # gzip rotated files immediately after rotation
-format      = "json"              # "json" | "compact" | "pretty"
+enabled          = false
+dir              = "logs"         # created automatically
+prefix           = "homecore"
+rotation         = "daily"        # "daily" | "hourly" | "weekly" | "never"
+max_size_mb      = 100            # rotate when file exceeds this (0 = size-only rotation off)
+compress         = true           # gzip rotated files immediately after rotation
+prune_after_days = 5              # delete rotated logs older than N days (0 = never prune)
+format           = "json"         # "json" | "compact" | "pretty"
 ```
 
 Active file is always `<prefix>.log` (never compressed). Rotated files follow:
@@ -153,11 +154,12 @@ level = "info"
 enabled = false   # no console when running as a service
 
 [logging.file]
-enabled   = true
-dir       = "/var/log/homecore"
-rotation  = "daily"
-format    = "json"
-compress  = true
+enabled          = true
+dir              = "/var/log/homecore"
+rotation         = "daily"
+format           = "json"
+compress         = true
+prune_after_days = 7    # auto-delete logs older than 7 days
 
 [logging.syslog]
 enabled   = true
@@ -233,10 +235,12 @@ Each hc-* plugin manages its own log file and rotation independently of the home
 
 ```toml
 [logging]
-level       = "info"   # stderr log level; RUST_LOG overrides this
-rotation    = "daily"  # daily | hourly | weekly | never
-max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
-compress    = true     # gzip rotated files in a background thread
+level             = "info"   # stderr log level; RUST_LOG overrides this
+rotation          = "daily"  # daily | hourly | weekly | never
+max_size_mb       = 100      # rotate when file exceeds this MB (0 = time-only)
+compress          = true     # gzip rotated files in a background thread
+prune_after_days  = 5        # delete rotated logs older than N days (0 = never)
+log_forward_level = "info"   # min level forwarded to core over MQTT
 ```
 
 | Option | Default | Description |
@@ -245,6 +249,30 @@ compress    = true     # gzip rotated files in a background thread
 | `rotation` | `"daily"` | Time-based rotation strategy: `daily`, `hourly`, `weekly`, or `never`. |
 | `max_size_mb` | `100` | Size-based rotation threshold. Combined with `rotation` as "whichever comes first". Set `0` to disable size-based rotation. |
 | `compress` | `true` | Gzip-compress rotated files in a background thread immediately after rotation. The active log file is never compressed. |
+| `prune_after_days` | `0` | Delete rotated `.log` and `.log.gz` files older than this many days. Runs at startup and after each rotation. `0` disables pruning. |
+| `log_forward_level` | `"info"` | Minimum log level forwarded to the HomeCore broker over MQTT. Plugin logs at or above this level appear in the admin UI's Activity page and the `/api/v1/logs/stream` WebSocket. Set to `"off"` to disable forwarding entirely. |
+
+### MQTT log forwarding
+
+Plugins forward their tracing logs to HomeCore over MQTT, making them visible in the admin UI alongside core logs. The forwarding uses QoS 0 (fire-and-forget) to avoid stalling the logging pipeline.
+
+**Topic:** `homecore/plugins/{plugin_id}/logs`
+
+**Payload format** (same as the core's `LogLine`):
+
+```json
+{
+  "timestamp": "2026-04-07T12:00:00Z",
+  "level": "INFO",
+  "target": "hc_yolink::bridge",
+  "message": "Device registered",
+  "fields": {"device_id": "yolink_front_door"}
+}
+```
+
+The core's state bridge receives these messages and injects them into the log stream broadcast channel, so they appear in:
+- The `/api/v1/logs/stream` WebSocket (live tail)
+- The admin UI Activity page (filtered by source = "log")
 
 Plugin log files follow the same naming convention as the server:
 

@@ -261,8 +261,27 @@ Plugins built with the official SDKs can opt into the management protocol, which
 - **Remote configuration** — HomeCore can push config changes via `homecore/plugins/{id}/manage/cmd` with `set_config`.
 - **Dynamic log level** — change the plugin's log verbosity at runtime via `set_log_level` without restarting.
 - **Health checks** — `ping` command with `pong` response.
+- **Log forwarding** — plugin logs are published to `homecore/plugins/{id}/logs` over MQTT, making them visible in the admin UI Activity page alongside core logs. Configurable minimum level via `log_forward_level` in the plugin's `[logging]` config.
 
-The Rust and .NET SDKs handle the management protocol automatically when enabled. Python and Node.js SDKs provide helper methods to integrate it manually.
+All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol automatically when enabled.
+
+## SDK feature matrix
+
+All SDKs provide the same core capabilities:
+
+| Feature | Rust | Python | Node.js | .NET |
+|---|---|---|---|---|
+| Publish state (full + partial) | ✅ | ✅ | ✅ | ✅ |
+| Device registration (typed + full) | ✅ | ✅ | ✅ | ✅ |
+| Device schema publishing | ✅ | ✅ | ✅ | ✅ |
+| Availability publishing | ✅ | ✅ | ✅ | ✅ |
+| Event publishing | ✅ | ✅ | ✅ | ✅ |
+| Command handling | ✅ | ✅ | ✅ | ✅ |
+| Plugin status | ✅ | ✅ | ✅ | ✅ |
+| Management protocol | ✅ | ✅ | ✅ | ✅ |
+| Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
+| Command change metadata | ✅ | ✅ | ✅ | ✅ |
+| Auto-reconnect | ✅ | ✅ | ✅ | ✅ |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
 

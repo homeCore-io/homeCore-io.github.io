@@ -51,6 +51,11 @@ When `type` is omitted, all events are forwarded (except `mqtt_message`, which i
 | `scene_activated` | A scene was activated |
 | `plugin_registered` | A plugin connected and registered devices |
 | `plugin_offline` | A plugin's heartbeat expired |
+| `plugin_heartbeat` | A plugin sent a liveness heartbeat |
+| `plugin_status_changed` | A managed plugin's status changed (starting/active/offline/stopped) |
+| `device_command_sent` | A command was dispatched to a device |
+| `timer_state_changed` | A virtual timer started, paused, expired, etc. |
+| `action_failed` | A rule action failed to execute |
 | `hub_variable_changed` | A hub variable was written |
 | `mode_changed` | A named mode transitioned on/off |
 | `custom_{event_type}` | A `FireEvent` action emitted a custom event |

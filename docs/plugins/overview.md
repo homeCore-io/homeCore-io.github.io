@@ -202,13 +202,15 @@ Managed plugins publish a heartbeat message every 30-60 seconds. The PluginManag
 
 ### Managed plugins
 
-All five Rust device plugins have adopted the official SDK with full management protocol support:
+All seven Rust device plugins use the official SDK with full management protocol support:
 
-- **hc-hue** — heartbeat, remote config, dynamic log level
-- **hc-wled** — heartbeat, remote config, dynamic log level
-- **hc-yolink** — heartbeat, remote config, dynamic log level
-- **hc-lutron** — heartbeat, remote config, dynamic log level
-- **hc-sonos** — heartbeat, remote config, dynamic log level
+- **hc-hue** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-wled** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-yolink** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-lutron** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-sonos** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-isy** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-zwave** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 
 ---
 
@@ -224,3 +226,4 @@ All five Rust device plugins have adopted the official SDK with full management 
 | Plugin → HC | `homecore/plugins/{id}/heartbeat` | Liveness signal (managed plugins) |
 | HC → Plugin | `homecore/plugins/{id}/manage/cmd` | Management command (managed plugins) |
 | Plugin → HC | `homecore/plugins/{id}/manage/response` | Management response (managed plugins) |
+| Plugin → HC | `homecore/plugins/{id}/logs` | Forwarded plugin log lines (JSON `LogLine`) |
