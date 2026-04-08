@@ -256,7 +256,7 @@ The `hc-scripting` crate exposes the Rhai engine with the `sync` feature enabled
 | `crates/hc-core/src/timer_manager.rs` | Virtual timer devices |
 | `crates/hc-core/src/switch_manager.rs` | Virtual switch devices |
 | `crates/hc-core/src/mode_manager.rs` | Solar + boolean mode devices |
-| `crates/hc-core/src/rule_loader.rs` | TOML rule file loading, UUID write-back, hot-reload watcher |
+| `crates/hc-core/src/rule_loader.rs` | RON rule file loading, UUID write-back, hot-reload watcher |
 | `crates/hc-mqtt-client/src/lib.rs` | rumqttc client, `internal_bus` publisher, `PublishHandle` |
 | `crates/hc-state/src/lib.rs` | redb device registry, SQLite history, `StateStore` |
 | `crates/hc-api/src/lib.rs` | axum router, WebSocket broadcaster, OpenAPI |

@@ -18,7 +18,7 @@ slug: /
 | Async model | True async (Tokio) | Single-threaded event loop | Multi-threaded |
 | MQTT broker | Embedded (no external process) | Optional add-on | Plugin |
 | Device communication | MQTT as universal fabric | Varies | Varies |
-| Rule storage | TOML files, hot-reload | YAML/UI | UI only |
+| Rule storage | RON files, hot-reload | YAML/UI | UI only |
 | Cloud dependency | None | Optional | Optional |
 
 ## Architecture at a glance
@@ -45,7 +45,7 @@ Plugins (separate processes, any language)
 ## Key design principles
 
 1. **MQTT as the device fabric** — every device communicates via MQTT topics. Plugins publish state; HomeCore publishes commands. Nothing is hardwired.
-2. **Rules are data** — automations are TOML files hot-reloaded at runtime. Create, edit, and delete rules through the API with no restart.
+2. **Rules are data** — automations are RON files hot-reloaded at runtime. Create, edit, and delete rules through the API with no restart.
 3. **API-first** — every operation is available over REST or WebSocket. The web UI is just another API consumer.
 4. **No cloud dependency** — solar calculations use local lat/lon config. All automation logic runs offline.
 5. **Side-effect-free conditions** — rule conditions only read state. Dry-run and test mode work because conditions never have side effects.

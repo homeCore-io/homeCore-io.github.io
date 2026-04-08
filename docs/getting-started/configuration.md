@@ -75,7 +75,7 @@ history_db_path = "data/history.db"   # time-series attribute history
 
 # ── Rules ─────────────────────────────────────────────────────────────────────
 [rules]
-# Directory containing rule TOML files. Hot-reloaded on any file change.
+# Directory containing rule RON files. Hot-reloaded on any file change.
 dir = "rules"
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────

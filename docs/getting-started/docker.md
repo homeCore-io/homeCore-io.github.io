@@ -56,7 +56,7 @@ RUST_LOG=info
 |---|---|
 | `homecore-config` | `config/homecore.toml`, `config/modes.toml`, profiles |
 | `homecore-data` | `data/state.redb`, `data/history.db` |
-| `homecore-rules` | Rule TOML files (hot-reloaded) |
+| `homecore-rules` | Rule RON files (hot-reloaded) |
 | `homecore-logs` | Log files |
 
 To edit config or rules while running:
