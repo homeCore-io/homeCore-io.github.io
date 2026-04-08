@@ -70,7 +70,7 @@ Recommended layout:
 │   └── homecore          ← the binary
 ├── config/
 │   └── homecore.toml     ← main config file
-├── rules/                ← automation rule TOML files (hot-reloaded)
+├── rules/                ← automation rule RON files (hot-reloaded)
 ├── data/                 ← created automatically: state.redb, history.db
 └── logs/                 ← created automatically when logging.file is enabled
 ```

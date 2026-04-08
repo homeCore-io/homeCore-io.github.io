@@ -143,7 +143,7 @@ Step-by-step checklists for the most common extension points. Follow these in or
    cargo test -p hc-core
    ```
 
-6. **Update `devNotes.md`** and `docs/rules/triggers.md` with the new trigger type, required fields, and a TOML example.
+6. **Update `devNotes.md`** and `docs/rules/triggers.md` with the new trigger type, required fields, and a RON example.
 
 ---
 

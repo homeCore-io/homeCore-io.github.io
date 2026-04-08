@@ -17,7 +17,7 @@ This guide covers moving homeCore from one machine to another — including all 
 |---|---|
 | Binary + plugins | Rebuilt from source on the new machine |
 | Config (`homecore.toml`, `modes.toml`) | Copied from backup or source repo |
-| Rules (`rules/*.toml`) | Included in the system backup archive |
+| Rules (`rules/*.ron`) | Included in the system backup archive |
 | Device state (`state.redb`) | Included in the system backup archive |
 | Device history (`history.db`) | Included in the system backup archive |
 | Plugin configs (credentials) | Copied manually — **not** included in the backup |

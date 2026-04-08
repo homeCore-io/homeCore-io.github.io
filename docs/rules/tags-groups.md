@@ -15,7 +15,7 @@ Tags are free-form string labels stored on each rule. They are great for open-en
 
 ### Adding tags
 
-In TOML:
+In RON:
 
 ```toml
 id      = ""
@@ -163,7 +163,7 @@ Deleting a group does **not** delete the rules themselves. It only removes the g
 
 | | Tags | Groups |
 |---|---|---|
-| Stored in | Each rule's TOML file | `rules/groups.json` |
+| Stored in | Each rule's RON file | `rules/groups.json` |
 | Survives rule rename | Yes | Yes (by UUID) |
 | One rule, many | Yes | Yes |
 | Bulk toggle API | `PATCH /automations?tag=X` | `POST /automations/groups/ID/enable` |

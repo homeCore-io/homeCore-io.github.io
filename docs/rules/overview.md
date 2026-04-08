@@ -7,7 +7,7 @@ sidebar_position: 1
 
 # Rules Overview
 
-Automation rules are the core of HomeCore. A rule defines what happens when a specific event occurs. Rules are stored as TOML files in the `rules/` directory and hot-reloaded on every file change — no restarts needed.
+Automation rules are the core of HomeCore. A rule defines what happens when a specific event occurs. Rules are stored as RON (Rusty Object Notation) files in the `rules/` directory and hot-reloaded on every file change — no restarts needed.
 
 ## Device references
 
@@ -63,43 +63,45 @@ Event arrives (device state change, time trigger, webhook, etc.)
   → StopRuleChain action skips remaining lower-priority rules
 ```
 
-## Rule file format (TOML)
+## Rule file format (RON)
 
-```toml
-id       = ""          # empty = auto-generated UUID on first load (written back to file)
-name     = "My rule"
-enabled  = true
-priority = 10          # higher = evaluated first; range [-1000, 1000]
-tags     = ["lighting", "morning"]   # optional; used for filtering and bulk ops
+```ron
+Rule(
+    id: "00000000-0000-0000-0000-000000000000",  // all zeros = auto-generated on first load
+    name: "My rule",
+    enabled: true,
+    priority: 10,          // higher = evaluated first; range [-1000, 1000]
+    tags: ["lighting", "morning"],
 
-# Optional: run mode for concurrent firings
-# run_mode = "parallel"   # parallel | single | restart | queued
-# max_queue = 5           # only for queued mode
+    trigger: DeviceStateChanged(
+        device_id: "yolink_front_door",
+        attribute: Some("open"),
+        // to: Some(true),   // optional: only fire when attribute changes TO this value
+    ),
 
-# Optional: cooldown between firings (seconds)
-# cooldown_secs = 300
+    conditions: [
+        TimeWindow(
+            start: "08:00:00",
+            end: "22:00:00",
+        ),
+    ],
 
-# Optional: Rhai gate — skips the rule without recording a condition_failed entry
-# trigger_condition = 'device_state("mode_night")["on"] == true'
+    actions: [
+        RuleAction(
+            enabled: true,
+            action: Notify(
+                channel: "telegram",
+                message: "Front door opened",
+            ),
+        ),
+    ],
 
-# Optional: Rhai expression that must be true before conditions are evaluated
-# required_expression = 'hour() >= 6 && hour() < 22'
-
-[trigger]
-type      = "device_state_changed"
-device    = "entryway.front_door"
-attribute = "open"
-# to = true   # optional: only fire when attribute changes TO this value
-
-[[conditions]]
-type      = "time_window"
-start     = "08:00"
-end       = "22:00"
-
-[[actions]]
-type      = "notify"
-channel   = "telegram"
-message   = "Front door opened"
+    // Optional fields (shown with defaults):
+    // cooldown_secs: Some(300),
+    // run_mode: Single,          // Parallel | Single | Restart | Queued { max_queue: 10 }
+    // trigger_condition: Some("device_state(\"mode_night\")[\"on\"] == true"),
+    // required_expression: Some("current_hour() >= 6 && current_hour() < 22"),
+)
 ```
 
 ## Creating rules via API
@@ -114,28 +116,29 @@ RULE_ID=$(curl -s -X POST http://localhost:8080/api/v1/automations \
     "priority": 10,
     "tags": ["security"],
     "trigger": {
-      "type": "DeviceStateChanged",
-      "device": "entryway.front_door",
-      "attribute": "open"
+      "DeviceStateChanged": {
+        "device_id": "entryway.front_door",
+        "attribute": "open"
+      }
     },
     "conditions": [
-      {"type": "TimeWindow", "start": "08:00", "end": "22:00"}
+      {"TimeWindow": {"start": "08:00:00", "end": "22:00:00"}}
     ],
     "actions": [
-      {"type": "Notify", "channel": "telegram", "message": "Front door opened"}
+      {"enabled": true, "action": {"Notify": {"channel": "telegram", "message": "Front door opened"}}}
     ]
   }' | jq -r .id)
 ```
 
-Rules created via API are immediately written to a TOML file in `rules/` and take effect instantly.
+Rules created via API are immediately written to a `.ron` file in `rules/` and take effect instantly.
 
 ## Hot-reload
 
-Edit any `.toml` file in `rules/` and save — the rule is reloaded within 200 ms. No API call, no restart.
+Edit any `.ron` file in `rules/` and save — the rule is reloaded within 200 ms. No API call, no restart.
 
 ```bash
 # Edit a rule directly
-vim rules/front-door-alert.toml
+vim rules/front_door_alert.ron
 
 # Check it was reloaded (watch the server log)
 # INFO hc_core::rule_loader: Hot-reloaded rule "Front door alert"
@@ -188,7 +191,7 @@ curl -s http://localhost:8080/api/v1/automations \
   | jq '[.[] | select(.error != null) | {name, error}]'
 ```
 
-Fix the TOML file and save — the watcher replaces the stub automatically.
+Fix the RON file and save — the watcher replaces the stub automatically.
 
 ## Key source files
 
@@ -197,6 +200,6 @@ Fix the TOML file and save — the watcher replaces the stub automatically.
 | `crates/hc-types/src/rule.rs` | `Rule`, `Trigger`, `Condition`, `Action` types |
 | `crates/hc-core/src/engine.rs` | Trigger matching, condition evaluation, fire history |
 | `crates/hc-core/src/executor.rs` | Action execution, all action type handlers |
-| `crates/hc-core/src/rule_loader.rs` | TOML loading, hot-reload watcher |
-| `rules/` | Live rule files (TOML) |
+| `crates/hc-core/src/rule_loader.rs` | RON loading, hot-reload watcher |
+| `rules/` | Live rule files (RON) |
 | `rules/examples/` | Reference patterns and commented examples |

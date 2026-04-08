@@ -46,7 +46,7 @@ homeCore/
 │   │   └── examples/
 │   │       ├── virtual-device/ ← software-only test device (Rust)
 │   │       └── http-poller/    ← generic HTTP polling adapter (Rust)
-│   ├── rules/                  ← live automation rules (TOML, hot-reloaded)
+│   ├── rules/                  ← live automation rules (RON, hot-reloaded)
 │   │   └── examples/           ← documented rule patterns
 │   ├── tests/
 │   │   └── integration_test.rs ← end-to-end: virtual device → rule → command
