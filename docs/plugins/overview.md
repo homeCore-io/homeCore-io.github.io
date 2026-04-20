@@ -43,6 +43,7 @@ HomeCore treats the plugin as the source of truth for device discovery. In norma
 | [hc-zwave](./zwave) | Rust | Z-Wave devices via zwave-js WebSocket |
 | [hc-wled](./wled) | Rust | WLED LED controllers |
 | [hc-isy](./isy) | Rust | ISY/IoX hub (Insteon, Z-Wave, Zigbee) |
+| [hc-thermostat](./thermostat) | Rust | Virtual thermostats (aggregated sensors → actuator) |
 | [http-poller](./http-poller) | Rust | Generic HTTP endpoint polling |
 
 ## Plugin configuration
@@ -202,15 +203,19 @@ Managed plugins publish a heartbeat message every 30-60 seconds. The PluginManag
 
 ### Managed plugins
 
-All seven Rust device plugins use the official SDK with full management protocol support:
+All Rust device plugins use the official SDK with full management protocol support:
 
 - **hc-hue** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-wled** — heartbeat, remote config, dynamic log level, MQTT log forwarding
-- **hc-yolink** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-yolink** — + custom action: `rescan_devices`
 - **hc-lutron** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-sonos** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-isy** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-zwave** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-thermostat** — + custom actions: `recalculate_all`, `reload_config`,
+  `add_thermostat`, `remove_thermostat`, `get_thermostats`.
+  First plugin to use the SDK's cross-device state subscription
+  (`subscribe_state` / `run_managed_with_state`).
 
 ---
 

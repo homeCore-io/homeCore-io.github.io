@@ -74,6 +74,7 @@ const sidebars = {
         'plugins/zwave',
         'plugins/wled',
         'plugins/isy',
+        'plugins/thermostat',
       ],
     },
     {

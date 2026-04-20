@@ -109,6 +109,47 @@ The Rust SDK includes `DevicePublisher` for spawned tasks and full management pr
 The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to. This ensures plugin isolation at the MQTT transport layer: one plugin can never accidentally receive or interfere with commands destined for another plugin's devices.
 :::
 
+### Cross-device consumer plugins
+
+Most plugins own their devices and only observe their own command topics. A
+**cross-device consumer** plugin also needs to *observe state from other
+plugins' devices* — e.g. a virtual thermostat aggregating temperature
+readings from YoLink and Ecowitt sensors.
+
+The Rust SDK supports this directly:
+
+```rust
+// Subscribe to another plugin's device state (tracked for reconnect).
+client.subscribe_state("yolink_sensor_a").await?;
+client.subscribe_state("ecowitt_outdoor_temp").await?;
+
+// Drive the event loop with TWO callbacks: own cmd + external state.
+client.run_managed_with_state(
+    move |device_id, payload| {
+        // Commands on OUR devices (homecore/devices/thermostat_+/cmd)
+    },
+    move |device_id, payload| {
+        // State from OTHER devices we subscribed to
+    },
+    mgmt,
+).await?;
+
+// Later, at runtime:
+client.unsubscribe_state("ecowitt_outdoor_temp").await?;
+```
+
+`run_managed_with_state` is a drop-in replacement for `run_managed`. Use
+`run_managed` when you don't need external state. The corresponding
+`DevicePublisher::subscribe_state` / `unsubscribe_state` methods let
+background tasks adjust subscriptions dynamically (e.g. when a user
+changes the sensor list via a runtime command).
+
+**Broker ACL:** cross-device consumers need `allow_sub = ["homecore/devices/+/state"]`
+— broader than the typical plugin ACL. See the [thermostat plugin](./thermostat)
+Setup section for a complete example.
+
+See [`hc-thermostat`](./thermostat) for a reference implementation.
+
 ---
 
 ## Python SDK (`hc-plugin-sdk-py`)
@@ -282,6 +323,7 @@ All SDKs provide the same core capabilities:
 | Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
 | Command change metadata | ✅ | ✅ | ✅ | ✅ |
 | Auto-reconnect | ✅ | ✅ | ✅ | ✅ |
+| Cross-device state subscription | ✅ | — | — | — |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
 
