@@ -10,16 +10,13 @@ slug: /
 
 **HomeCore** is a fast, local-first home automation platform written in Rust. It runs entirely on your hardware — no cloud accounts, no internet dependency, no subscription fees.
 
-## What makes it different
+## What it emphasises
 
-| Feature | HomeCore | Home Assistant | HomeSeer |
-|---|---|---|---|
-| Language | Rust | Python | .NET |
-| Async model | True async (Tokio) | Single-threaded event loop | Multi-threaded |
-| MQTT broker | Embedded (no external process) | Optional add-on | Plugin |
-| Device communication | MQTT as universal fabric | Varies | Varies |
-| Rule storage | RON files, hot-reload | YAML/UI | UI only |
-| Cloud dependency | None | Optional | Optional |
+- **Rust, async first.** Built on Tokio for true concurrent I/O across devices.
+- **MQTT as the universal fabric.** Plugins publish device state over MQTT topics; HomeCore publishes commands the same way. No hardwired transports.
+- **Embedded MQTT broker (rumqttd).** Ships in the binary — no external broker needed for a basic install.
+- **Rules as data.** Automations are RON files, hot-reloaded at runtime. Create, edit, and delete them via the API.
+- **Fully local.** Solar calculations use local lat/lon. All automation logic runs offline. No cloud accounts, no subscription fees.
 
 ## Architecture at a glance
 

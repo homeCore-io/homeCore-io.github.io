@@ -147,9 +147,9 @@ timeout_ms = 5000
 # POST with JSON body
 [[actions]]
 type   = "call_service"
-url    = "http://homeassistant.local/api/services/light/turn_on"
+url    = "http://external-api.local/v1/lights"
 method = "POST"
-body   = { entity_id = "light.kitchen", brightness = 200 }
+body   = { id = "kitchen", brightness = 200 }
 
 # With retries and response capture
 [[actions]]
