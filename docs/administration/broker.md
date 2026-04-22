@@ -92,7 +92,47 @@ password    = "hue-plugin-password"
 The embedded rumqttd 0.19 broker enforces **connection-level** credentials but does **not** enforce per-topic publish/subscribe ACL. A plugin that authenticates successfully can technically publish to any topic.
 
 `allow_pub` / `allow_sub` fields serve as documentation and can be exported to generate external broker config. For strict topic isolation in production, use an external broker (Mosquitto, EMQX) and point HomeCore's MQTT client at it.
+
+See [External Mosquitto deployment](#external-mosquitto-deployment) below for the full recipe.
 :::
+
+## External Mosquitto deployment
+
+For deployments where topic isolation matters — containers, remote plugins, third-party code, or anything going through a security review — run HomeCore against an external Mosquitto broker. The `allow_pub` / `allow_sub` patterns you already have in `[[broker.clients]]` are converted to a Mosquitto ACL file that Mosquitto actually enforces.
+
+### Generate the config
+
+```bash
+hc-cli broker generate-mosquitto-config \
+  --config /etc/homecore/homecore.toml \
+  --out-dir ./mosquitto-config
+```
+
+This produces three files in `mosquitto-config/`:
+
+- `mosquitto.conf` — listener + references to ACL + passwd files.
+- `aclfile` — generated from every `[[broker.clients]]` entry. Each client's `allow_pub` patterns become `topic write …` rules; `allow_sub` patterns become `topic read …`.
+- `passwd.setup.sh` — helper script. Edit each `CHANGE_ME_<ID>` placeholder to the plaintext password from the matching `[[broker.clients]]` entry, then run the script inside an `eclipse-mosquitto` container to produce the hashed `passwd` file.
+
+### Deploy
+
+The runnable example lives at `docker/docker-compose.external-broker.yml`:
+
+```bash
+docker compose -f docker-compose.external-broker.yml run --rm passwd-setup
+docker compose -f docker-compose.external-broker.yml up -d
+```
+
+Then in your `homecore.toml` set:
+
+```toml
+[broker]
+external_url = "mqtt://mosquitto:1883"
+```
+
+HomeCore will skip the embedded broker and connect to Mosquitto as any other client. Plugins connect using their existing `plugin_id` + `password` credentials — only the enforcement location changes.
+
+See `mqttAuthzPlan.md` at the repo root for the full design plus rollout plan.
 
 ## TLS
 

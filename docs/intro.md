@@ -49,7 +49,7 @@ Plugins (separate processes, any language)
 3. **API-first** — every operation is available over REST or WebSocket. The web UI is just another API consumer.
 4. **No cloud dependency** — solar calculations use local lat/lon config. All automation logic runs offline.
 5. **Side-effect-free conditions** — rule conditions only read state. Dry-run and test mode work because conditions never have side effects.
-6. **Plugin isolation via MQTT ACL** — each plugin gets its own credential, restricting it to its own device topics.
+6. **Plugin isolation at the MQTT layer** — each plugin has its own credential + declared ACL patterns in `[[broker.clients]]`. The embedded rumqttd enforces CONNECT authn; for real per-topic enforcement (containers, third-party plugins, compliance), deploy against an external Mosquitto broker. See [the broker deployment guide](/administration/broker#external-mosquitto-deployment).
 
 ## License
 

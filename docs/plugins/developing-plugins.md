@@ -106,7 +106,9 @@ client.subscribe_commands("my_device_001", |cmd: serde_json::Value| {
 The Rust SDK includes `DevicePublisher` for spawned tasks and full management protocol support (heartbeat, remote config, dynamic log level).
 
 :::note Plugin isolation via per-device subscriptions
-The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to. This ensures plugin isolation at the MQTT transport layer: one plugin can never accidentally receive or interfere with commands destined for another plugin's devices.
+The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
+
+**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](/administration/broker#external-mosquitto-deployment) and `mqttAuthzPlan.md` in the repo root.
 :::
 
 ### Cross-device consumer plugins
