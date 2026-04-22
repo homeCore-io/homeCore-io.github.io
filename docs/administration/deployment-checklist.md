@@ -78,11 +78,19 @@ A checklist for moving from a development setup to a production instance.
 
 ## Systemd (Linux)
 
-A service template is provided at `scripts/service-templates/homecore.service`.
+For a full end-to-end recipe including the external Mosquitto broker
+and hardened unit file, see the
+[Systemd Deployment guide](./systemd-deployment).
 
-- [ ] Copy and adjust `ExecStart`, `WorkingDirectory`, and `User` fields
+Quick version:
+
+- [ ] Copy `scripts/service-templates/homecore.service`, adjust `ExecStart`,
+  `WorkingDirectory`, and `User` fields
 - [ ] Enable the service: `systemctl enable homecore`
 - [ ] Verify it starts on reboot
+- [ ] If you need topic-level MQTT ACLs (containers, third-party plugins,
+  compliance), pair HomeCore with external Mosquitto per the systemd
+  deployment guide
 
 ## Docker
 

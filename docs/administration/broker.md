@@ -116,7 +116,11 @@ This produces three files in `mosquitto-config/`:
 
 ### Deploy
 
-The runnable example lives at `docker/docker-compose.external-broker.yml`:
+For a native systemd deployment (no Docker), follow the
+[Systemd Deployment guide](./systemd-deployment) — it walks through
+the same `hc-cli broker generate-mosquitto-config` flow end to end.
+
+For Docker, the runnable example lives at `core/docker/docker-compose.external-broker.yml`:
 
 ```bash
 docker compose -f docker-compose.external-broker.yml run --rm passwd-setup

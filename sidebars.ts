@@ -26,6 +26,7 @@ const sidebars = {
         'administration/backup-restore',
         'administration/metrics',
         'administration/system-status',
+        'administration/systemd-deployment',
         'administration/deployment-checklist',
       ],
     },
