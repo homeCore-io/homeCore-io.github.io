@@ -31,25 +31,28 @@ bridge_ip = "192.168.1.100"
 app_key   = ""              # filled in automatically after first pairing
 ```
 
-## First run — pairing
+## Pairing a bridge
 
-1. **Press the physical button on top of the Hue bridge**
-2. Within 30 seconds, start hc-hue:
+The recommended path is the **`pair_bridge` streaming action** —
+plugin runs continuously, no need to time the bridge button press
+against plugin start.
 
-```bash
-cd /path/to/hc-hue
-./hc-hue config/config.toml
-```
+1. Open the Hue plugin detail page in the admin UI and click
+   **Pair Hue bridge** under Actions.
+2. The drawer prompts you to press the link button on the bridge.
+3. Press the physical button on top of the bridge within ~30 seconds.
+4. The flow polls the Hue API until the button registers, persists
+   `(bridge_id, host, app_key)` to `config/config.toml`, and pushes
+   the new bridge into the live runtime — no plugin restart needed.
 
-The plugin pairs with the bridge and writes the generated `app_key` back to `config/config.toml`. You will see:
+You can also pass an explicit `host` parameter if the bridge isn't
+discoverable on your network. See the [Actions](#plugin-actions)
+section below.
 
-```
-INFO hc_hue: Pairing with bridge... press the button now
-INFO hc_hue: Paired — app_key written to config
-INFO hc_hue: Registered 24 devices
-```
-
-On subsequent starts, the stored `app_key` is used directly — no button press needed.
+If you'd rather configure manually, drop a fully-formed
+`[[bridges]]` entry into `config/config.toml` (with `bridge_id`,
+`host`, and a pre-generated `app_key`) and the plugin uses it
+directly on next start.
 
 ## Device IDs
 
@@ -142,6 +145,64 @@ type      = "set_device_state"
 device_id = "hue_001788fffe6841b3_scene_evening_relaxing"
 state     = { action = "activate_scene" }
 ```
+
+## Plugin actions
+
+hc-hue declares three [capability actions](./capabilities) the admin
+UI exposes as buttons on the plugin detail page (and hc-mcp surfaces
+via `list_plugin_actions`).
+
+### `pair_bridge` (streaming, admin)
+
+Pairs a new Hue bridge by polling its link button.
+
+**Params (both optional):**
+- `host` — bridge IP / hostname. Auto-discovers if omitted.
+- `name` — friendly name for the new bridge entry.
+
+**Flow:**
+1. Resolves the target — uses `host` if given (probes
+   `/api/0/config` for the `bridgeid`); otherwise runs SSDP / mDNS
+   and picks the first un-configured bridge.
+2. Emits a `progress` message asking you to press the link button.
+3. Polls Hue's `POST /api` every 2 seconds. The bridge returns
+   `error: "link button not pressed"` until you press it; once
+   pressed, returns the app key.
+4. Persists `(bridge_id, host, app_key)` to `config/config.toml`
+   (the file is reloaded from disk first to avoid clobbering external
+   edits, then re-written).
+5. Pushes the new `BridgeTarget` into the runtime — the bridge starts
+   publishing immediately, no plugin restart.
+
+The action is `cancelable: true` and `concurrency: single`; the
+manifest timeout is 90 s. The `complete` payload returns
+`{bridge_id, host, name}` but **omits the raw `app_key`** — it's a
+long-lived credential, already saved to `config.toml`.
+
+### `refresh_devices` (sync, user)
+
+Re-walks every configured bridge and republishes lights / groups /
+scenes / sensors. Use after renaming devices or moving rooms in the
+Hue app to make the changes visible in homeCore.
+
+### `discover_bridges` (sync, user)
+
+Re-runs SSDP / mDNS / cloud discovery and returns the list of bridges
+found, regardless of whether they're already in your config.
+
+```json
+{
+  "status": "ok",
+  "discovered": [
+    { "bridge_id": "001788fffe6841b3", "host": "10.0.10.23", "name": "hue-001788ff" }
+  ],
+  "count": 1
+}
+```
+
+Useful for sanity-checking your network before clicking
+`pair_bridge`, or for picking a `host` value to pass when discovery
+isn't picking up a bridge automatically.
 
 ## Management protocol
 

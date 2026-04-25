@@ -32,6 +32,12 @@ Each plugin:
 
 HomeCore treats the plugin as the source of truth for device discovery. In normal operation you do **not** pre-create devices manually. When the plugin discovers a light, sensor, speaker, or scene, it registers that device and HomeCore adds it to the registry automatically.
 
+Plugins can also declare **capability actions** — plugin-specific
+commands like "Pair Hue bridge", "Include Z-Wave device", "Rescan
+devices". These show up as buttons under **Actions** on the plugin's
+detail page in the admin UI and are exposable to MCP clients without
+plugin-specific code. See [Plugin Capabilities & Actions](./capabilities).
+
 ## Available plugins
 
 | Plugin | Language | Devices |

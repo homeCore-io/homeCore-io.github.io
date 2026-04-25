@@ -108,7 +108,7 @@ The Rust SDK includes `DevicePublisher` for spawned tasks and full management pr
 :::note Plugin isolation via per-device subscriptions
 The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
 
-**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](/administration/broker#external-mosquitto-deployment) and `mqttAuthzPlan.md` in the repo root.
+**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment) and `mqttAuthzPlan.md` in the repo root.
 :::
 
 ### Cross-device consumer plugins
@@ -307,6 +307,103 @@ Plugins built with the official SDKs can opt into the management protocol, which
 - **Log forwarding** — plugin logs are published to `homecore/plugins/{id}/logs` over MQTT, making them visible in the admin UI Activity page alongside core logs. Configurable minimum level via `log_forward_level` in the plugin's `[logging]` config.
 
 All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol automatically when enabled.
+
+## Capability manifest
+
+Plugins declare plugin-specific actions in a typed manifest; the admin
+UI renders Actions buttons from it and hc-mcp exposes the entries as
+tools. Adding a new action **doesn't require any changes** to core,
+the SDKs, the Leptos client, or hc-mcp — the framework is fully
+data-driven.
+
+See the dedicated [Plugin Capabilities & Actions](./capabilities) page
+for the full spec, manifest fields, stage vocabulary, and protocol.
+The short version below shows how to wire it up from the Rust SDK.
+
+### Sync (non-streaming) action
+
+For a fire-and-forget command. Add a `with_capabilities` arm and
+handle the action through `with_custom_handler`:
+
+```rust
+let mgmt = client
+    .enable_management(
+        60,
+        Some(env!("CARGO_PKG_VERSION").to_string()),
+        Some(config_path.to_string()),
+        Some(log_level_handle),
+    )
+    .await?
+    .with_capabilities(hc_types::Capabilities {
+        spec: "1".into(),
+        plugin_id: String::new(),  // SDK fills from configured plugin_id
+        actions: vec![hc_types::Action {
+            id: "rescan_devices".into(),
+            label: "Rescan devices".into(),
+            description: Some("Refresh inventory from the cloud.".into()),
+            params: None,
+            result: None,
+            stream: false,
+            cancelable: false,
+            concurrency: hc_types::Concurrency::default(),
+            item_key: None,
+            item_operations: None,
+            requires_role: hc_types::RequiresRole::User,
+            timeout_ms: None,
+        }],
+    })
+    .with_custom_handler(move |cmd| match cmd["action"].as_str()? {
+        "rescan_devices" => {
+            rescan_tx.try_send(()).ok();
+            Some(serde_json::json!({ "status": "ok" }))
+        }
+        _ => None,
+    });
+```
+
+### Streaming action
+
+Long-running flows that emit live progress, accept user prompts, and
+handle cancel. Use `with_streaming_action` and the `StreamContext`'s
+helper methods:
+
+```rust
+use plugin_sdk_rs::{StreamContext, StreamingAction};
+use serde_json::{json, Value};
+
+let mgmt = mgmt.with_streaming_action(StreamingAction::new(
+    "include_node",
+    move |ctx: StreamContext, _params: Value| async move {
+        ctx.progress(Some(0), Some("starting"), Some("Press the button on each device")).await?;
+
+        // ... wait for device events, emit item_add per node ...
+        ctx.item_add(json!({ "node_id": 14, "status": "added" })).await?;
+        ctx.item_update(json!({ "node_id": 14, "status": "ready" })).await?;
+
+        // Wait for user "done" via awaiting_user / await_respond.
+        ctx.emit_awaiting_user_with_schema(
+            "Reply when finished",
+            json!({ "done": { "type": "boolean", "default": true } }),
+        ).await?;
+        let _ = ctx.await_respond().await?;
+
+        // Always end with a terminal stage.
+        ctx.complete(json!({ "nodes_added": [14] })).await
+    },
+)));
+```
+
+The stage helpers (`progress`, `item_add` / `item_update` /
+`item_remove`, `awaiting_user`, `warning`, `complete`, `error`,
+`canceled`) handle the envelope shape and the
+`stream_topic` for you. Check `ctx.is_canceled()` in cooperative
+loops; pair `emit_awaiting_user_with_schema` with `await_respond`
+when the closure also needs to process other async work concurrently.
+
+The Z-Wave plugin's `inclusion.rs` is a comprehensive worked example
+covering all the patterns; the `hc-captest` plugin in
+`plugins/hc-captest/` has six minimal-but-complete demos exercising
+every convention.
 
 ## SDK feature matrix
 

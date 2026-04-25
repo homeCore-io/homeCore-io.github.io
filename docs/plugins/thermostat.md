@@ -172,17 +172,37 @@ REST endpoint):
 Runtime changes are written back to `config.toml` atomically, so the next
 restart picks them up.
 
+## Plugin actions
+
+Two of the management commands below are surfaced as
+[capability actions](./capabilities) on the manifest, so they render
+as buttons under **Actions** on the plugin detail page (and hc-mcp
+exposes them via `list_plugin_actions`):
+
+- **`recalculate_all`** (sync, user) — force every thermostat to
+  re-evaluate immediately.
+- **`reload_config`** (sync, user) — re-read `config.toml`, apply
+  changes, diff subscriptions, and recalculate.
+
+`add_thermostat` / `remove_thermostat` / `get_thermostats` are
+intentionally **not** in the manifest. The "+ New thermostat" wizard
+on the plugin page handles creation because it needs live
+sensor/actuator pickers from the WS device map — the v1 capability
+schema subset (`type: string|integer|number|boolean|array|object`)
+can't express a "pick from existing devices" widget. They remain
+available as raw management commands (table below).
+
 ## Management commands
 
 Via `POST /api/v1/plugins/plugin.thermostat/command`:
 
-| Action | Purpose |
-|---|---|
-| `recalculate_all` | Force every thermostat to re-evaluate immediately |
-| `reload_config` | Re-read `config.toml`, applying changes + subscription diffs |
-| `add_thermostat` | Create a new thermostat from a JSON config; persists to disk |
-| `remove_thermostat` | Delete a thermostat; clears retained state + persists |
-| `get_thermostats` | Return the current list of thermostat configs |
+| Action | Purpose | In manifest |
+|---|---|---|
+| `recalculate_all` | Force every thermostat to re-evaluate immediately | yes |
+| `reload_config` | Re-read `config.toml`, applying changes + subscription diffs | yes |
+| `add_thermostat` | Create a new thermostat from a JSON config; persists to disk | wizard-only |
+| `remove_thermostat` | Delete a thermostat; clears retained state + persists | command-line only |
+| `get_thermostats` | Return the current list of thermostat configs | command-line only |
 
 Example — add a thermostat from the command line:
 
