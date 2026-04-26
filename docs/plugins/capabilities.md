@@ -218,9 +218,17 @@ The MCP server exposes two tools that map straight to the framework:
 - **`list_plugin_actions`** — flattens every plugin's manifest into one
   list. Always available (read-only).
 - **`invoke_plugin_action(plugin_id, action, params)`** — POSTs the
-  command. Non-streaming actions only at this point; streaming-action
-  awaiting is on the roadmap (Phase 4b). Write-gated behind
-  `HC_MCP_ALLOW_WRITE=plugin_actions`.
+  command for **non-streaming** actions and returns the response.
+  Hard-fails on streaming actions (use the await variant instead).
+  Write-gated behind `HC_MCP_ALLOW_WRITE=plugin_actions`.
+- **`await_streaming_plugin_action(plugin_id, action, params, timeout_secs)`**
+  — Phase 4b. POSTs a streaming action and consumes the SSE stream
+  until a terminal stage, returning an aggregated summary
+  `{stage, request_id, data, error, items, warnings,
+  progress_history, elapsed_secs, event_count}`. Bounded by
+  `timeout_secs` (default 90, max 600). Cannot respond to
+  `awaiting_user` prompts — those are surfaced as warnings. Same
+  write-gate as `invoke_plugin_action`.
 
 See the [hc-mcp guide](../tools/hc-mcp) for setup.
 

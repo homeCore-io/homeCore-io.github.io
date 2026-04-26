@@ -40,11 +40,13 @@ The repo lives at [homeCore-io/hc-mcp](https://github.com/homeCore-io/hc-mcp).
 | Tool | Category | Effect |
 |---|---|---|
 | `invoke_plugin_action` | `plugin_actions` | POST `/plugins/:id/command` for non-streaming manifest actions |
+| `await_streaming_plugin_action` | `plugin_actions` | POST a streaming action and consume its SSE stream until a terminal stage |
 
 Set `HC_MCP_ALLOW_WRITE=plugin_actions` (or `all`) in the hc-mcp
-environment to enable. Streaming actions return an explanatory error
-in this round — they need a separate "await terminal" path that's on
-the roadmap.
+environment to enable both. `await_streaming_plugin_action` aggregates
+progress / item / warning events along the way and returns them
+alongside the terminal payload — see [Capabilities → In hc-mcp](../plugins/capabilities#in-hc-mcp)
+for the full result shape.
 
 ---
 
