@@ -212,6 +212,28 @@ curl -s -X DELETE http://localhost:8080/api/v1/devices \
 # → {"deleted": 2, "not_found": [], "affected_rules": ["Garage lights"]}
 ```
 
+### Wipe all devices for one plugin
+
+Removes every device whose `plugin_id` matches, with rule cascade.
+The plugin itself stays registered — devices it still cares about
+are re-registered automatically on its next sync cycle. Useful for
+cleaning up zombies left over from plugin development churn or
+config rearrangements without dropping the whole state DB.
+
+```bash
+curl -s -X DELETE http://localhost:8080/api/v1/plugins/plugin.hue/devices \
+  -H "Authorization: Bearer $TOKEN" | jq
+# → {
+#     "deleted": 47,
+#     "device_ids": ["hue_light_1", "hue_scene_2", ...],
+#     "affected_rules": ["Morning routine"]
+#   }
+```
+
+The Leptos admin UI exposes this as a **Wipe all devices** button
+in the Devices section of each plugin's detail page (admin role
+required, hidden when the plugin has no registered devices).
+
 ## Device history
 
 Time-series attribute changes stored in SQLite (`data/history.db`):

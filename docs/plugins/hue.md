@@ -182,19 +182,36 @@ long-lived credential, already saved to `config.toml`.
 ### `refresh_devices` (sync, user)
 
 Re-walks every configured bridge and republishes lights / groups /
-scenes / sensors. Use after renaming devices or moving rooms in the
-Hue app to make the changes visible in homeCore.
+scenes / sensors. Also reconciles the published-device snapshot —
+anything tracked from a prior session that's no longer present on
+its bridge gets unregistered. Use after renaming devices or moving
+rooms in the Hue app to make the changes visible in homeCore.
 
-### `discover_bridges` (sync, user)
+### `cleanup_stale_devices` (sync, admin)
 
-Re-runs SSDP / mDNS / cloud discovery and returns the list of bridges
-found, regardless of whether they're already in your config.
+Same code path as `refresh_devices` but framed for cleanup —
+forces a fresh sync from every configured bridge and unregisters
+any homeCore devices that no longer exist on the bridge. Use this
+to clear zombies left over from config edits, bridge replacements,
+or development churn.
+
+For a wipe-and-rebuild (re-register everything from scratch), use
+the core API: `DELETE /api/v1/plugins/plugin.hue/devices`. The
+homeCore admin UI exposes this as a **Wipe all devices** button on
+the plugin's detail page.
+
+### `discover_bridges` (streaming, user)
+
+Re-runs SSDP / mDNS / cloud discovery and emits each bridge as a
+stream item as it's found. Streaming because slow networks can take
+longer than the 5-second sync RPC budget; results are deduped
+across SSDP and N-UPnP responses, and bridge_id case differences
+between protocols are normalized.
 
 ```json
 {
-  "status": "ok",
   "discovered": [
-    { "bridge_id": "001788fffe6841b3", "host": "10.0.10.23", "name": "hue-001788ff" }
+    { "bridge_id": "001788fffe6841b3", "host": "10.0.10.23", "name": "Hue Bridge" }
   ],
   "count": 1
 }
@@ -203,6 +220,10 @@ found, regardless of whether they're already in your config.
 Useful for sanity-checking your network before clicking
 `pair_bridge`, or for picking a `host` value to pass when discovery
 isn't picking up a bridge automatically.
+
+When `pair_bridge` is invoked but every discovered bridge is
+already in `config.toml`, the action completes cleanly with
+`status: "already_paired"` and lists each bridge — no error.
 
 ## Management protocol
 

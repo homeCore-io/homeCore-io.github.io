@@ -206,6 +206,7 @@ Managed plugins publish a heartbeat message every 30-60 seconds. The PluginManag
 | `POST /api/v1/plugins/:id/restart` | Restart a managed plugin |
 | `GET /api/v1/plugins/:id/config` | Get plugin configuration |
 | `PUT /api/v1/plugins/:id/config` | Update plugin configuration |
+| `DELETE /api/v1/plugins/:id/devices` | Bulk-wipe every device the plugin owns; plugin re-registers live ones on next sync. See [Devices → Wipe all devices for one plugin](../devices/overview#wipe-all-devices-for-one-plugin). |
 
 ### Managed plugins
 
