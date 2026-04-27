@@ -54,7 +54,41 @@ websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN"
 4. Re-test with `curl` in Terminal 3
 5. Check Terminal 1 for log output
 
+## Pre-PR check (`just check`)
+
+The fastest path to "did I break anything?" is the workspace
+`Justfile`. From `core/`:
+
+```bash
+just check          # fmt + clippy + test, all together
+```
+
+Targets:
+
+| Target | Runs | When to use |
+|---|---|---|
+| `just check` | `just fmt && just clippy && just test` | Before pushing — full local CI in one command |
+| `just fmt` | `cargo fmt --all -- --check` | Formatting check (no rewrite) |
+| `just clippy` | `cargo clippy --workspace --all-targets` (correctness + suspicious lints denied) | Lint pass |
+| `just test` | `cargo test --workspace` | Test pass |
+| `just build` | `cargo build --workspace` | Debug build |
+| `just build-release` | `cargo build --workspace --release` | Release build |
+
+The clippy invocation in the justfile denies `correctness` and
+`suspicious` lints and allows the noisier ones (`type_complexity`,
+`too_many_arguments`, `should_implement_trait`) — running it locally
+gives you the same diagnostic surface CI uses.
+
+Install `just` once if needed:
+
+```bash
+cargo install just
+```
+
 ## Cargo commands reference
+
+For tighter feedback loops on a single crate, fall back to `cargo`
+directly:
 
 ```bash
 # Fastest feedback — check compiles without building
