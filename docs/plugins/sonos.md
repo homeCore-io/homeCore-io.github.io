@@ -34,6 +34,27 @@ This means HomeCore rules can target `sonos_living_room` or `sonos_kitchen` dire
 
 `hc-sonos` uses SSDP discovery and registers speakers as they are found.
 
+### Multicast routing on multi-NIC hosts
+
+SSDP relies on UDP multicast (group `239.255.255.250:1900`). On a host with multiple network interfaces — common in dev setups with separate management and IoT networks — the kernel may route multicast out the wrong interface and discovery silently fails.
+
+If `hc-sonos` finds zero speakers but the Sonos app on the same network sees them, check your routing table:
+
+```bash
+# Confirm where multicast is going
+ip route get 239.255.255.250
+```
+
+Force the IoT-side interface as the multicast egress (replace `enp12s0` and the IoT subnet with yours):
+
+```bash
+sudo ip route add 239.255.255.250/32 dev enp12s0
+```
+
+For a more permanent fix, configure your network manager (NetworkManager, systemd-networkd, etc.) to set route metrics so the IoT interface wins for multicast destinations.
+
+As a fallback when multicast is genuinely unroutable (firewalled VLAN, container with restricted networking, etc.), `[sonos] manual_hosts = ["192.168.10.5", ...]` lists speaker IPs the plugin should HTTP-probe directly. The probe path bypasses multicast entirely; the trade-off is that adding a new speaker to the network requires a config edit + plugin restart.
+
 If you have no manual overrides configured, the plugin derives a HomeCore device ID from the room name:
 
 | Sonos room | HomeCore device ID |

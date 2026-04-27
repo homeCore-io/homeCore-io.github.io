@@ -29,10 +29,19 @@ to = true
 
 | Field | Required | Description |
 |---|---|---|
-| `device` | yes | Preferred device reference: canonical name, unique display name, or raw device ID |
-| `device_id` | yes | Backward-compatible alias for `device` |
-| `attribute` | no | Narrow to one attribute (e.g. `"on"`, `"open"`, `"temperature"`) |
-| `to` | no | Only fire when the attribute's new value equals this |
+| `device` | yes¹ | Preferred device reference: canonical name, unique display name, or raw device ID. |
+| `device_id` | yes¹ | Backward-compatible alias for `device`. |
+| `device_ids` (alias `devices`) | no | Additional device IDs — fires when *any* of these changes. When non-empty the primary `device` is also included in the set. |
+| `attribute` | no | Narrow to one attribute (e.g. `"on"`, `"open"`, `"temperature"`). |
+| `to` | no | Only fire when the new value equals this. |
+| `from` | no | Only fire when the previous value equals this. |
+| `not_to` | no | Only fire when the new value is **not** this. |
+| `not_from` | no | Only fire when the previous value is **not** this. |
+| `for_duration_secs` | no | "Sticky" trigger: only fire after the new value has held for this many seconds. |
+| `change_kind` | no | Provenance filter: `homecore`, `physical`, `external`, or `unknown`. |
+| `change_source` | no | Exact-match filter on the change source label (plugin id or rule id). |
+
+¹ One of `device` or `device_ids` must be set.
 
 If you use a display name and more than one device matches it, HomeCore marks the rule invalid with an ambiguity error.
 
@@ -56,6 +65,28 @@ type      = "device_state_changed"
 device    = "garage.main_door"
 attribute = "open"
 to        = true
+
+# Multi-device: any of three contact sensors going open
+[trigger]
+type        = "device_state_changed"
+device_ids  = ["sensor_front", "sensor_back", "sensor_garage"]
+attribute   = "open"
+to          = true
+
+# Only fire when the change came from a physical actor (not from a rule)
+[trigger]
+type        = "device_state_changed"
+device      = "living_room.lamp"
+attribute   = "on"
+change_kind = "physical"
+
+# Sticky: motion has held "true" for at least 30 seconds
+[trigger]
+type              = "device_state_changed"
+device            = "motion_hallway"
+attribute         = "motion"
+to                = true
+for_duration_secs = 30
 ```
 
 ---
@@ -267,13 +298,16 @@ device_id = "hue_001788fffe6841b3_1"
 
 # Optional: only fire in one direction
 to = false   # only when device goes offline
+
+# Optional: sticky guard — only fire after the new state has held this long
+for_duration_secs = 60
 ```
 
-| `to` | Fires when |
-|---|---|
-| `true` | Device comes online |
-| `false` | Device goes offline |
-| *(omitted)* | Either direction |
+| Field | Required | Description |
+|---|---|---|
+| `device_id` (alias `device`) | yes | Device to monitor. |
+| `to` | no | `true` = online only, `false` = offline only, omitted = both. |
+| `for_duration_secs` | no | Only fire after the new availability state has held for this many seconds (debounces flapping devices). |
 
 ---
 
@@ -311,10 +345,15 @@ Fires when a named mode transitions on or off.
 
 ```toml
 [trigger]
-type      = "mode_changed"
-mode_name = "mode_night"
-to        = true   # fires when mode_night turns on
+type    = "mode_changed"
+mode_id = "mode_night"   # optional — omit to fire on any mode change
+to      = true           # optional — only when turning on (false = only off)
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `mode_id` | no | Mode device id (e.g. `"mode_night"`). Omit to match any mode. |
+| `to` | no | `true` = only when the mode turns on, `false` = only when it turns off, omitted = both. |
 
 ---
 
@@ -324,68 +363,98 @@ Fires when a physical button device (e.g. a Pico remote, keypad, or smart switch
 
 ```toml
 [trigger]
-type      = "button_event"
-device_id = "lutron_pico_bedroom"
-button    = 2          # optional: specific button number
-action    = "press"    # optional: "press" | "release"
+type          = "button_event"
+device_id     = "lutron_pico_bedroom"
+button_number = 2          # optional: specific button number
+event         = "Pushed"   # "Pushed" | "Held" | "DoubleTapped" | "Released"
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` | yes | Button device |
-| `button` | no | Specific button number to match |
-| `action` | no | `"press"` or `"release"` |
+| `device_id` (alias `device`) | yes | Button device. |
+| `button_number` | no | Specific button number. Omit to match any button on the device. |
+| `event` | yes | One of `Pushed`, `Held`, `DoubleTapped`, `Released`. |
+
+> **Implementation note:** button events arrive as `DeviceStateChanged`
+> events with attribute name matching the event type (`pushed`, `held`,
+> `double_tapped`, `released`) and the button number as the value. The
+> `ButtonEvent` trigger is a typed wrapper that handles the routing for
+> you.
 
 ---
 
 ### `NumericThreshold`
 
-Fires when a numeric attribute crosses a threshold value in a specified direction.
+Fires when a numeric attribute crosses a threshold value. Unlike
+`DeviceStateChanged` + `to`, this trigger fires only on the crossing
+edge (the transition itself), not on every change while the value
+remains past the threshold.
 
 ```toml
 [trigger]
-type      = "numeric_threshold"
-device_id = "sensor_basement_temp"
-attribute = "temperature"
-threshold = 80
-direction = "above"    # "above" | "below"
+type              = "numeric_threshold"
+device_id         = "sensor_basement_temp"
+attribute         = "temperature"
+op                = "CrossesAbove"   # crossing edge only
+value             = 80.0
+for_duration_secs = 60               # optional: debounce
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` | yes | Device to monitor |
-| `attribute` | yes | Numeric attribute name |
-| `threshold` | yes | Threshold value |
-| `direction` | yes | `"above"` (fires when value crosses from below to above) or `"below"` (fires when value crosses from above to below) |
+| `device_id` (alias `device`) | yes | Device to monitor. |
+| `attribute` | yes | Numeric attribute name. |
+| `op` | yes | `"Above"` / `"Below"` / `"CrossesAbove"` / `"CrossesBelow"` (see below). |
+| `value` | yes | Threshold value. |
+| `for_duration_secs` | no | Only fire if the threshold condition has held for at least this many seconds (debounce). |
 
-Only fires on the crossing transition, not on every update while the value remains past the threshold.
+| `op` | Fires when |
+|---|---|
+| `Above` | The new value is `> value` (every change while above). |
+| `Below` | The new value is `< value` (every change while below). |
+| `CrossesAbove` | The previous value was `≤ value` and the new value is `> value` (one-shot edge). |
+| `CrossesBelow` | The previous value was `≥ value` and the new value is `< value` (one-shot edge). |
+
+For one-shot alerting (e.g. "fire once when temp goes above 80"), use
+`CrossesAbove` / `CrossesBelow`. For "any sample while we're past the
+threshold", use `Above` / `Below`.
 
 ---
 
 ### `HubVariableChanged`
 
-Fires when a hub variable is written to (via `SetHubVariable` action or API).
+Fires when a hub variable is written via `SetHubVariable` action or
+API. The trigger does not filter on values — combine with a
+`HubVariable` condition for value-based filtering.
 
 ```toml
 [trigger]
 type = "hub_variable_changed"
-name = "alarm_armed"
-
-# Optional: only fire when variable changes to this value
-to = true
+name = "alarm_armed"   # optional — omit to watch all hub vars
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | no | Specific variable name. Omit to fire on any hub variable change. |
 
 ---
 
 ### `Periodic`
 
-Fires at a fixed interval. Simpler than `Cron` for basic repeating tasks.
+Fires at a fixed interval. Simpler than `Cron` for basic repeating
+tasks.
 
 ```toml
 [trigger]
-type         = "periodic"
-interval_secs = 300   # every 5 minutes
+type    = "periodic"
+every_n = 15
+unit    = "Minutes"   # "Minutes" | "Hours" | "Days" | "Weeks"
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `every_n` | yes | Interval count. |
+| `unit` | yes | `Minutes`, `Hours`, `Days`, or `Weeks`. |
 
 ---
 
@@ -395,12 +464,17 @@ Fires based on `.ics` calendar events. See [Advanced: Calendar triggers](./advan
 
 ```toml
 [trigger]
-type        = "calendar_event"
-calendar_id = "work"
-event_match = "contains"
-summary     = "Team meeting"
-offset_minutes = -15
+type           = "calendar_event"
+calendar_id    = "us_holidays"     # optional — stem of the .ics filename
+title_contains = "Holiday"         # optional — case-insensitive substring
+offset_minutes = -30               # fire 30 min before event start
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `calendar_id` | no | Stem of the `.ics` filename (e.g. `"us_holidays"` for `us_holidays.ics`). Omit to match any loaded calendar. |
+| `title_contains` | no | Case-insensitive substring match on the event title. Omit to match any event. |
+| `offset_minutes` | no | Negative = before event start, positive = after, default `0`. |
 
 ---
 

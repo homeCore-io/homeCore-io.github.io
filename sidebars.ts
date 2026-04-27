@@ -81,11 +81,13 @@ const sidebars = {
         'plugins/hue',
         'plugins/yolink',
         'plugins/lutron',
+        'plugins/caseta',
         'plugins/sonos',
         'plugins/zwave',
         'plugins/wled',
         'plugins/isy',
         'plugins/thermostat',
+        'plugins/ecowitt',
       ],
     },
     {

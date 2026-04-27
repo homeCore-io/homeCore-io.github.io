@@ -217,10 +217,15 @@ Checks whether a named mode is currently on or off.
 
 ```toml
 [[conditions]]
-type      = "mode_is"
-mode_name = "mode_night"
-value     = true   # "is mode_night active?"
+type    = "mode_is"
+mode_id = "mode_night"
+on      = true   # "is mode_night active?"
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `mode_id` | yes | Mode device id (e.g. `"mode_night"`). |
+| `on` | yes | `true` to require the mode is on, `false` to require it's off. |
 
 Equivalent to a `DeviceState` check on the mode's virtual device, but more readable.
 
@@ -259,17 +264,81 @@ value = true
 
 ---
 
-### `HubVariableIs`
+### `HubVariable`
 
-Checks a hub variable's value. Hub variables are shared across all rules.
+Checks a hub variable's value. Hub variables are shared across all rules and persist for the lifetime of the running process (set via `SetHubVariable` action or REST).
 
 ```toml
 [[conditions]]
-type      = "hub_variable_is"
-name      = "alarm_armed"
-op        = "Eq"
-value     = true
+type  = "hub_variable"
+name  = "alarm_armed"
+op    = "Eq"
+value = true
 ```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | yes | Hub variable name. |
+| `op` | yes | A `CompareOp` value: `Eq`, `Ne`, `Gt`, `Gte`, `Lt`, `Lte`, `Contains`, `In`. |
+| `value` | yes | Comparison value (any JSON type). |
+
+---
+
+### `DeviceLastChange`
+
+Passes when the most recent change to a device matches the supplied
+provenance filters. Useful for "was this triggered by a person, by a
+rule, or by a plugin?" patterns.
+
+```toml
+[[conditions]]
+type   = "device_last_change"
+device = "living_room.lamp"
+kind   = "physical"     # optional — homecore | physical | external | unknown
+# source     = "plugin.lutron"   # optional — exact match on the source label
+# actor_id   = "..."             # optional — exact match on the actor id
+# actor_name = "..."             # optional — exact match on the actor name
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `device_id` (alias `device`) | yes | Device whose last change to inspect. |
+| `kind` | no | Filter on change kind. |
+| `source` | no | Exact match on the source label (plugin id, rule id, etc.). |
+| `actor_id` / `actor_name` | no | Exact match on actor metadata when present. |
+
+Common pattern — only fire if a light was turned on by a person (not by a rule):
+
+```toml
+[[conditions]]
+type   = "device_last_change"
+device = "living_room.lamp"
+kind   = "physical"
+```
+
+---
+
+### `CalendarActive`
+
+Passes when a calendar event is currently active (start ≤ now < end).
+Reads from the loaded `.ics` calendars in `[calendars].dir`.
+
+```toml
+[[conditions]]
+type           = "calendar_active"
+calendar_id    = "us_holidays"   # optional — stem of the .ics filename
+title_contains = "Holiday"       # optional — case-insensitive substring
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `calendar_id` | no | Stem of the `.ics` filename. Omit to match any calendar. |
+| `title_contains` | no | Case-insensitive substring match on the event title. Omit to match any event. |
+
+Combine with a time-based trigger to gate rule execution by calendar
+state — e.g. "only run the morning lighting routine on workdays" by
+loading a workdays calendar and adding `CalendarActive` with
+`title_contains = "Workday"`.
 
 ---
 
