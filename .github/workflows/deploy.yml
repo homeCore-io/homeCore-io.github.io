@@ -1,21 +1,34 @@
 name: Deploy to GitHub Pages
 
+# Modern artifact-based deploy. Builds Docusaurus, uploads the output as a
+# Pages artifact, and activates it via actions/deploy-pages. No gh-pages
+# branch involved — Pages source must be set to "GitHub Actions" in repo
+# settings (configure-pages enforces this on first run).
+#
+# Custom domain (homecore.io) lives in repo Pages settings, not in a
+# CNAME file, so no per-deploy file dance.
+
 on:
   push:
-    branches: [main] # Trigger on pushes to main
+    branches: [main]
+  workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deploy. Don't cancel in-progress runs — let
+# them finish so the published site is never half-deployed.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -24,19 +37,26 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build website
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-          # Preserve the custom domain across deploys — without this the
-          # action's clean publish wipes the CNAME file off gh-pages.
-          cname: homecore.io
-          # This will automatically create and push to the gh-pages branch
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+          path: ./build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
