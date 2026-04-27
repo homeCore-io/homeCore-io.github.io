@@ -18,7 +18,9 @@
 
   /* ── Navbar ── */
   --ifm-navbar-background-color: #ffffff;
-  --ifm-navbar-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --ifm-navbar-shadow: none;
+  --ifm-navbar-height: 48px;
+  --ifm-navbar-padding-vertical: 0.4rem;
   --ifm-navbar-link-color: #1c1e21;
   --ifm-navbar-link-hover-color: #1B35CC;
   --ifm-navbar-link-active-color: #1B35CC;
@@ -50,6 +52,7 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 
   /* ── Navbar ── */
+  --ifm-navbar-background-color: #1a1a1a;
   --ifm-navbar-link-hover-color: #7eb3ff;
   --ifm-navbar-link-active-color: #7eb3ff;
 
@@ -63,28 +66,57 @@
   --ifm-link-hover-color: #9fc4ff;
 }
 
-/* ── Navbar: match mockup-a — subtle gray border, light shadow ── */
+/* ── Navbar: terminal-mono treatment ── */
+/* Hairline border replaces the soft shadow; navbar feels like a CLI
+   prompt strip rather than a glassy app header. */
 .navbar {
   border-bottom: 1px solid #e3e7ec;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
-/* ── Navbar wordmark SVG: size it correctly ── */
+[data-theme='dark'] .navbar {
+  border-bottom-color: #333;
+}
+
+/* ── Navbar wordmark SVG: size it for the thinner bar ── */
 .navbar__logo {
-  height: 22px;
+  height: 20px;
   width: auto;
 }
 
-/* ── Navbar links: dark text, blue on hover ── */
+/* Tighten the GitHub button so it fits the thinner bar */
+.navbar__items--right .navbar__link[href*="github"] {
+  padding: 0.25rem 0.7rem;
+}
+
+/* Title slot uses JetBrains Mono so when there's no logo SVG the text
+   reads as a code-style identifier rather than a UI heading. */
+.navbar__title {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ── Navbar links: smaller, mono-bodied for the terminal feel ── */
 .navbar__link {
   color: #1c1e21 !important;
-  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
 .navbar__link:hover,
 .navbar__link--active {
   color: #1B35CC !important;
+}
+
+[data-theme='dark'] .navbar__link {
+  color: #888 !important;
+}
+
+[data-theme='dark'] .navbar__link:hover,
+[data-theme='dark'] .navbar__link--active {
+  color: #7eb3ff !important;
 }
 
 /* ── GitHub button: bordered pill on the right ── */
@@ -95,16 +127,28 @@
   padding: 0.35rem 0.9rem;
   border-radius: 6px;
   border: 1.5px solid #d0d7de;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #1c1e21 !important;
   background: #fff;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .navbar__items--right .navbar__link[href*="github"]:hover {
   background: #f6f8fa;
   color: #1c1e21 !important;
+}
+
+[data-theme='dark'] .navbar__items--right .navbar__link[href*="github"] {
+  border-color: #333;
+  background: #1a1a1a;
+  color: #888 !important;
+}
+
+[data-theme='dark'] .navbar__items--right .navbar__link[href*="github"]:hover {
+  background: #222;
+  border-color: #444;
+  color: #7eb3ff !important;
 }
 
 /* ── Sidebar: active item left accent ── */
