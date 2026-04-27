@@ -21,6 +21,7 @@ const sidebars = {
       label: 'Administration',
       items: [
         'administration/users-auth',
+        'administration/audit-log',
         'administration/logging',
         'administration/broker',
         'administration/backup-restore',
@@ -92,6 +93,7 @@ const sidebars = {
       label: 'Tools & Integrations',
       items: [
         'tools/hc-mcp',
+        'tools/hc-tui',
       ],
     },
     {

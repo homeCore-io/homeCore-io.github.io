@@ -197,35 +197,67 @@ fire_history_limit = 500  # max evaluation records per rule
 |---|---|---|---|
 | `host` | string | `"0.0.0.0"` | Bind address for the HTTP/WebSocket API |
 | `port` | integer | `8080` | Listen port |
-| `whitelist` | array of strings | `[]` | IP addresses/CIDR ranges that bypass JWT auth |
 
 ### `[broker]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `host` | string | `"0.0.0.0"` | Broker bind address |
-| `port` | integer | `1883` | Plain-text MQTT port |
+| `port` | integer | `1883` | Plain-text MQTT v3 port |
+| `v5_port` | integer | `1884` | Plain-text MQTT v5 port. Set to `null` to disable. |
 | `tls_port` | integer | — | TLS MQTT port (requires `cert_path` and `key_path`) |
 | `cert_path` | string | — | Path to TLS certificate file (PEM) |
 | `key_path` | string | — | Path to TLS private key file (PEM) |
 
 `[[broker.clients]]` entries:
 
-| Key | Description |
-|---|---|
-| `id` | Client ID (used as MQTT username) |
-| `password` | Plain-text password (hashed internally) |
-| `allow_pub` | Documentation of allowed publish topics |
-| `allow_sub` | Documentation of allowed subscribe topics |
+| Key | Type | Description |
+|---|---|---|
+| `id` | string | Client ID (used as MQTT username) |
+| `password` | string | Plain-text password (hashed internally) |
+| `allow_pub` | array of strings | Allowed publish topic patterns (MQTT wildcards `+`/`#` supported) |
+| `allow_sub` | array of strings | Allowed subscribe topic patterns |
 
-> **Note:** The embedded broker enforces connection-level credentials but does not enforce per-topic ACL. `allow_pub`/`allow_sub` are documentation only. For strict topic ACL, use an external broker.
+> **Important:** The embedded broker enforces connection-level credentials but **does not enforce per-topic ACL**. `allow_pub`/`allow_sub` are metadata only. For strict topic ACL, deploy against an external Mosquitto broker — see [the broker deployment guide](../administration/broker#external-mosquitto-deployment). `hc-cli broker generate-mosquitto-config` converts these patterns to a Mosquitto ACL file automatically.
+
+### `[storage]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `state_db_path` | string | `"data/state.redb"` | Path to the redb state database (devices, rules, users, dashboards, audit, battery latches). Relative to `HOMECORE_HOME`. |
+| `history_db_path` | string | `"data/history.db"` | Path to the SQLite time-series history DB. |
+
+### `[profiles]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `dir` | string | `"config/profiles"` | Directory of ecosystem profile TOML files (Tasmota, Shelly, Zigbee2MQTT, etc.) consumed by the topic mapper. |
+
+### `[rules]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `dir` | string | `"rules"` | Directory of `.ron` rule files. Hot-reloaded on change. |
 
 ### `[auth]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `jwt_secret` | string | random | HS256 signing secret. Set a fixed value so tokens survive restarts. |
-| `token_expiry_hours` | integer | `24` | JWT lifetime |
+| `jwt_secret` | string | _unset_ | **Deprecated.** Inline HS256 secret. If set, overrides `jwt_secret_file` and emits a warning. Prefer the file-managed default. |
+| `jwt_secret_file` | string | `<parent-of-state_db_path>/jwt_secret` | Path to a `0600` file holding the persistent JWT secret. Auto-generated on first startup so issued tokens survive restarts. |
+| `token_expiry_hours` | integer | `24` | Access JWT lifetime in hours. |
+| `refresh_token_expiry_days` | integer | `30` | Refresh token lifetime. Each `/auth/refresh` rotates the token; reuse triggers full chain revocation. |
+| `audit_retention_days` | integer | `365` | How many days of audit history to keep. A background task prunes older entries every 6 hours. |
+| `whitelist` | array of strings | `[]` | **Deprecated.** IP addresses or CIDR ranges that bypass JWT auth and receive Admin access. Both IPv4 and IPv6 supported (e.g. `["127.0.0.1/32", "::1/128"]`). Prefer `[auth.admin_uds]` for same-host tooling. |
+
+`[auth.admin_uds]` — Unix domain socket listener for same-host admin tooling (replaces `whitelist`):
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `true` | Listen on the admin UDS. |
+| `path` | string | `/run/homecore/admin.sock` | Socket path. |
+| `mode` | integer (octal) | `0o660` | Filesystem permissions on the socket. |
+| `allowed_uids` | array of integers | `[]` | UIDs allowed to connect. Empty = only the homecore service UID, resolved at startup. |
 
 ### `[location]`
 
@@ -272,12 +304,90 @@ recover_band_pct    = 5.0
 |---|---|---|---|
 | `plugin_ready_delay_secs` | integer | `10` | Grace period before mode manager publishes initial states. Prevents command-before-subscribe race with plugins. |
 
-### `[engine]`
+### `[shutdown]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `drain_timeout_secs` | integer | `10` | Time to wait for in-flight rule tasks on shutdown before force-stopping |
-| `fire_history_limit` | integer | `500` | Maximum evaluation records stored per rule |
+| `drain_timeout_secs` | integer | `10` | Seconds to wait for in-flight rule action tasks to finish on graceful shutdown before force-stopping. |
+
+### `[logging]`
+
+Top-level keys:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `level` | string | `"info"` | Global log level (`error`, `warn`, `info`, `debug`, `trace`). |
+| `targets` | table of string→string | `{}` | Per-target overrides keyed by Rust module path with underscores (e.g. `hc_core = "debug"`). Equivalent to RUST_LOG directives. |
+| `time_display` | string | `"local"` | Timestamp display: `"local"` or `"utc"`. |
+
+`[logging.stderr]`:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `true` | Emit to stderr. |
+| `format` | string | `"pretty"` | `"pretty"`, `"compact"`, or `"json"`. |
+| `ansi` | bool | `true` | ANSI color codes (set `false` when piping to systemd journal). |
+
+`[logging.file]` — rolling file output:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `true` | Enable rolling file output. |
+| `dir` | string | `"logs"` | Log directory (created if missing). |
+| `prefix` | string | `"homecore"` | Filename prefix; rotated files become `<prefix>.YYYY-MM-DD`. |
+| `rotation` | string | `"daily"` | `"daily"`, `"hourly"`, `"weekly"`, or `"never"`. |
+| `max_size_mb` | integer | `100` | Max size before rotation. Combined with `rotation` ("whichever first"); `0` disables size-based rotation. |
+| `compress` | bool | `true` | Gzip rotated files (background thread). |
+| `prune_after_days` | integer | `0` | Delete rotated files older than N days. `0` = never prune. |
+| `format` | string | `"json"` | `"json"`, `"compact"`, or `"pretty"`. |
+
+`[logging.rules_file]` — separate rule-engine log capturing only `hc_core` at `debug` regardless of the global level. Disabled by default. Same field set as `[logging.file]` plus its own defaults (prefix `"rules"`, format `"pretty"`).
+
+`[logging.stream]` — live `/api/v1/logs/stream` WebSocket:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `true` | Enable the streaming endpoint. |
+| `ring_buffer_size` | integer | `500` | Recent log lines retained for new subscribers. |
+
+`[logging.syslog]` — RFC 5424 syslog forwarding:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Enable syslog output. |
+| `transport` | string | `"udp"` | `"udp"` (recommended) or `"tcp"`. |
+| `host` | string | `"127.0.0.1"` | Syslog server. |
+| `port` | integer | `514` | Syslog port. |
+
+### `[notify]`
+
+Channels are declared as a list under `[[notify.channels]]`. The `name` is referenced from rule `Notify` actions. The reserved name `"all"` fans out to every registered channel.
+
+```toml
+[[notify.channels]]
+name = "primary_email"
+type = "email"
+smtp_host = "smtp.example.com"
+smtp_port = 587
+username  = "automation@example.com"
+password  = "..."
+from      = "automation@example.com"
+to        = ["alerts@example.com"]
+
+[[notify.channels]]
+name      = "phone_push"
+type      = "pushover"
+api_token = "..."
+user_key  = "..."
+
+[[notify.channels]]
+name      = "telegram"
+type      = "telegram"
+bot_token = "..."
+chat_id   = "..."
+```
+
+Built-in providers: `email` (SMTP), `pushover`, `telegram`. Channels that fail to initialise at startup are logged and skipped — they don't block the rest of the system.
 
 ### `[web_admin]`
 
@@ -287,6 +397,19 @@ recover_band_pct    = 5.0
 | `dist_path` | string | `"ui/dist"` | Path to the `trunk build` output directory, relative to `HOMECORE_HOME` |
 
 When enabled, HomeCore serves the Leptos admin UI at the root path. API routes at `/api/v1` take priority over static file serving. A SPA fallback returns `index.html` for any unmatched path, enabling client-side routing. Disabled by default so that during development you can use `trunk serve` separately.
+
+See [Web UI overview](../web-ui/overview.md) for what the admin client provides.
+
+### `[calendars]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `dir` | string | `"config/calendars"` | Directory of `.ics` calendar files. Hot-reloaded on file changes. |
+| `expansion_days` | integer | `400` | How many days forward to expand recurring events into individual occurrences. |
+
+### Glue devices
+
+The path to glue device definitions is fixed at `<base>/config/glue.toml` and is not configurable from `homecore.toml`. See [Virtual / glue devices](../devices/virtual-devices.md) for the file format (timers, switches, counters, modes).
 
 ### `[[plugins]]`
 
