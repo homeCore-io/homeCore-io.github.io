@@ -34,6 +34,9 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build
+          # Preserve the custom domain across deploys — without this the
+          # action's clean publish wipes the CNAME file off gh-pages.
+          cname: homecore.io
           # This will automatically create and push to the gh-pages branch
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
