@@ -106,6 +106,20 @@ channel = "telegram"
 message = "YoLink front door sensor battery is low: {{device.battery}}%"
 ```
 
+## Plugin actions
+
+hc-yolink declares one [capability action](./capabilities) the admin
+UI exposes as a button on the plugin detail page:
+
+### `rescan_devices` (sync, user)
+
+Force an immediate inventory refresh — fetches the full device list
+from the YoLink hub and republishes registration for each. Use this
+after pairing a new YoLink device through the YoLink app: the plugin
+normally polls the inventory on `inventory_interval_secs`, but
+`rescan_devices` is the on-demand path so a freshly-paired device
+shows up in homeCore without waiting for the next poll cycle.
+
 ## SDK adoption
 
 hc-yolink is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.

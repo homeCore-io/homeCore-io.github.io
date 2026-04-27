@@ -83,7 +83,17 @@ zwave_15_ep2    ← endpoint 2 of node 15
 | Battery (0x80) | Any battery device | `level` |
 | Notification (0x71) | Door/window, smoke, CO | Various event values |
 | Color Switch (0x33) | RGB/RGBW lights | `red`, `green`, `blue`, `warm_white`, `cold_white` |
-| Meter (0x32) | Power monitors | `electric_consumed_kwh`, `electric_w`, `electric_v`, `electric_a` |
+| Meter (0x32) v1+ | Power monitors | `energy_kwh`, `power_w`, `voltage`, `current_a` |
+| Meter (0x32) v3 | Smart meters with advanced fields | + `apparent_energy_kvah`, `power_factor`, `reactive_power_kvar`, `reactive_energy_kvarh`, `pulse_count` |
+| Meter (0x32) — solar/PV | Bidirectional meters | `energy_kwh_exported`, `power_w_exported` |
+
+:::tip Unaliased values
+Anything the alias table doesn't recognise still publishes under a
+deterministic synthetic name like `cc50_value_pk67073` so it's visible.
+Watch for these in the device's attributes — if you find one that
+should have a clean canonical name, file an issue with the propertyKey
+and the value's meaning and we'll add an alias.
+:::
 
 ## Commanding devices
 
@@ -132,6 +142,55 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_12/state \
   -H "Content-Type: application/json" \
   -d '{"heating": 68}'
 ```
+
+## Plugin actions
+
+hc-zwave declares three [capability actions](./capabilities) the admin
+UI exposes as buttons on the plugin detail page (and hc-mcp surfaces
+via `list_plugin_actions`).
+
+### `include_node` (streaming, admin)
+
+Put the controller into inclusion mode and add one or more Z-Wave
+devices.
+
+1. Click **Include Z-Wave device**. The drawer opens and tells you to
+   press the include button on each device.
+2. Press the device's include button. The flow emits `progress`
+   updates as zwave-js reports the inclusion lifecycle: *waiting for
+   controller* → *listening* → *Node 14 included; interviewing…* →
+   *Node 14 interview complete*. Each newly-added node shows up in
+   the item list, color-coded by status (`added` → `interviewing`
+   → `ready`).
+3. Repeat for any additional devices.
+4. Click **Done**. For each node whose interview completed during the
+   session, the action prompts for a **name** and **area** (both
+   optional, with a **Skip** checkbox). On submit it sends
+   `node.set_name` / `node.set_location` to zwave-js, then triggers a
+   rescan that publishes the new identity to homeCore.
+
+S2 security: requested classes are auto-granted. Devices that require
+**DSK PIN entry** are not supported in v1 — the flow emits a warning
+and the inclusion times out.
+
+### `exclude_node` (streaming, admin)
+
+Mirror image. Put the controller into exclusion mode, press the
+exclude / reset button on each device, click **Done**. Removed nodes
+are unregistered from homeCore immediately.
+
+### `rescan_nodes` (sync, user)
+
+Re-fetches every node's full state from zwave-js and republishes to
+homeCore. Useful when:
+
+- A freshly-included device hasn't appeared yet (interview is slow on
+  battery / S2 nodes).
+- You renamed nodes in Z-Wave JS UI and want the homeCore device names
+  refreshed without restarting the plugin.
+
+`include_node`'s `complete` step auto-pings rescan, so you usually
+don't need to click this manually after pairing.
 
 ## Rule examples
 

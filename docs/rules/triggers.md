@@ -167,7 +167,7 @@ script = 'event.body["pin"] == "1234"'
 **Example — trigger from a cloud service:**
 
 ```bash
-# From Node-RED, IFTTT, Home Assistant, a button device, etc.
+# Fire the trigger from any HTTP client — a script, a scheduler, a physical button, etc.
 curl -X POST http://homecore.local/api/v1/webhooks/front-door-bell-a3f9c2 \
   -H "Content-Type: application/json" \
   -d '{"source": "doorbell", "action": "pressed"}'

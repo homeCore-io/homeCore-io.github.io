@@ -32,6 +32,12 @@ Each plugin:
 
 HomeCore treats the plugin as the source of truth for device discovery. In normal operation you do **not** pre-create devices manually. When the plugin discovers a light, sensor, speaker, or scene, it registers that device and HomeCore adds it to the registry automatically.
 
+Plugins can also declare **capability actions** — plugin-specific
+commands like "Pair Hue bridge", "Include Z-Wave device", "Rescan
+devices". These show up as buttons under **Actions** on the plugin's
+detail page in the admin UI and are exposable to MCP clients without
+plugin-specific code. See [Plugin Capabilities & Actions](./capabilities).
+
 ## Available plugins
 
 | Plugin | Language | Devices |
@@ -43,6 +49,7 @@ HomeCore treats the plugin as the source of truth for device discovery. In norma
 | [hc-zwave](./zwave) | Rust | Z-Wave devices via zwave-js WebSocket |
 | [hc-wled](./wled) | Rust | WLED LED controllers |
 | [hc-isy](./isy) | Rust | ISY/IoX hub (Insteon, Z-Wave, Zigbee) |
+| [hc-thermostat](./thermostat) | Rust | Virtual thermostats (aggregated sensors → actuator) |
 | [http-poller](./http-poller) | Rust | Generic HTTP endpoint polling |
 
 ## Plugin configuration
@@ -199,18 +206,23 @@ Managed plugins publish a heartbeat message every 30-60 seconds. The PluginManag
 | `POST /api/v1/plugins/:id/restart` | Restart a managed plugin |
 | `GET /api/v1/plugins/:id/config` | Get plugin configuration |
 | `PUT /api/v1/plugins/:id/config` | Update plugin configuration |
+| `DELETE /api/v1/plugins/:id/devices` | Bulk-wipe every device the plugin owns; plugin re-registers live ones on next sync. See [Devices → Wipe all devices for one plugin](../devices/overview#wipe-all-devices-for-one-plugin). |
 
 ### Managed plugins
 
-All seven Rust device plugins use the official SDK with full management protocol support:
+All Rust device plugins use the official SDK with full management protocol support:
 
 - **hc-hue** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-wled** — heartbeat, remote config, dynamic log level, MQTT log forwarding
-- **hc-yolink** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-yolink** — + custom action: `rescan_devices`
 - **hc-lutron** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-sonos** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-isy** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-zwave** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-thermostat** — + custom actions: `recalculate_all`, `reload_config`,
+  `add_thermostat`, `remove_thermostat`, `get_thermostats`.
+  First plugin to use the SDK's cross-device state subscription
+  (`subscribe_state` / `run_managed_with_state`).
 
 ---
 

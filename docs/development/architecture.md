@@ -99,6 +99,107 @@ loop {
 
 The `biased` selector ensures the shutdown signal is always checked first.
 
+### `raw_bus` on AppState
+
+`AppState` carries two `EventBus` handles, with semantic meaning that
+**must be respected** when adding new background tasks:
+
+| Field | Production value | Subscribers |
+|---|---|---|
+| `event_bus` | `pub_bus` (typed events only) | event log, WS event stream, plugin-registry listener, plugin-offline injector, metrics counter |
+| `raw_bus` | `internal_bus` (`Event::MqttMessage` only) | plugin-stream SSE bridge, terminal observer, StreamCache populator |
+
+When adding a new background task in `hc-api` that filters
+`Event::MqttMessage`, **subscribe to `state.raw_bus`**. When watching
+for typed events (`PluginCapabilities`, `RuleFired`,
+`DeviceStateChanged`, etc.), **subscribe to `state.event_bus`**.
+
+In production these are distinct channels (`pub_bus` vs `internal_bus`).
+Test harnesses that use a single merged bus get them populated as
+clones of the same handle — `AppState::new` defaults `raw_bus =
+event_bus.clone()`, while `AppState::new_with_plugins_and_raw_bus`
+takes them separately.
+
+:::caution Subscriber-spawn timing
+`tokio::broadcast` does **not** replay history on late subscribe —
+messages published before a subscriber existed are lost forever.
+Listeners that need to see retained messages (capability manifests in
+particular) must be spawned **before** the publisher fires —
+specifically, `spawn_plugin_registry_listener` must run before
+plugins spawn and `core.start()` (which spawns `state_bridge`) must
+run before `mqtt_client.run()`. Both are wired correctly today but
+worth keeping in mind when reordering main.rs.
+:::
+
+---
+
+## Plugin streaming substrate
+
+Plugins emit live progress for long-running actions ("include Z-Wave
+device", "pair Hue bridge") through a frozen six-stage protocol —
+`progress`, `item`, `awaiting_user`, `warning`, `complete`, `error`,
+plus core-injected synthetic `canceled` and `timeout`. Events flow on
+plain MQTT topics:
+
+```
+homecore/plugins/{plugin_id}/commands/{request_id}/events
+```
+
+The plugin SDK's `StreamContext` handles the envelope shape and the
+retain-then-clear-on-terminal lifecycle; see the
+[capabilities page](../plugins/capabilities) for the spec.
+
+### SSE bridge (`handlers::get_plugin_stream_sse`)
+
+The Leptos admin client opens an `EventSource` against
+`GET /api/v1/plugins/:id/command/:rid/stream`. The handler is
+deliberately on the **public** router (browsers can't set
+`Authorization` on `EventSource`) and accepts `?token=<jwt>` or
+`Authorization: Bearer` for programmatic clients. Required scope is
+`plugins:read`.
+
+Inside, it subscribes to `state.raw_bus`, filters for
+`Event::MqttMessage` on the target topic, and forwards each as an SSE
+`event: stream` chunk. Closes on the first terminal stage.
+
+### StreamCache
+
+Fast streaming actions can finish emitting all events before an
+HTTP client manages to receive the `request_id` and open the SSE
+connection. The retained-MQTT clear-on-terminal contract makes the
+broker unhelpful here: by the time the client subscribes, the bridge
+has already wiped the retained event so there's nothing to replay.
+
+`streaming::StreamCache` solves this by mirroring stream events
+in-process. `spawn_stream_cache_populator(raw_bus, cache)` subscribes
+to `raw_bus` and appends every stream-topic event to a per-`request_id`
+ring buffer (capped at 256 events; entries garbage-collected
+60 seconds after their terminal stage). When the SSE handler opens,
+it:
+
+1. Subscribes to `raw_bus` first (so it doesn't miss live events).
+2. Reads the cached snapshot for this `request_id`.
+3. Replays cached events to the client.
+4. Forwards live events, deduping by `ts` against the snapshot.
+
+This is the "retained last event is the resilience floor" plus a
+short replay window. Late subscribers see the full history they
+missed, then catch up to live.
+
+### Terminal observer + timeout injection
+
+`streaming::spawn_terminal_observer` subscribes to `raw_bus` and
+releases the `StreamingRegistry` slot the moment a terminal stage
+lands on any stream topic. This is what allows
+`concurrency: "single"` enforcement (a second invocation of the same
+action sees the slot freed as soon as the first one finishes).
+
+`streaming::schedule_timeout` arms a per-request deadline derived
+from the manifest's `timeout_ms`. If the deadline fires before the
+plugin emits a terminal, core publishes a synthetic
+`stage: "timeout"` event onto the stream topic so the SSE consumer
+gets a clean terminal.
+
 ---
 
 ## State bridge (`state_bridge.rs`)
@@ -117,6 +218,27 @@ The state bridge is the translation layer between raw MQTT and the typed event w
 8. **Only if `!changed.is_empty()`**: publish `Event::DeviceStateChanged` to `pub_bus`
 
 The guard in step 8 is critical for startup performance. On restart, the MQTT broker replays retained messages for all registered devices. Without the guard, every retained message would publish a spurious `DeviceStateChanged` even when the stored state is identical — causing the rule engine to evaluate all rules for every device at startup (O(devices × rules) work per restart).
+
+### Topic routing — `state` vs `state/partial`
+
+The router matches against `(parts[3], parts.get(4))` rather than just
+`parts[3]` because `topic.split('/')` separates `state` and `partial`
+into adjacent parts. A naïve match against `"state/partial"` against
+`parts[3]` never fires — every per-attribute partial publish would
+silently route through the full-replace branch and wipe
+`device.attributes`. The routing is now:
+
+| Topic | `parts[3]` | `parts[4]` | Handler |
+|---|---|---|---|
+| `…/state` | `"state"` | `None` | `handle_state(partial=false)` (full replace) |
+| `…/state/partial` | `"state"` | `Some("partial")` | `handle_state(partial=true)` (merge) |
+| `…/availability` | `"availability"` | `None` | `handle_availability` |
+| `…/schema` | `"schema"` | `None` | `handle_device_schema` |
+
+Partial merge uses `apply_partial_merge_patch`: a JSON null value in
+the patch **deletes** that attribute from the stored state. Plugins
+emitting per-attribute updates must filter null `newValue`s if they
+don't intend the attribute to be removed.
 
 ### Availability handling
 

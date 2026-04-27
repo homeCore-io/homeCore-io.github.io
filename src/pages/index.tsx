@@ -5,163 +5,29 @@ import Layout from '@theme/Layout';
 
 import styles from './index.module.css';
 
-function Hero() {
+function Terminal({children}: {children: ReactNode}) {
   return (
-    <section className={styles.hero}>
-      <img src="/img/logo-2.png" className={styles.heroLogo} alt="homeCore logo" />
-      <h1 className={styles.heroTitle}>
-        <span className={styles.heroTitleHome}>home</span>Core
-      </h1>
-      <p className={styles.heroSub}>
-        Open-source home automation built in Rust. MQTT-native, API-first, and fully local — no cloud required.
-      </p>
-      <div className={styles.heroBadges}>
-        <span className={styles.badge}>Rust + Tokio</span>
-        <span className={styles.badge}>MQTT-native</span>
-        <span className={styles.badge}>Rule Engine</span>
-        <span className={styles.badge}>Plugin SDK</span>
-        <span className={styles.badge}>No Cloud</span>
-        <span className={styles.badge}>REST + WebSocket</span>
+    <div className={styles.terminal}>
+      <div className={styles.termBar}>
+        <span className={styles.termDot} />
+        <span className={styles.termDot} />
+        <span className={styles.termDot} />
       </div>
-      <div className={styles.heroCtas}>
-        <Link to="/docs/getting-started/quickstart" className={styles.ctaPrimary}>
-          Get Started →
-        </Link>
-        <a
-          href="https://github.com/homeCore-io/homeCore"
-          className={styles.ctaSecondary}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          View on GitHub
-        </a>
-      </div>
-      <div className={styles.heroCode}>
-        <div className={styles.heroCodeComment}># clone and run in under 5 minutes</div>
-        <div><span className={styles.heroCodeCmd}>git clone</span> https://github.com/homeCore-io/homeCore</div>
-        <div><span className={styles.heroCodeCmd}>cd</span> homeCore/core</div>
-        <div><span className={styles.heroCodeCmd}>cargo run</span> --release</div>
-        <div className={styles.heroCodeComment}># → http://localhost:8080</div>
-      </div>
-    </section>
-  );
-}
-
-function Stats() {
-  return (
-    <div className={styles.stats}>
-      <div className={styles.statsGrid}>
-        <div>
-          <div className={styles.statNum}>~0ms</div>
-          <div className={styles.statLabel}>GC pauses (Rust)</div>
-        </div>
-        <div>
-          <div className={styles.statNum}>8+</div>
-          <div className={styles.statLabel}>Device plugins</div>
-        </div>
-        <div>
-          <div className={styles.statNum}>40+</div>
-          <div className={styles.statLabel}>Rule action types</div>
-        </div>
-        <div>
-          <div className={styles.statNum}>100%</div>
-          <div className={styles.statLabel}>Local — no cloud</div>
-        </div>
-      </div>
+      <div className={styles.termBody}>{children}</div>
     </div>
   );
 }
 
-const FEATURES = [
-  {
-    icon: '⚡',
-    title: 'MQTT-Native Core',
-    body: (
-      <>
-        An embedded <strong>rumqttd</strong> broker ships with the binary. Device state always flows through
-        MQTT — the universal fabric for all plugins.
-      </>
-    ),
-  },
-  {
-    icon: '🔁',
-    title: 'Powerful Rule Engine',
-    body: 'Event-driven automations with 16 trigger types, compound conditions, 40+ action types, Rhai scripting, and per-rule fire history.',
-  },
-  {
-    icon: '🔌',
-    title: 'Plugin Architecture',
-    body: 'Connect anything via Rust, Python, Node.js, or .NET SDKs. Managed plugins with heartbeat monitoring, remote config, and dynamic log levels.',
-  },
-  {
-    icon: '🌐',
-    title: 'API-First',
-    body: 'Every operation is available via REST or WebSocket. Build dashboards, mobile apps, and integrations against a clean OpenAPI spec.',
-  },
-  {
-    icon: '🏠',
-    title: 'Fully Local',
-    body: 'Solar events computed from your lat/lon. No cloud accounts, no subscriptions. Your home runs even when the internet is down.',
-  },
-  {
-    icon: '🦀',
-    title: 'Rust Performance',
-    body: 'Async Tokio runtime, zero GC pauses, embedded redb state store, and SQLite history. Runs comfortably on a Raspberry Pi 4.',
-  },
-];
-
-function Features() {
-  return (
-    <section className={styles.features}>
-      <h2 className={styles.sectionTitle}>Everything your home needs</h2>
-      <p className={styles.sectionSub}>
-        A complete automation stack — broker, state store, rule engine, and API in one binary.
-      </p>
-      <div className={styles.featureGrid}>
-        {FEATURES.map((f) => (
-          <div key={f.title} className={styles.featureCard}>
-            <div className={styles.featureIcon}>{f.icon}</div>
-            <h3>{f.title}</h3>
-            <p>{f.body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+function C({children}: {children: ReactNode}) {
+  return <span className={styles.comment}>{children}</span>;
 }
 
-function Quickstart() {
-  return (
-    <section className={styles.quickstart}>
-      <div className={styles.qsInner}>
-        <div className={styles.qsText}>
-          <h2>Up and running in minutes</h2>
-          <p>
-            homeCore ships as a single Rust binary with an embedded MQTT broker. No external
-            databases, no Docker required for a basic install.
-          </p>
-          <p>
-            Connect your first device, write your first rule, and watch your home respond — all
-            from a clean REST API or the built-in terminal UI.
-          </p>
-          <Link to="/docs/getting-started/quickstart">Read the full quickstart guide →</Link>
-        </div>
-        <div className={styles.codeBlock}>
-          <div className={styles.codeComment}># 1. Build</div>
-          <div><span className={styles.codePs1}>$</span> cargo build --release -p homecore</div>
-          <br />
-          <div className={styles.codeComment}># 2. Configure</div>
-          <div><span className={styles.codePs1}>$</span> cp config/homecore.toml.example config/homecore.toml</div>
-          <br />
-          <div className={styles.codeComment}># 3. Run</div>
-          <div><span className={styles.codePs1}>$</span> ./target/release/homecore</div>
-          <br />
-          <div className={styles.codeComment}># 4. Open the TUI dashboard</div>
-          <div><span className={styles.codePs1}>$</span> ./hc-tui</div>
-        </div>
-      </div>
-    </section>
-  );
+function A({children}: {children: ReactNode}) {
+  return <span className={styles.accent}>{children}</span>;
+}
+
+function D({children}: {children: ReactNode}) {
+  return <span className={styles.dim}>{children}</span>;
 }
 
 export default function Home(): ReactNode {
@@ -169,12 +35,101 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title={siteConfig.title}
-      description="Open-source home automation built in Rust. MQTT-native, API-first, and fully local.">
-      <Hero />
-      <main>
-        <Stats />
-        <Features />
-        <Quickstart />
+      description="Open-source home automation built in Rust.">
+      <main className={styles.page}>
+        <Terminal>
+          <div className={styles.line}><C># homeCore</C></div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            Home automation in Rust. One binary, no cloud.
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            <A>mqtt</A>  Embedded broker (rumqttd). No external dependencies.
+          </div>
+          <div className={styles.line}>
+            <A>rules</A> RON files on disk. Triggers, conditions, actions.
+          </div>
+          <div className={styles.line}>
+            <A>api</A>   REST + WebSocket. Everything is an endpoint.
+          </div>
+          <div className={styles.line}>
+            <A>sdk</A>   Rust, Python, Node.js, .NET. Write a plugin in anything.
+          </div>
+          <div className={styles.line}>
+            <A>local</A> Solar events from lat/lon. Runs without internet.
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}><C># quick start</C></div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            <D>$</D> git clone https://github.com/homeCore-io/homeCore
+          </div>
+          <div className={styles.line}>
+            <D>$</D> cd homeCore/core
+          </div>
+          <div className={styles.line}>
+            <D>$</D> cargo run --release
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            <D>listening on</D> <A>:8080</A> <D>(http)</D> <A>:1883</A> <D>(mqtt)</D>
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}><C># web ui</C></div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            <D>$</D> cd clients/hc-web
+          </div>
+          <div className={styles.line}>
+            <D>$</D> trunk serve
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            <D>serving on</D> <A>:3000</A> <D>(leptos/wasm, proxies to :8080)</D>
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}><C># plugins</C></div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            <D>hc-lutron</D>  RadioRA2 / Caseta
+          </div>
+          <div className={styles.line}>
+            <D>hc-hue</D>     Philips Hue
+          </div>
+          <div className={styles.line}>
+            <D>hc-zwave</D>   Z-Wave JS
+          </div>
+          <div className={styles.line}>
+            <D>hc-yolink</D>  YoLink sensors
+          </div>
+          <div className={styles.line}>
+            <D>hc-sonos</D>   Sonos speakers
+          </div>
+          <div className={styles.line}>
+            <D>hc-wled</D>    WLED controllers
+          </div>
+          <div className={styles.line}>
+            <D>hc-isy</D>     ISY/IoX (Insteon)
+          </div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}><C># status</C></div>
+          <div className={styles.line}>&nbsp;</div>
+          <div className={styles.line}>
+            Work in progress. Runs my house. Not yet packaged for yours.
+          </div>
+          <div className={styles.line}>
+            Contributions welcome when it's ready.
+          </div>
+        </Terminal>
+
+        <nav className={styles.links}>
+          <Link to="/docs/getting-started/quickstart">docs</Link>
+          <span className={styles.sep}>/</span>
+          <a href="https://github.com/homeCore-io/homeCore">github</a>
+          <span className={styles.sep}>/</span>
+          <Link to="/blog">blog</Link>
+        </nav>
       </main>
     </Layout>
   );

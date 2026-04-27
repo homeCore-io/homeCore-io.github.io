@@ -106,8 +106,120 @@ client.subscribe_commands("my_device_001", |cmd: serde_json::Value| {
 The Rust SDK includes `DevicePublisher` for spawned tasks and full management protocol support (heartbeat, remote config, dynamic log level).
 
 :::note Plugin isolation via per-device subscriptions
-The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to. This ensures plugin isolation at the MQTT transport layer: one plugin can never accidentally receive or interfere with commands destined for another plugin's devices.
+The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
+
+**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment) and `mqttAuthzPlan.md` in the repo root.
 :::
+
+### Cross-restart device cleanup
+
+When a device disappears from a plugin's authoritative source — a Hue
+bulb deleted from the bridge, a Z-Wave node excluded, an entry removed
+from `[[devices]]` — its homeCore record needs to go away too. The SDK
+handles persistence and the diff so plugins only need to declare what's
+live each cycle.
+
+```rust
+// 1. Opt in once at startup (typically next to config.toml).
+let client = PluginClient::connect(cfg)
+    .await?
+    .with_device_persistence(
+        Path::new(&config_path)
+            .parent()
+            .unwrap_or(Path::new("."))
+            .join(".published-device-ids.json"),
+    );
+
+// 2. After a healthy sync where you know the full live set:
+let live: HashSet<String> = my_upstream
+    .list_devices()
+    .iter()
+    .map(|d| d.hc_id())
+    .collect();
+let report = publisher.reconcile_devices(live).await?;
+// report.stale_unregistered: Vec<String>
+//   = devices unregistered because they're not in `live`
+// report.unknown_in_live: Vec<String>
+//   = ids you passed but never registered (usually empty)
+```
+
+**What the SDK does:**
+
+- `with_device_persistence(path)` mirrors every `register_device_full` /
+  `unregister_device` call to a JSON file. On startup, the file is
+  loaded so the in-memory tracker isn't blank — that's how a plugin
+  knows about devices it registered in a previous session.
+- `reconcile_devices(live)` computes `tracked - live`, calls
+  `unregister_device` for each stale id, and writes the new live set
+  back to disk.
+
+**What plugins must decide:**
+
+- **When to call.** Only when the upstream sync actually succeeded.
+  Calling reconcile after a partial fetch will wipe live devices behind
+  a temporarily-unreachable upstream. The typical pattern is an
+  `all_bridges_succeeded` (or equivalent) flag tracked across the
+  per-source loop.
+- **Whether to call at all.** Plugins whose upstream has irregular
+  reporting cadence (battery sensors that go quiet for hours, e.g.
+  hc-ecowitt) should opt into persistence but skip auto-reconcile —
+  the false-positive risk is worse than the zombie-device cost.
+  Operators can clean up zombies with the core endpoint
+  `DELETE /api/v1/plugins/:id/devices` when needed.
+
+**Manual bulk wipe.** Independent of SDK reconcile, an admin can call:
+
+```text
+DELETE /api/v1/plugins/<plugin_id>/devices
+```
+
+…to delete every device whose `plugin_id` matches. The plugin stays
+registered; on its next sync cycle it re-registers anything still
+live. Useful for clearing zombies left over from development churn or
+config rearrangements without dropping the whole state DB. The
+homeCore Leptos admin UI exposes this as a **Wipe all devices**
+button on each plugin's detail page.
+
+### Cross-device consumer plugins
+
+Most plugins own their devices and only observe their own command topics. A
+**cross-device consumer** plugin also needs to *observe state from other
+plugins' devices* — e.g. a virtual thermostat aggregating temperature
+readings from YoLink and Ecowitt sensors.
+
+The Rust SDK supports this directly:
+
+```rust
+// Subscribe to another plugin's device state (tracked for reconnect).
+client.subscribe_state("yolink_sensor_a").await?;
+client.subscribe_state("ecowitt_outdoor_temp").await?;
+
+// Drive the event loop with TWO callbacks: own cmd + external state.
+client.run_managed_with_state(
+    move |device_id, payload| {
+        // Commands on OUR devices (homecore/devices/thermostat_+/cmd)
+    },
+    move |device_id, payload| {
+        // State from OTHER devices we subscribed to
+    },
+    mgmt,
+).await?;
+
+// Later, at runtime:
+client.unsubscribe_state("ecowitt_outdoor_temp").await?;
+```
+
+`run_managed_with_state` is a drop-in replacement for `run_managed`. Use
+`run_managed` when you don't need external state. The corresponding
+`DevicePublisher::subscribe_state` / `unsubscribe_state` methods let
+background tasks adjust subscriptions dynamically (e.g. when a user
+changes the sensor list via a runtime command).
+
+**Broker ACL:** cross-device consumers need `allow_sub = ["homecore/devices/+/state"]`
+— broader than the typical plugin ACL. See the [thermostat plugin](./thermostat)
+Setup section for a complete example.
+
+See [`hc-thermostat`](./thermostat) for a reference implementation.
 
 ---
 
@@ -265,6 +377,103 @@ Plugins built with the official SDKs can opt into the management protocol, which
 
 All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol automatically when enabled.
 
+## Capability manifest
+
+Plugins declare plugin-specific actions in a typed manifest; the admin
+UI renders Actions buttons from it and hc-mcp exposes the entries as
+tools. Adding a new action **doesn't require any changes** to core,
+the SDKs, the Leptos client, or hc-mcp — the framework is fully
+data-driven.
+
+See the dedicated [Plugin Capabilities & Actions](./capabilities) page
+for the full spec, manifest fields, stage vocabulary, and protocol.
+The short version below shows how to wire it up from the Rust SDK.
+
+### Sync (non-streaming) action
+
+For a fire-and-forget command. Add a `with_capabilities` arm and
+handle the action through `with_custom_handler`:
+
+```rust
+let mgmt = client
+    .enable_management(
+        60,
+        Some(env!("CARGO_PKG_VERSION").to_string()),
+        Some(config_path.to_string()),
+        Some(log_level_handle),
+    )
+    .await?
+    .with_capabilities(hc_types::Capabilities {
+        spec: "1".into(),
+        plugin_id: String::new(),  // SDK fills from configured plugin_id
+        actions: vec![hc_types::Action {
+            id: "rescan_devices".into(),
+            label: "Rescan devices".into(),
+            description: Some("Refresh inventory from the cloud.".into()),
+            params: None,
+            result: None,
+            stream: false,
+            cancelable: false,
+            concurrency: hc_types::Concurrency::default(),
+            item_key: None,
+            item_operations: None,
+            requires_role: hc_types::RequiresRole::User,
+            timeout_ms: None,
+        }],
+    })
+    .with_custom_handler(move |cmd| match cmd["action"].as_str()? {
+        "rescan_devices" => {
+            rescan_tx.try_send(()).ok();
+            Some(serde_json::json!({ "status": "ok" }))
+        }
+        _ => None,
+    });
+```
+
+### Streaming action
+
+Long-running flows that emit live progress, accept user prompts, and
+handle cancel. Use `with_streaming_action` and the `StreamContext`'s
+helper methods:
+
+```rust
+use plugin_sdk_rs::{StreamContext, StreamingAction};
+use serde_json::{json, Value};
+
+let mgmt = mgmt.with_streaming_action(StreamingAction::new(
+    "include_node",
+    move |ctx: StreamContext, _params: Value| async move {
+        ctx.progress(Some(0), Some("starting"), Some("Press the button on each device")).await?;
+
+        // ... wait for device events, emit item_add per node ...
+        ctx.item_add(json!({ "node_id": 14, "status": "added" })).await?;
+        ctx.item_update(json!({ "node_id": 14, "status": "ready" })).await?;
+
+        // Wait for user "done" via awaiting_user / await_respond.
+        ctx.emit_awaiting_user_with_schema(
+            "Reply when finished",
+            json!({ "done": { "type": "boolean", "default": true } }),
+        ).await?;
+        let _ = ctx.await_respond().await?;
+
+        // Always end with a terminal stage.
+        ctx.complete(json!({ "nodes_added": [14] })).await
+    },
+)));
+```
+
+The stage helpers (`progress`, `item_add` / `item_update` /
+`item_remove`, `awaiting_user`, `warning`, `complete`, `error`,
+`canceled`) handle the envelope shape and the
+`stream_topic` for you. Check `ctx.is_canceled()` in cooperative
+loops; pair `emit_awaiting_user_with_schema` with `await_respond`
+when the closure also needs to process other async work concurrently.
+
+The Z-Wave plugin's `inclusion.rs` is a comprehensive worked example
+covering all the patterns; the `hc-captest` plugin in
+`plugins/hc-captest/` has six minimal-but-complete demos exercising
+every convention.
+
 ## SDK feature matrix
 
 All SDKs provide the same core capabilities:
@@ -282,6 +491,8 @@ All SDKs provide the same core capabilities:
 | Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
 | Command change metadata | ✅ | ✅ | ✅ | ✅ |
 | Auto-reconnect | ✅ | ✅ | ✅ | ✅ |
+| Cross-device state subscription | ✅ | — | — | — |
+| Device persistence + reconcile | ✅ | — | — | — |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
 

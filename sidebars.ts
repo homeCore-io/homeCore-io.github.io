@@ -26,6 +26,8 @@ const sidebars = {
         'administration/backup-restore',
         'administration/metrics',
         'administration/system-status',
+        'administration/systemd-deployment',
+        'administration/deployment-checklist',
       ],
     },
     {
@@ -65,6 +67,7 @@ const sidebars = {
       items: [
         'plugins/overview',
         'plugins/developing-plugins',
+        'plugins/capabilities',
         'plugins/http-poller',
         'plugins/hue',
         'plugins/yolink',
@@ -73,6 +76,14 @@ const sidebars = {
         'plugins/zwave',
         'plugins/wled',
         'plugins/isy',
+        'plugins/thermostat',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Tools & Integrations',
+      items: [
+        'tools/hc-mcp',
       ],
     },
     {
