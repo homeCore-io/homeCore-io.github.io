@@ -60,34 +60,6 @@ export default function Home(): ReactNode {
             <A>local</A> Solar events from lat/lon. Runs without internet.
           </div>
           <div className={styles.line}>&nbsp;</div>
-          <div className={styles.line}><C># quick start</C></div>
-          <div className={styles.line}>&nbsp;</div>
-          <div className={styles.line}>
-            <D>$</D> git clone https://github.com/homeCore-io/homeCore
-          </div>
-          <div className={styles.line}>
-            <D>$</D> cd homeCore/core
-          </div>
-          <div className={styles.line}>
-            <D>$</D> cargo run --release
-          </div>
-          <div className={styles.line}>&nbsp;</div>
-          <div className={styles.line}>
-            <D>listening on</D> <A>:8080</A> <D>(http)</D> <A>:1883</A> <D>(mqtt)</D>
-          </div>
-          <div className={styles.line}>&nbsp;</div>
-          <div className={styles.line}><C># web ui</C></div>
-          <div className={styles.line}>&nbsp;</div>
-          <div className={styles.line}>
-            <D>$</D> cd clients/hc-web
-          </div>
-          <div className={styles.line}>
-            <D>$</D> trunk serve
-          </div>
-          <div className={styles.line}>&nbsp;</div>
-          <div className={styles.line}>
-            <D>serving on</D> <A>:3000</A> <D>(leptos/wasm, proxies to :8080)</D>
-          </div>
           <div className={styles.line}>&nbsp;</div>
           <div className={styles.line}><C># plugins</C></div>
           <div className={styles.line}>&nbsp;</div>
