@@ -67,6 +67,15 @@ const config: Config = {
     ],
   ],
 
+  // Pull JetBrains Mono so the navbar's mono treatment renders for
+  // visitors who don't have it installed locally.
+  stylesheets: [
+    {
+      href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap',
+      rel: 'stylesheet',
+    },
+  ],
+
   themeConfig: {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
@@ -78,6 +87,7 @@ const config: Config = {
       logo: {
         alt: 'homeCore',
         src: 'img/homecore-wordmark.svg',
+        srcDark: 'img/homecore-wordmark-dark.svg',
       },
       items: [
         {
