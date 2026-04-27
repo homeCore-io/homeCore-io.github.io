@@ -404,6 +404,40 @@ offset_minutes = -15
 
 ---
 
+### `DeviceBatteryLow`
+
+Fires once when a device's battery percentage crosses the configured low
+threshold. Hysteresis is enforced by the watcher (latches at
+`threshold_pct`, clears at `threshold_pct + recover_band_pct`), so the
+trigger fires only on the crossing edge — not on every battery report.
+
+`device_id` is optional: omit it to match any battery-powered device.
+
+```toml
+[trigger]
+type      = "device_battery_low"
+# device_id = "yolink_d88b4c0400064299"   # optional — omit to match any device
+```
+
+Thresholds live in `[battery]` in `homecore.toml`. See [Battery monitoring](../devices/battery-monitoring.md) for the full feature, including how to identify which device fired the trigger inside an action.
+
+---
+
+### `DeviceBatteryRecovered`
+
+Counterpart to `DeviceBatteryLow`. Fires once when a previously-low
+device's battery climbs back above `threshold_pct + recover_band_pct`.
+
+```toml
+[trigger]
+type      = "device_battery_recovered"
+# device_id = "yolink_d88b4c0400064299"   # optional
+```
+
+---
+
 ## Trigger context in conditions
 
 For `WebhookReceived` triggers, the request body is available in `ScriptExpression` conditions as `event.body`. For `DeviceStateChanged`, `event.device_id`, `event.attribute`, and `event.value` are available.
+
+For `DeviceBatteryLow` and `DeviceBatteryRecovered`, the firing device's id is exposed to Rhai via `trigger_device()`. Pair it with `device_state(id)` inside a `RunScript` action to read the device name and current battery level.

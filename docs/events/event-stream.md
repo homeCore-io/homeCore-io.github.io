@@ -58,6 +58,8 @@ When `type` is omitted, all events are forwarded (except `mqtt_message`, which i
 | `action_failed` | A rule action failed to execute |
 | `hub_variable_changed` | A hub variable was written |
 | `mode_changed` | A named mode transitioned on/off |
+| `device_battery_low` | A battery-powered device crossed the configured low threshold (synthesized with hysteresis) |
+| `device_battery_recovered` | A previously-low device's battery climbed back above the recover band |
 | `custom_{event_type}` | A `FireEvent` action emitted a custom event |
 | `system_started` | Rule engine finished startup initialization |
 
@@ -137,6 +139,31 @@ All events follow the same JSON envelope:
   "name": "alarm_armed",
   "value": true,
   "previous_value": false
+}
+```
+
+### `device_battery_low`
+
+```json
+{
+  "type": "device_battery_low",
+  "timestamp": "2026-04-27T14:22:00Z",
+  "device_id": "yolink_d88b4c0400064299",
+  "device_name": "Front door sensor",
+  "battery_pct": 18.0,
+  "threshold_pct": 20.0
+}
+```
+
+### `device_battery_recovered`
+
+```json
+{
+  "type": "device_battery_recovered",
+  "timestamp": "2026-04-30T09:14:23Z",
+  "device_id": "yolink_d88b4c0400064299",
+  "device_name": "Front door sensor",
+  "battery_pct": 92.0
 }
 ```
 

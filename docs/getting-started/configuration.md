@@ -237,6 +237,29 @@ Required for `SunEvent` and `SunEvent` offset triggers.
 | `longitude` | float | Decimal degrees, e.g. `-77.0369` |
 | `timezone` | string | IANA timezone name, e.g. `"America/New_York"` |
 
+### `[battery]`
+
+Drives the battery alert watcher. The watcher synthesizes
+`device_battery_low` and `device_battery_recovered` events from device
+state changes, with hysteresis enforced in core (latches at
+`threshold_pct`, clears at `threshold_pct + recover_band_pct`). See
+[Battery monitoring](../devices/battery-monitoring.md) for the full picture.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `threshold_pct` | float | `20.0` | Battery percentage at or below which the latch engages. |
+| `recover_band_pct` | float | `5.0` | Recovery band added to threshold to clear the latch. Recovery fires at `threshold_pct + recover_band_pct`. |
+| `notify_channel` | string | _unset_ | Optional `hc-notify` channel name. When set, the watcher sends a built-in notification on each low edge — no rule required. |
+| `notify_on_recovered` | bool | `false` | When `true` and `notify_channel` is set, recovery edges also notify. |
+
+```toml
+[battery]
+threshold_pct       = 20.0
+recover_band_pct    = 5.0
+# notify_channel       = "all"
+# notify_on_recovered  = false
+```
+
 ### `[scheduler]`
 
 | Key | Type | Default | Description |

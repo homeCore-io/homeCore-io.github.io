@@ -51,6 +51,14 @@ const sidebars = {
         'devices/overview',
         'devices/virtual-devices',
         'devices/scenes',
+        'devices/battery-monitoring',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Web UI',
+      items: [
+        'web-ui/overview',
       ],
     },
     {
