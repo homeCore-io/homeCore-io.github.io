@@ -7,7 +7,26 @@ sidebar_position: 3
 
 # MQTT Broker
 
-HomeCore embeds a full MQTT broker ([rumqttd](https://github.com/bytebeamio/rumqtt)) — no separate Mosquitto or EMQX process needed. The broker starts automatically when HomeCore starts.
+HomeCore embeds a full MQTT broker ([rumqttd](https://github.com/bytebeamio/rumqtt))
+that starts automatically alongside the server. For evaluation,
+homelab, and small deployments this is enough — no separate broker
+process to manage.
+
+For deployments where **per-topic ACL enforcement matters** —
+containers, remote plugins, third-party code, or anything going
+through a security review — point HomeCore at an external Mosquitto
+broker instead. The embedded rumqttd authenticates connections but
+does **not** enforce per-topic publish/subscribe ACLs (that's an
+upstream limitation, not a HomeCore choice). The full enforcement path
+plus the `hc-cli broker generate-mosquitto-config` helper that
+converts your existing `[[broker.clients]]` config into a Mosquitto
+ACL file is in [External Mosquitto deployment](#external-mosquitto-deployment)
+below.
+
+| Mode | Authn (CONNECT) | Authz (per-topic ACL) | When to use |
+|---|---|---|---|
+| Embedded `rumqttd` (default) | ✓ enforced | ✗ metadata only | Single host, trusted network, evaluation |
+| External Mosquitto | ✓ enforced | ✓ enforced | Multi-host, third-party plugins, prod |
 
 ## Topic schema
 

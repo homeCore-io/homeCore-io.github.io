@@ -40,8 +40,18 @@ port = 1883
 # cert_path = "/etc/homecore/broker.crt"
 # key_path  = "/etc/homecore/broker.key"
 
-# When [[broker.clients]] entries are present, the broker requires credentials.
-# Leave empty for open-access (development / trusted networks).
+# Use an external broker (e.g. Mosquitto) instead of the embedded rumqttd.
+# When set, HomeCore connects as a client and skips its own listener bind.
+# Required for topic-level authz enforcement — see Administration → Broker
+# for the rumqttd-vs-Mosquitto split and `hc-cli broker generate-mosquitto-config`.
+# external_url = "mqtt://mosquitto.local:1883"
+
+# When [[broker.clients]] entries are present, the embedded broker requires
+# credentials on CONNECT. The `allow_pub` / `allow_sub` patterns are
+# metadata-only on rumqttd — they are NOT enforced at publish/subscribe time.
+# For per-topic enforcement, deploy with external Mosquitto and run
+# `hc-cli broker generate-mosquitto-config` to convert these patterns into
+# Mosquitto's ACL file.
 [[broker.clients]]
 id       = "internal.core"
 password = "a-strong-random-password"
@@ -146,10 +156,18 @@ ansi    = true
 enabled    = false
 dir        = "logs"
 prefix     = "homecore"
-rotation   = "daily"   # "daily" | "hourly" | "weekly" | "never"
+rotation   = "daily"     # "daily" | "hourly" | "weekly" | "never"
 max_size_mb = 100
 compress   = true
 format     = "json"
+prune_after_days = 30    # delete rotated files older than N days; 0 = never prune
+
+# Per-plugin tracing logs forwarded to the broker on
+# `homecore/plugins/<id>/logs` are merged into core's /logs/stream by
+# the StateBridge. Default forwarding level is "info" — bump to "debug"
+# for a single misbehaving plugin via the management API or here.
+[logging.plugin_forward]
+default_level = "info"   # trace | debug | info | warn | error
 
 # [logging.syslog]
 # enabled   = false
@@ -202,12 +220,13 @@ fire_history_limit = 500  # max evaluation records per rule
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `host` | string | `"0.0.0.0"` | Broker bind address |
+| `host` | string | `"0.0.0.0"` | Embedded-broker bind address (ignored when `external_url` is set) |
 | `port` | integer | `1883` | Plain-text MQTT v3 port |
 | `v5_port` | integer | `1884` | Plain-text MQTT v5 port. Set to `null` to disable. |
 | `tls_port` | integer | — | TLS MQTT port (requires `cert_path` and `key_path`) |
 | `cert_path` | string | — | Path to TLS certificate file (PEM) |
 | `key_path` | string | — | Path to TLS private key file (PEM) |
+| `external_url` | string | — | Connect to an external broker (e.g. `mqtt://mosquitto:1883`) instead of running the embedded one. Required for per-topic ACL enforcement; see [Administration → Broker](../administration/broker). |
 
 `[[broker.clients]]` entries:
 
