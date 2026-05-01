@@ -2,190 +2,260 @@
 id: docker
 title: Docker Deployment
 sidebar_label: Docker
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Docker Deployment
 
-HomeCore ships with a multi-stage Dockerfile that builds a minimal production image (~100 MB) and a Docker Compose setup for running the full stack with optional plugin containers.
+HomeCore ships two Docker distributions:
 
-## Quick start
+- **Compose bundle** — `hc-core` plus per-plugin containers, each
+  opt-in via Compose `include:`. The recommended shape for production
+  with many devices.
+- **Appliance image** — single container with `hc-core` + every active
+  plugin baked in. Convenient for try-it-out and small homes; flip
+  plugins on by editing the seeded config.
+
+Both publish to GitHub Container Registry under `ghcr.io/homecore-io/`.
+Both bind-mount a single host directory and seed the rest themselves —
+no env-var ritual, no pre-chown.
+
+The compose files live at
+[`docker/`](https://github.com/homeCore-io/homeCore/tree/develop/docker)
+in the homeCore repo: `compose.yaml`, `compose.appliance.yaml`, and
+per-plugin `compose.<name>.yaml` fragments.
+
+---
+
+## Quick start — compose bundle
 
 ```bash
-# From the homeCore root
+# Grab the compose files
+curl -fsSLO https://raw.githubusercontent.com/homeCore-io/homeCore/main/docker/compose.yaml
+# Plus any plugin fragments you want
+curl -fsSLO https://raw.githubusercontent.com/homeCore-io/homeCore/main/docker/compose.hue.yaml
+curl -fsSLO https://raw.githubusercontent.com/homeCore-io/homeCore/main/docker/compose.sonos.yaml
+
+# Edit compose.yaml, uncomment the plugins under `include:`
+$EDITOR compose.yaml
+
+# Create the data dir as your user. The entrypoint detects the owner
+# and drops privileges to match — no chown needed.
+mkdir homecore-data
+
 docker compose up -d
 
-# Watch logs
-docker compose logs -f homecore
+# First-boot admin password is in the volume:
+cat homecore-data/INITIAL_ADMIN_PASSWORD
+
+# Web UI:
+xdg-open http://localhost:8080
 ```
 
-On first start, check logs for the generated admin password:
+The `compose.yaml` base file looks like this:
+
+```yaml
+include:
+  # - compose.hue.yaml
+  # - compose.sonos.yaml
+  # - compose.yolink.yaml
+  # - compose.lutron.yaml
+  # - compose.wled.yaml
+  # - compose.isy.yaml
+  # - compose.zwave.yaml
+  # - compose.caseta.yaml
+  # - compose.thermostat.yaml
+  # - compose.ecowitt.yaml
+
+services:
+  homecore:
+    image: ghcr.io/homecore-io/hc-core:0.1.0
+    container_name: homecore
+    restart: unless-stopped
+    pull_policy: always
+    network_mode: host
+    environment:
+      RUST_LOG: info
+    volumes:
+      - ./homecore-data:/homecore
+```
+
+Each plugin fragment follows the same shape — its own image, its own
+single bind-mount data directory, host networking. Plugins talk to the
+core's embedded MQTT broker on `127.0.0.1:1883`.
+
+---
+
+## Quick start — appliance image
+
+A single container with core + all 10 active plugins baked in. Every
+plugin starts **disabled**; flip the ones you want on after first boot
+by editing `homecore-data/config/homecore.toml`.
 
 ```bash
-docker compose logs homecore | grep "temporary password"
+curl -fsSLO https://raw.githubusercontent.com/homeCore-io/homeCore/main/docker/compose.appliance.yaml
+
+mkdir homecore-data
+docker compose -f compose.appliance.yaml up -d
+
+cat homecore-data/INITIAL_ADMIN_PASSWORD
+
+# Edit the plugins block — set `enabled = true` on whichever you want
+$EDITOR homecore-data/config/homecore.toml
+
+docker compose -f compose.appliance.yaml restart
 ```
 
-## Environment variables
+Image: `ghcr.io/homecore-io/homecore-appliance:0.1.0`.
 
-All sensitive config can be passed via environment variables instead of baking them into the image:
+The appliance is the easiest way to evaluate against real hardware —
+one container, one config, every plugin available. Production
+deployments with many devices typically migrate to the compose bundle
+where each plugin is its own container.
 
-| Variable | Description | Example |
-|---|---|---|
-| `HOMECORE_JWT_SECRET` | JWT signing secret (required in production) | `"a-long-random-string"` |
-| `HOMECORE_LAT` | Latitude for solar calculations | `38.9072` |
-| `HOMECORE_LON` | Longitude for solar calculations | `-77.0369` |
-| `HOMECORE_TZ` | IANA timezone name | `America/New_York` |
-| `HOMECORE_DOMAIN` | Domain for Caddy TLS (optional) | `homecore.yourdomain.com` |
-| `TZ` | Container timezone | `America/New_York` |
-| `RUST_LOG` | Log level override | `info` |
+---
 
-Create a `.env` file in the same directory as `docker-compose.yml`:
+## Network mode
 
-```bash
-HOMECORE_JWT_SECRET=your-very-long-random-secret-here
-HOMECORE_LAT=38.9072
-HOMECORE_LON=-77.0369
-HOMECORE_TZ=America/New_York
-TZ=America/New_York
-RUST_LOG=info
+Both shapes default to `network_mode: host`. This is required for:
+
+- **mDNS discovery** (Hue, WLED, Caseta).
+- **SSDP discovery** (Sonos).
+- LAN devices reaching the embedded MQTT broker on port 1883.
+
+On Docker Desktop (macOS / Windows) host networking is limited. If you
+don't run discovery-based plugins you can switch to bridge with
+explicit port mappings — both compose files include commented hints:
+
+```yaml
+# network_mode: bridge
+# ports:
+#   - "8080:8080"   # web UI / API
+#   - "1883:1883"   # MQTT (only if external devices publish to it)
 ```
 
-## Named volumes
+---
 
-| Volume | Contents |
+## Persistence
+
+Each service bind-mounts **one host directory** to `/homecore` inside
+the container. The entrypoint:
+
+1. Detects the owner of the bind-mount (or your `user:` override).
+2. Drops privileges to that user before writing anything.
+3. Seeds `config/`, `data/`, `rules/`, `logs/` on first boot.
+4. Drops `INITIAL_ADMIN_PASSWORD` at the root.
+
+```
+homecore-data/
+├── INITIAL_ADMIN_PASSWORD     # one-time, plain-text. Change after first login.
+├── config/
+│   ├── homecore.toml          # main config — edit + `docker compose restart`
+│   └── profiles/              # ecosystem profiles
+├── data/
+│   ├── state.redb             # device registry
+│   └── history.db             # time-series
+├── rules/                     # automation RON files (hot-reloaded)
+├── logs/
+├── jwt_secret                 # generated; do not commit
+└── ui                         # symlink to the bundled UI inside the image
+```
+
+Plugin services bind-mount their own data dirs (e.g. `hc-hue-data/`)
+that hold each plugin's `config.toml` plus its
+`.published-device-ids.json` sidecar. Per-plugin subdirs prevent the
+SDK's sidecar files from colliding.
+
+---
+
+## Image registry
+
+| Image | Repo |
 |---|---|
-| `homecore-config` | `config/homecore.toml`, `config/modes.toml`, profiles |
-| `homecore-data` | `data/state.redb`, `data/history.db` |
-| `homecore-rules` | Rule RON files (hot-reloaded) |
-| `homecore-logs` | Log files |
+| `ghcr.io/homecore-io/hc-core` | core only |
+| `ghcr.io/homecore-io/homecore-appliance` | appliance (core + plugins baked in) |
+| `ghcr.io/homecore-io/hc-<plugin>` | per-plugin (hue, yolink, sonos, …) |
 
-To edit config or rules while running:
+Tags:
 
-```bash
-# Edit config
-docker run --rm -v homecore-config:/config alpine vi /config/homecore.toml
+- `:vX.Y.Z` — immutable release.
+- `:dev` — rolling latest develop build.
+- `:dev-<7sha>` — immutable per-commit.
 
-# Or use docker cp
-docker cp config/homecore.toml homecore:/opt/homecore/config/
-```
+`pull_policy: always` is set in the compose files so `docker compose
+up` always picks up the newest image at the configured tag — important
+during pre-release iteration on `:dev`. On a tagged release the tag is
+immutable so the pull is a cheap no-op.
 
-## Building the image
+---
 
-```bash
-# From the homeCore root
-docker build -t homecore:latest -f Dockerfile .
+## External Mosquitto (optional, for stronger MQTT authz)
 
-# Or specify the core subdirectory
-docker build -t homecore:latest -f core/Dockerfile core/
-```
-
-The Dockerfile is multi-stage:
-1. **rust-builder** — compiles the Rust binary
-2. **flutter-builder** — builds the web UI (if present)
-3. **runtime** — minimal Debian image with just the binary, Caddy, and supervisord
-
-## Caddy reverse proxy
-
-The container runs Caddy in front of HomeCore on ports 80/443. Caddy handles:
-- HTTP → HTTPS redirect
-- WebSocket upgrade pass-through
-- TLS via Let's Encrypt (set `HOMECORE_DOMAIN` for automatic certificate provisioning)
-- Graceful WebSocket reconnection
-
-For LAN-only use without a domain, Caddy serves HTTP on port 80 and proxies to HomeCore's internal port 8080.
-
-## Plugin containers
-
-Plugins run as separate containers and connect to HomeCore's embedded MQTT broker via `network_mode: host`.
-
-### Start specific plugins
+The embedded `rumqttd` broker enforces authentication on `CONNECT` only
+— `allow_pub` / `allow_sub` patterns are metadata, not enforced at
+publish/subscribe time. For deployments where plugins are on different
+hosts or run third-party code, route MQTT through Mosquitto instead:
 
 ```bash
-# All plugins alongside the main stack
-docker compose -f docker-compose.yml -f plugins/docker-compose.plugins.yml up -d
-
-# Just HomeCore + Hue plugin
-docker compose -f docker-compose.yml up -d homecore
-docker compose -f plugins/docker-compose.plugins.yml up -d hc-hue
+hc-cli broker generate-mosquitto-config \
+    --config homecore-data/config/homecore.toml \
+    --out mosquitto/
 ```
 
-### Plugin config
+That writes a Mosquitto config + ACL file derived from your
+`[[broker.clients]]` entries. Then run Mosquitto in a sidecar container
+and point `[broker]` at it via `external_url = "mqtt://mosquitto:1883"`.
+Full plan at
+[`mqttAuthzPlan.md`](https://github.com/homeCore-io/homeCore/blob/develop/mqttAuthzPlan.md).
 
-Each plugin reads its config from `docker/plugin-configs/{plugin}.toml`. Edit these files to set credentials and device addresses before starting.
+---
 
-Example `docker/plugin-configs/hc-hue.toml`:
+## Backup and restore
 
-```toml
-[homecore]
-broker_host = "127.0.0.1"
-broker_port = 1883
-plugin_id   = "plugin.hue"
-password    = ""             # set if broker auth is enabled
-
-[hue]
-bridge_ip = "192.168.1.100"  # your Hue bridge IP
-app_key   = ""               # filled in after first pairing
-```
-
-### Building a plugin image
-
-Use the generic plugin Dockerfile template:
+Persistent data is the bind-mount directory. Stop, snapshot the
+directory, restart:
 
 ```bash
-cd plugins/hc-hue
-docker build \
-  -f ../Dockerfile.plugin \
-  --build-arg PLUGIN_NAME=hc-hue \
-  -t hc-hue:latest \
-  .
+docker compose stop
+tar -czf homecore-backup-$(date +%Y%m%d).tar.gz homecore-data
+docker compose start
 ```
 
-## Data persistence and backup
-
-Volumes survive container restarts and upgrades. To back up:
-
-```bash
-# Stop HomeCore, copy volumes
-docker compose stop homecore
-docker run --rm \
-  -v homecore-data:/data \
-  -v homecore-config:/config \
-  -v homecore-rules:/rules \
-  -v $(pwd)/backup:/backup \
-  alpine tar czf /backup/homecore-backup-$(date +%Y%m%d).tar.gz /data /config /rules
-docker compose start homecore
-```
-
-Or use the built-in backup API:
+For a structured backup that excludes runtime state, use the API:
 
 ```bash
 curl -s http://localhost:8080/api/v1/system/backup \
-  -H "Authorization: Bearer $TOKEN" \
-  -o homecore-backup.zip
+    -H "Authorization: Bearer $TOKEN" \
+    -o homecore-backup.zip
 ```
+
+See [Administration → Backup & Restore](../administration/backup-restore)
+for the full backup/restore workflow.
+
+---
 
 ## Upgrading
 
 ```bash
-# Pull new image
-docker compose pull homecore
-
-# Recreate container (volumes are preserved)
-docker compose up -d homecore
+docker compose pull          # picks up the newest matching tag
+docker compose up -d         # recreates containers (data volume preserved)
 ```
 
-## Health check
+Across a major version (e.g. 0.1 → 0.2), check
+[Migration](./migration) for any one-time data-format steps.
 
-The Compose file includes a health check:
+---
+
+## Health checks
 
 ```bash
 docker compose ps
-# Should show homecore as "healthy" after ~30 seconds
-```
+# Should show all services as "running"
 
-The health endpoint:
-
-```bash
-curl http://localhost:8080/health
+curl http://localhost:8080/api/v1/health
 # {"status":"ok","version":"0.1.0"}
 ```
+
+For deeper troubleshooting, hc-mcp's `system_health` and
+`broker_diagnose` tools work equally well against a Docker install —
+see [hc-mcp](../tools/hc-mcp).

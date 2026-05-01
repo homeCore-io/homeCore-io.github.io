@@ -9,6 +9,7 @@ const sidebars = {
       label: 'Getting Started',
       collapsed: false,
       items: [
+        'getting-started/binary-releases',
         'getting-started/installation',
         'getting-started/quickstart',
         'getting-started/configuration',
