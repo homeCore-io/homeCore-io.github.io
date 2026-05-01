@@ -206,8 +206,37 @@ by the manifest:
   `item_key`, click to expand the full payload), warnings, terminal
   card.
 
-The drawer is **generic** — the same component handles every plugin's
-streaming actions. Plugin authors don't write any UI code.
+Item rows are structured: each row shows the entry's id (from the
+manifest's `item_key`), label / name / manufacturer when present, and
+a color-coded status pill (`ready` / `added` / `interviewing` /
+`failed` etc.). Clicking the twisty expands the full pretty-printed
+JSON payload. The same component handles every plugin's streaming
+actions — plugin authors don't write any UI code.
+
+### Busy → cancel pattern
+
+When you click **Run** on a `concurrency: single` action and another
+invocation is already in flight, core returns HTTP 409 with body
+`{status: "busy", active_request_id: "..."}`. The drawer surfaces
+this as an inline banner with a **Cancel active run** button that
+POSTs `{action: "cancel", target_request_id: "..."}` against the
+returned id. On success the banner clears and the user can retry.
+There's no auto-retry — the user decides whether to wait or cancel.
+
+### awaiting_user — end-of-batch prompting
+
+For multi-item flows where each item needs user input (e.g. Z-Wave
+`include_node` asking for a name + area per included node), emit
+prompts at the **end of the batch**, not mid-stream. Mid-stream
+`awaiting_user` events would interleave with any persistent prompt
+(like a "Done" gate) and the SDK can't disambiguate which `respond`
+maps to which prompt.
+
+The Z-Wave include flow is the reference: it collects nodes whose
+interview completed during the inclusion window, then iterates them
+on **Done**, emitting one `awaiting_user_with_schema` per node, and
+applies the responses (`node.set_name` / `node.set_location`) before
+the action's terminal stage.
 
 ---
 

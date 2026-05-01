@@ -64,6 +64,22 @@ directly on next start.
 | Zigbee sensor | `hue_{bridge_id}_sensor_{sensor_id}` | `hue_001788fffe6841b3_sensor_1` |
 | Zigbee connectivity | `hue_{bridge_id}_zigbee_connectivity_{id}` | Read-only diagnostic — not commandable |
 
+### Sensor `device_type` mapping
+
+Hue's accessory sensors (motion sensors, dimmer switches, contact
+sensors, etc.) register with a canonical `device_type` so the UI can
+match them to schemas under `core/config/profiles/examples/device-types.toml`:
+
+| Hue sensor kind | Registered `device_type` |
+|---|---|
+| `motion` | `motion_sensor` |
+| `temperature` | `temperature_sensor` |
+| `light_level` | `illuminance_sensor` |
+| `contact` | `contact_sensor` |
+| `button`, `relative_rotary` | `button` |
+| `tamper` | `binary_sensor` |
+| anything else | `sensor` (fallback — visible, not hidden) |
+
 :::caution Scene vs. light
 Devices with `device_type = "scene"` are Hue scenes — they have no brightness/color attributes and activate by setting `{"action": "activate_scene"}`. Do not try to control them as lights.
 

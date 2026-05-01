@@ -9,76 +9,134 @@ sidebar_position: 1
 
 ## Repository structure
 
-The workspace root (`homeCore/`) is not a git repository. Each subdirectory is its own independent git repo. `workspace.toml` lists all repos.
+The workspace root (`homeCore/`) is not a git repository. Each
+subdirectory is its own independent git repo. `workspace.toml` lists
+all repos. There are also three **per-category meta-layout
+workspaces** at `plugins/Cargo.toml`, `clients/Cargo.toml`, and
+`sdks/Cargo.toml` — these are local-dev only (not in any git repo) and
+absorb every member underneath them into a shared workspace for one
+Cargo.lock per category. See [Meta-layout](#meta-layout) below.
 
 ```
 homeCore/
 ├── workspace.toml              ← authoritative repo list
-├── scripts/
-│   ├── run-dev.sh              ← build all + start server (debug)
-│   ├── deploy.sh               ← build + install to /var/tmp/homeCore
-│   └── workspace-clone.sh      ← clone all repos in workspace.toml
+├── plugins/Cargo.toml          ← meta-layout: every plugin as a workspace member
+├── clients/Cargo.toml          ← meta-layout: hc-tui + hc-web-leptos
+├── sdks/Cargo.toml             ← meta-layout: hc-plugin-sdk-rs
+├── .cargo/config.toml          ← profile + (no patches — those are per-category)
+│
+├── hc-scripts/                 ← workspace-clone.sh, run-dev.sh, build-archive.sh,
+│                                  reusable GitHub Actions workflows (rust-ci.yml,
+│                                  rust-release.yml)
 │
 ├── core/                       ← main HomeCore server (git repo: homeCore-io/homeCore)
-│   ├── Cargo.toml              ← workspace Cargo manifest
+│   ├── Cargo.toml              ← internal workspace (12 crates)
 │   ├── Cargo.lock
 │   ├── config/
-│   │   ├── homecore.toml       ← main config (production)
-│   │   ├── homecore.dev.toml   ← dev config (plugin paths: ../plugins/hc-*/target/debug/*)
+│   │   ├── homecore.toml.example   ← committed; user-tracked TOMLs are gitignored
+│   │   ├── homecore.dev.toml       ← dev config (plugin binary paths point at
+│   │   │                              `../plugins/target/debug/<name>` — the shared
+│   │   │                              meta-layout target dir)
 │   │   ├── modes.toml          ← solar + named boolean mode definitions
-│   │   └── profiles/           ← ecosystem profiles (Shelly, Tasmota, Zigbee2MQTT, etc.)
-│   │       └── examples/       ← reference profiles (not auto-loaded)
+│   │   └── profiles/examples/  ← reference profiles (Shelly, Tasmota, Zigbee2MQTT, …)
 │   ├── crates/
-│   │   ├── hc-types/           ← shared types: Event, DeviceState, Rule, MqttMessage
-│   │   ├── hc-broker/          ← rumqttd embedded broker + TLS config
+│   │   ├── hc-types/           ← shared types
+│   │   ├── hc-broker/          ← rumqttd embedded broker
 │   │   ├── hc-mqtt-client/     ← rumqttc async client → internal event bus
 │   │   ├── hc-topic-map/       ← pattern-based topic translation, Rhai transforms
-│   │   ├── hc-core/            ← rule engine, scheduler, state bridge, virtual devices
+│   │   ├── hc-core/            ← rule engine, scheduler, state bridge, glue devices
 │   │   ├── hc-state/           ← device registry (redb), history (SQLite), schemas
-│   │   ├── hc-api/             ← axum HTTP + WebSocket server, all REST handlers
-│   │   ├── hc-auth/            ← JWT HS256, Argon2id passwords, MQTT bcrypt creds
-│   │   ├── hc-scripting/       ← Rhai sandboxed runtime (conditions + action scripts)
-│   │   ├── hc-logging/         ← tracing setup, rolling files, log stream ring buffer
-│   │   ├── hc-notify/          ← notification delivery (Pushover, email, Telegram)
-│   │   └── hc-web-admin/       ← bundled admin UI assets
-│   ├── src/                    ← homecore binary crate (main.rs)
-│   ├── plugins/
-│   │   └── examples/
-│   │       ├── virtual-device/ ← software-only test device (Rust)
-│   │       └── http-poller/    ← generic HTTP polling adapter (Rust)
-│   ├── rules/                  ← live automation rules (RON, hot-reloaded)
-│   │   └── examples/           ← documented rule patterns
-│   ├── tests/
-│   │   └── integration_test.rs ← end-to-end: virtual device → rule → command
-│   └── docs/
-│       └── devNotes.md         ← developer reference (detailed implementation notes)
+│   │   ├── hc-api/             ← axum HTTP + WebSocket
+│   │   ├── hc-auth/            ← JWT HS256, Argon2id, MQTT creds, API keys
+│   │   ├── hc-scripting/       ← Rhai sandboxed runtime
+│   │   ├── hc-logging/         ← tracing setup, rolling files, log stream
+│   │   ├── hc-notify/          ← Pushover, email, Telegram
+│   │   └── hc-cli/             ← admin CLI (issuance, broker config gen, …)
+│   ├── src/                    ← homecore binary (main.rs)
+│   ├── rules/examples/         ← documented rule patterns
+│   └── tests/                  ← integration tests
 │
 ├── plugins/                    ← device adapter plugins (each is its own git repo)
-│   ├── hc-yolink/
-│   ├── hc-lutron/
-│   ├── hc-sonos/
-│   ├── hc-hue/
-│   ├── hc-wled/
-│   ├── hc-zwave/
-│   ├── hc-isy/
-│   └── hc-plugin-template/
+│   ├── hc-yolink/              ← YoLink cloud MQTT bridge
+│   ├── hc-lutron/              ← Lutron RadioRA2 telnet
+│   ├── hc-caseta/              ← Lutron Caséta
+│   ├── hc-sonos/               ← Sonos UPnP
+│   ├── hc-hue/                 ← Philips Hue
+│   ├── hc-wled/                ← WLED LED controllers
+│   ├── hc-zwave/               ← zwave-js WebSocket bridge
+│   ├── hc-isy/                 ← ISY/IoX (Insteon, Z-Wave gateway)
+│   ├── hc-thermostat/          ← thermostat synthesis
+│   ├── hc-ecowitt/             ← Ecowitt weather stations
+│   └── hc-captest/             ← capability-spec conformance test plugin
 │
-├── clients/                    ← UI and API consumers (each is its own git repo)
-│   ├── hc-web-leptos/          ← Leptos/WASM admin UI (default bundled, see below)
-│   ├── hc-web-admin-react/     ← React admin UI (alternative)
+├── clients/                    ← UI and API consumers
+│   ├── hc-web-leptos/          ← Leptos/WASM admin (default bundled UI)
 │   ├── hc-tui/                 ← Terminal UI (ratatui)
-│   ├── hc-web/                 ← Flutter web (legacy)
-│   ├── hc-web-dioxus/          ← Dioxus prototype
-│   ├── hc-web-svelte/          ← Svelte prototype
-│   ├── hc-dashboard/           ← Dashboard
-│   └── hc-mcp/                 ← MCP server (planned)
+│   └── hc-mcp/                 ← MCP server (Phase 1 + 2 + 4a/4b shipped)
 │
-└── sdks/                       ← Plugin SDKs (each is its own git repo)
-    ├── hc-plugin-sdk-rs/       ← Rust SDK
+└── sdks/                       ← Plugin SDKs
+    ├── hc-plugin-sdk-rs/       ← Rust SDK (used by every Rust plugin)
     ├── hc-plugin-sdk-py/       ← Python SDK
     ├── hc-plugin-sdk-js/       ← Node.js SDK
-    └── hc-plugin-sdk-dotnet/   ← .NET Core SDK
+    └── hc-plugin-sdk-dotnet/   ← .NET SDK
 ```
+
+---
+
+## Meta-layout
+
+Each component (core + plugins + sdks + clients) is its own GitHub
+repo with its own `Cargo.toml`. Standalone CI clones must build
+without the meta-layout, so committed `Cargo.toml` files use **git
+deps with `branch = "main"`** for cross-repo references.
+
+For local development that's friction — every cross-repo edit would
+need a commit and push before another component picked it up. The
+meta-layout solves it by absorbing every member into a parent
+workspace **at category level**:
+
+| Workspace manifest | Members | Why |
+|---|---|---|
+| `plugins/Cargo.toml` | All 11 plugin path-members | Shared `[patch]` for `hc-types`, `hc-logging`, `plugin-sdk-rs` |
+| `clients/Cargo.toml` | `hc-tui`, `hc-web-leptos` | Shared `[patch]` for `hc-types`, plus per-package release profile for the WASM bundle |
+| `sdks/Cargo.toml` | `hc-plugin-sdk-rs` | Shared `[patch]` for `hc-types`, `hc-logging` |
+| `core/Cargo.toml` | core's 12 internal crates | Already its own workspace; per-repo `[patch]` for `hc-captest`'s transitive `hc-types` |
+
+The meta-layout files are **local-only** — they aren't in any git
+repo. New contributors set up the meta-layout by hand-copying from an
+existing tree (or via a future `hc-scripts` setup script).
+
+**What this buys:**
+- Edit `core/crates/hc-types/src/...` → every plugin and client picks
+  up the change immediately on next `cargo build`.
+- Per-repo `Cargo.lock` files stay quiescent during local dev — only
+  the per-category lockfiles are touched.
+- Standalone CI clones don't see the meta-layout; they fall back to
+  single-package mode and write their own `Cargo.lock` cleanly.
+- No `[[patch.unused]]` churn (an earlier global-patches setup
+  produced one entry per unused patch in every Cargo.lock — the
+  per-category split eliminated it).
+
+**Build outputs land in the shared workspace target dir.** When you
+run `cargo build` from inside `plugins/hc-hue/` (or via
+`run-dev.sh`'s `--manifest-path plugins/Cargo.toml -p hc-hue`), the
+binary lands at `plugins/target/debug/hc-hue` — *not* the per-plugin
+`plugins/hc-hue/target/debug/hc-hue`. `core/config/homecore.dev.toml`
+points at the shared path. If you ever see "code edits don't take
+effect after plugin restart", check that you didn't end up running an
+old per-plugin binary.
+
+**Adding a new plugin?** Add it to `plugins/Cargo.toml` workspace
+members, and make sure its committed `Cargo.toml` has no `[workspace]`
+sentinel (cargo would reject the parent absorption).
+
+**Adding a new cross-repo dep?** Add a path entry to the relevant
+workspace's `[patch]` block (`plugins/`, `clients/`, or `sdks/`).
+Don't touch `.cargo/config.toml`.
+
+The full design + history is at
+[`claude-notes/project_cross_repo_deps.md`](https://github.com/homeCore-io/homeCore/blob/develop/claude-notes/project_cross_repo_deps.md)
+in the homeCore repo.
 
 ## Leptos Admin UI (`hc-web-leptos`)
 

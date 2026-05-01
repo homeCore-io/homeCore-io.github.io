@@ -218,6 +218,40 @@ This is preferable to an HTTP `CallService` action because:
 - the plugin remains free to rediscover speakers and change IPs
 - Sonos favorites and playlists stay named content, not embedded transport details
 
+## Plugin actions
+
+hc-sonos declares two [capability actions](./capabilities). Both are
+exposed in the homeCore admin UI and surfaced by hc-mcp's
+`list_plugin_actions`.
+
+### `discover_speakers` (streaming, user)
+
+Re-runs SSDP discovery and emits each found speaker as a stream item
+as it's discovered. Streaming so the UI updates progressively rather
+than waiting for the whole discovery window to close.
+
+Each `item_add` event carries `{uuid, room_name, host_port, status}`,
+keyed on `uuid`. Found speakers are also forwarded into the bridge's
+discovery channel — the registration / state-publish path runs exactly
+as if the speaker had been picked up by the periodic discovery cycle.
+
+Manifest: `concurrency: single`, `requires_role: user`,
+`timeout_ms: 60_000`, `item_key: "uuid"`. Cancelable.
+
+Use this from the admin UI when a speaker isn't appearing — the live
+item list tells you whether it was found at all (network / multicast
+issue) versus discovered but failing some downstream step.
+
+### `rediscover_speakers` (sync, user)
+
+Fire-and-forget kick that runs the same discovery scan with no event
+stream. Returns once the scan completes with a brief summary
+(`{count, elapsed_ms}`). Use this from rules or scripts where you
+want a quick "force a discovery now" without the streaming UX.
+
+Both actions reuse the same `discovery::run_once` core — they're two
+front doors on the same path.
+
 ## Standalone HTTP API
 
 The plugin's own HTTP API remains available and supported. This is useful for:

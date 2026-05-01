@@ -192,6 +192,59 @@ homeCore. Useful when:
 `include_node`'s `complete` step auto-pings rescan, so you usually
 don't need to click this manually after pairing.
 
+## Startup primary-state refresh
+
+zwave-js caches each value's last reported state. Switches/plugs that
+only emit meter reports, and dimmers/locks/thermostats/barriers that
+don't auto-report on local actuation, can leave their primary state
+stale across plugin restarts — at which point the snapshot would
+publish a wrong `on` / `level` / `setpoint` / `mode` / `locked` /
+`currentState` / `currentColor` over the live state in homeCore.
+
+To prevent that, hc-zwave issues `node.poll_value` for the primary
+state of every non-sleeping node on startup (and again after every
+`rescan_nodes` completion). The reply arrives as a `value updated`
+event and corrects everything downstream.
+
+| Command class | Property | Devices |
+|---|---|---|
+| 37 (Binary Switch) | `currentValue` | Switches, smart plugs |
+| 38 (Multilevel Switch) | `currentValue` | Dimmers, motorized shades, fans |
+| 64 (Thermostat Mode) | `mode` | Thermostats |
+| 66 (Thermostat Operating State) | `state` | Thermostats |
+| 67 (Thermostat Setpoint) | `setpoint` | Thermostats (per-type via propertyKey) |
+| 68 (Thermostat Fan Mode) | `mode` | Thermostat fan |
+| 98 (Door Lock) | `currentMode` | Door locks |
+| 102 (Barrier Operator) | `currentState` | Garage doors |
+| 117 (Color Switch) | `currentColor` | RGB lights |
+
+Endpoint is not constrained — multi-endpoint devices (e.g., dual-relay
+smart plugs exposing endpoints 1 and 2) get every endpoint refreshed.
+
+**Eligibility:**
+
+- **Mains-powered nodes** (`isListening = true`) are always polled.
+- **FLiRS nodes** (battery-powered but wake every 250ms / 1000ms — door
+  locks are typical) are polled.
+- **Sleeping battery devices** are skipped: they can't answer until
+  they wake on their own schedule, and zwave-js would queue the
+  request and flood the air at wake-up.
+
+**Throttling:** a 200ms inter-poll delay keeps the controller from
+saturating — about 5 polls per second, so a 100-poll startup spreads
+over ~20 seconds of background chatter.
+
+The summary is logged at info level on completion:
+
+```
+INFO Refreshed primary-state values polled_nodes=12 polled_values=18
+     skipped_battery=4 eligible_no_targets=2
+```
+
+`eligible_no_targets` counts nodes that are mains/FLiRS but expose no
+command class hc-zwave currently refreshes (controller, repeaters,
+sensor-only devices) — a coverage-gap signal.
+
 ## Rule examples
 
 ### Auto-lock after door closes
@@ -241,7 +294,7 @@ message = "Front door unlocked"
 | `WebSocket connection failed` | Check zwave-js-server is running and the `ws_url` in config is correct |
 | Devices not appearing | Check zwave-js UI — nodes must be included in the Z-Wave network |
 | Lock not responding | Verify `targetMode` (not `currentMode`) is used in the command |
-| State stale | Z-Wave is a polling protocol for some CCs — values may be cached; force a poll in zwave-js UI |
+| State stale | Restart the plugin or run `rescan_nodes` — both trigger the [primary-state refresh](#startup-primary-state-refresh) which polls every actuator's current value. Sleeping battery devices catch up on their next wake-up. |
 | Node `zwave_1` has no attributes | This is the controller node — it has no user-visible state |
 
 ## Node name sync

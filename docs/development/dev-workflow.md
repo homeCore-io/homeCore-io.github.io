@@ -9,7 +9,38 @@ sidebar_position: 2
 
 ## Standard dev session
 
-You need **three terminal windows** for the full development loop.
+For multi-component work (core + plugins + UI together), the easiest
+launcher is `hc-scripts/run-dev.sh` from the workspace root:
+
+```bash
+./hc-scripts/run-dev.sh             # build all + run core (debug)
+./hc-scripts/run-dev.sh --release   # release build
+./hc-scripts/run-dev.sh --webui     # also `trunk serve` hc-web-leptos on :3000
+./hc-scripts/run-dev.sh --no-build  # skip cargo, use existing binaries
+./hc-scripts/run-dev.sh --no-pull   # skip `git pull` in every repo
+```
+
+The script:
+1. Pulls all 14+ component repos (core + 11 plugins + sdks + clients).
+2. Runs `cargo update` against each meta-layout workspace
+   (`plugins/`, `clients/`, `sdks/`, plus core).
+3. Builds plugins via the meta-layout (`cargo build --manifest-path
+   plugins/Cargo.toml -p <name>`) — binaries land at
+   `plugins/target/debug/<name>` (the shared workspace target dir,
+   not per-plugin).
+4. Builds homecore.
+5. Optionally builds + serves hc-web-leptos via `trunk serve`.
+6. Runs `homecore --config core/config/homecore.dev.toml`.
+
+The dev config's `[[plugins]]` blocks point at
+`../plugins/target/debug/<name>` so homecore launches whatever
+`run-dev.sh` just built. **If a code change doesn't seem to take
+effect after restart, the most common cause is a stale binary at the
+old per-plugin target path** — the meta-layout reshape moved outputs
+to the shared dir.
+
+For tighter loops on a single component, you can also run cargo
+directly. Three terminal windows is enough:
 
 ### Terminal 1 — the server
 
@@ -18,11 +49,14 @@ cd homeCore/core
 cargo run -p homecore
 ```
 
-HomeCore uses the **current working directory** as its base. Running from `core/` picks up `config/homecore.toml` and writes data to `data/` right there.
+HomeCore uses the **current working directory** as its base. Running
+from `core/` picks up `config/homecore.toml` and writes data to
+`data/` right there.
 
 On first run, copy the admin password from the startup output.
 
-To restart after a code change: `Ctrl-C`, then `cargo run -p homecore` again. Changed crates only — only they recompile.
+To restart after a code change: `Ctrl-C`, then `cargo run -p homecore`
+again. Only changed crates recompile.
 
 ### Terminal 2 — virtual device (optional)
 
@@ -56,28 +90,51 @@ websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN"
 
 ## Pre-PR check (`just check`)
 
-The fastest path to "did I break anything?" is the workspace
-`Justfile`. From `core/`:
+Every Rust component (core + each plugin) ships an aligned `Justfile`
+with the same recipes. From the component's repo root:
 
 ```bash
-just check          # fmt + clippy + test, all together
+just                # default: list all recipes
+just check          # fmt + clippy + test — mirrors what CI runs
 ```
 
-Targets:
+The clippy invocation matches `hc-scripts/.github/workflows/rust-ci.yml`
+exactly:
 
-| Target | Runs | When to use |
+```bash
+cargo clippy --all-targets --all-features -- \
+    -D warnings \
+    -A clippy::too_many_arguments \
+    -A clippy::type_complexity \
+    -A clippy::result_large_err
+```
+
+So if `just check` passes locally, CI passes too. The three allowed
+lints are stylistic-only allowances — see
+`hc-scripts/.github/workflows/rust-ci.yml` for the rationale on each.
+
+### Recipe reference
+
+| Recipe | What it runs | When to use |
 |---|---|---|
-| `just check` | `just fmt && just clippy && just test` | Before pushing — full local CI in one command |
-| `just fmt` | `cargo fmt --all -- --check` | Formatting check (no rewrite) |
-| `just clippy` | `cargo clippy --workspace --all-targets` (correctness + suspicious lints denied) | Lint pass |
-| `just test` | `cargo test --workspace` | Test pass |
-| `just build` | `cargo build --workspace` | Debug build |
-| `just build-release` | `cargo build --workspace --release` | Release build |
+| `just` (default) | `just --list` | See available recipes |
+| `just check` | `fmt` → `clippy` → `test` | Before pushing |
+| `just fmt` | `cargo fmt --all -- --check` | CI-equivalent format check |
+| `just fmt-fix` | `cargo fmt --all` | Apply formatting in place |
+| `just clippy` | The CI-mirror clippy command above | Lint pass |
+| `just test` | `cargo test --all-features` | Test pass |
+| `just build` | `cargo build` | Debug build |
+| `just build-release` | `cargo build --release` | Release build |
+| `just run` | `cargo run -- --config config/config.dev.toml` | Run the plugin against your dev config |
+| `just clean` | `cargo clean` | Wipe the target/ tree |
+| `just package` | `../../hc-scripts/build-archive.sh --kind plugin --name <self> --build` | Produce a `dist/<name>-<ver>-<plat>.tar.gz` fragment |
 
-The clippy invocation in the justfile denies `correctness` and
-`suspicious` lints and allows the noisier ones (`type_complexity`,
-`too_many_arguments`, `should_implement_trait`) — running it locally
-gives you the same diagnostic surface CI uses.
+The `package` recipe wraps `hc-scripts/build-archive.sh` — same script
+CI uses to produce release tarballs. `BIN_NAME` auto-derives from the
+directory name, so the same Justfile ships byte-identical to every
+plugin without per-repo customization. Override the script path with
+`HC_SCRIPTS=/path/to/hc-scripts just package` if your checkout doesn't
+follow the meta-layout.
 
 Install `just` once if needed:
 
