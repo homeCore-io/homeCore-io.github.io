@@ -20,6 +20,163 @@ components were tagged.
 
 ---
 
+## v0.1.5 — 2026-05-07
+
+**Theme:** Comfort fix + diagnostic toolkit + client UX cleanup.
+
+A larger-than-usual patch round that closes out a cluster of
+operator-reported bugs and lands the WS-observability work that
+was deferred from 0.1.3.
+
+### Added
+
+- **`GET /api/v1/logs`** — REST log-tail companion to the
+  WebSocket `/api/v1/logs/stream`. Same filter semantics
+  (`level`, `target` prefix), plus `since=<RFC3339>` for
+  incremental polling and `limit` (default 100, cap 1000).
+  CLI-friendly: `curl ... | jq` no longer needs a websocket
+  client. Same auth as the WS endpoint.
+- **`GET /api/v1/ws/connections`** (admin-only) — live
+  registry of every active WebSocket connection (events_stream
+  + logs_stream) with `connection_id`, `endpoint`, `client_id`,
+  `ip`, `user`, `user_agent`, `connected_at`. Distinguishes
+  "one looping client" from "many churning clients" during
+  reconnect-storm investigations.
+- **WS lifecycle Prometheus metrics** —
+  `homecore_ws_connects_total{endpoint}` and
+  `homecore_ws_disconnects_total{endpoint, reason}`. The
+  `reason` label uses the same categories as the disconnect
+  log (see Changed). Combined with `/api/v1/metrics` scraping,
+  dashboards can alert on `pong_timeout` rate (network/proxy
+  issues) independent of normal `client_close` churn.
+- **`hc-thermostat` operator-triggered force-recalc** — the
+  `recalculate_all` plugin command now accepts
+  `{"force": true}` which re-issues actuator commands
+  unconditionally (regardless of cached `actuator_state`).
+  Recovery path for the cached-vs-physical-reality drift the
+  comfort fix below was added to prevent in the first place.
+
+### Changed
+
+- **WS disconnect log carries a `reason` field** — seven
+  categorised strings (`client_close`, `socket_closed`,
+  `recv_error`, `pong_timeout`, `ping_send_failed`,
+  `event_send_failed`, `bus_closed`) replace the
+  previously-indistinguishable `INFO "WebSocket client
+  disconnected"`. `logs/stream` got the same treatment with
+  its own four categories. Reconnect storms are now
+  diagnosable from logs alone.
+- **`hc-thermostat` settle gate** — after a plugin or
+  appliance restart, the bridge holds command issuance until
+  every configured sensor has reported at least once, then
+  issues an unconditional command for the desired state.
+  Fixes the case where the cached `actuator_state` (restored
+  from retained MQTT) matched the desired state but physical
+  reality had drifted (power blip, manual flip, dropped
+  Z-Wave frame) — the transition-only path never re-synced.
+- **Version-banner is direction-aware** (Leptos admin) — only
+  fires when the server is strictly newer than the tab. The
+  prior any-mismatch trigger fired during in-flight upgrades
+  too, where Reload couldn't help. Banner copy also rewritten
+  for clarity ("homeCore was upgraded — server is on v0.1.5,
+  this tab is still on v0.1.4. Reload to pick up the new
+  client.").
+- **Overview Security widget honours per-device opt-out** —
+  unchecking a contact-sensor or lock on its detail page now
+  actually excludes it from the Security tile. Previously the
+  default-set fallback ("all locks + contact sensors when no
+  tags are explicit") swept unchecked devices back in. New
+  explicit-exclude store; checkbox semantics now match operator
+  expectations.
+- **Overview widget click resets Devices-page filters** —
+  clicking a Security/Climate/etc. tile now overrides
+  persisted filter chips on the Devices page, instead of
+  intersecting with them. Previously a stored
+  `area_filter=["kitchen"]` from a prior session could
+  produce an empty view when clicking through to a system
+  with no Kitchen devices.
+
+### Fixed
+
+- **Cargo.lock metadata drift** in 9 plugin repos — the
+  per-repo lockfiles' "version" line for the local crate now
+  matches the `Cargo.toml` (was 0.1.2 lingering after the
+  v0.1.3 ceremony due to the meta-layout workspace shadowing
+  per-plugin builds). Cosmetic — release-pipeline binaries
+  were already correct.
+- **`/health` and `/system/status` report the binary's
+  version, not hc-api's** (HEALTH-VERSION-SOURCE-1). Core's
+  binary now passes `CARGO_PKG_VERSION` into AppState and
+  the handlers read it from there. Removes the
+  bump-all-17-workspace-crates workaround that v0.1.4 needed
+  — future "tag only what changed" releases can bump just
+  the top-level Cargo.toml.
+
+### Release matrix
+
+**Tagged at v0.1.5 (4 repos):** `homeCore` (core),
+`hc-web-leptos`, `hc-thermostat`, `homeCore-io/docker`
+(orchestration; triggers appliance build).
+
+**Skipped (no tag, only branch merge for cosmetic Cargo.lock
+sync):** 9 plugins (`hc-hue`, `hc-yolink`, `hc-lutron`,
+`hc-sonos`, `hc-wled`, `hc-isy`, `hc-zwave`, `hc-caseta`,
+`hc-ecowitt`).
+
+**Appliance image:**
+`ghcr.io/homecore-io/homecore-appliance:0.1.5` published.
+Bundles core 0.1.5 + leptos 0.1.5 + thermostat 0.1.5 +
+plugins still at 0.1.3.
+
+### Upgrade notes
+
+- **Stuck thermostat from before 0.1.5?** If you upgraded
+  from 0.1.4 with an actuator that had drifted from the
+  plugin's cached state (the symptom: AC outlet visibly off
+  while the thermostat shows `actuator_state: true`), invoke
+  the new force path:
+  ```
+  POST /api/v1/plugins/plugin.thermostat/command
+  {"action":"recalculate_all", "force": true}
+  ```
+  Or: flip the setpoint by ±1°F to force a transition the
+  old way.
+
+---
+
+## v0.1.4 — 2026-05-07 (hotfix)
+
+**Theme:** `/health` version-reporting fix.
+
+Same-day hotfix after v0.1.3. The v0.1.3 ceremony bumped only
+the top-level `homecore` `Cargo.toml`, but `/health` and
+`/system/status` are implemented in the `hc-api` sub-crate and
+read **its** `CARGO_PKG_VERSION` — which was still at 0.1.2.
+A v0.1.3 appliance image therefore reported `version: 0.1.2`
+through `/health`, the Leptos sidebar, and the login page.
+
+### Fixed
+
+- Bumped every workspace crate (top-level `homecore` + 16
+  sub-crates) to 0.1.4 in lockstep, so `hc-api`'s
+  `CARGO_PKG_VERSION` lines up with the binary's. `hc-web-leptos`
+  rode along to keep the WASM bundle's `client_version` in
+  sync with the new server.
+
+### Release matrix
+
+**Tagged at v0.1.4 (3 repos):** `homeCore`, `hc-web-leptos`,
+`homeCore-io/docker`. Appliance image
+`ghcr.io/homecore-io/homecore-appliance:0.1.4` published.
+
+### Upgrade notes
+
+- The proper architectural fix for this fragility ships in
+  v0.1.5 (HEALTH-VERSION-SOURCE-1). Lockstep-bump-everything
+  is no longer required from v0.1.5 forward.
+
+---
+
 ## v0.1.3 — 2026-05-06
 
 **Theme:** Leptos admin reliability + automation hygiene.
