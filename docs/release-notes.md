@@ -104,13 +104,14 @@ your tab is running old code.
 
 ### Release matrix
 
-**Tagged at v0.1.3 (12 repos):** `hc-web-leptos` (first tag),
-`hc-hue`, `hc-yolink`, `hc-lutron`, `hc-sonos`, `hc-wled`,
-`hc-isy`, `hc-zwave`, `hc-caseta`, `hc-ecowitt`, `hc-thermostat`,
-`homeCore-io/docker` (orchestration; triggers appliance build).
+**Tagged at v0.1.3 (13 repos):** `homeCore` (core), `hc-web-leptos`
+(first tag), `hc-hue`, `hc-yolink`, `hc-lutron`, `hc-sonos`,
+`hc-wled`, `hc-isy`, `hc-zwave`, `hc-caseta`, `hc-ecowitt`,
+`hc-thermostat`, `homeCore-io/docker` (orchestration; triggers
+appliance build).
 
-**Skipped (no tag, only branch merge):** `homeCore` (core),
-`hc-captest`. Their only changes don't affect the produced binary.
+**Skipped (no tag, only branch merge):** `hc-captest` (dev-only
+repo, not in production release flow).
 
 **Appliance image:**
 `ghcr.io/homecore-io/homecore-appliance:0.1.3` published.
@@ -126,6 +127,22 @@ your tab is running old code.
   installed). They contain default config; close them — the
   canonical `renovate.json` already shipped on `main` in each
   repo.
+
+### Note on Phase F (the "tag only what changed" rule)
+
+This was the first release applying our new policy of tagging
+only components whose binaries differ from the prior release
+(rather than the lockstep "tag everything" approach used through
+0.1.2). The initial pass tagged 12 components and skipped two
+(`homeCore`, `hc-captest`) whose only changes were
+`.github/renovate.json`. Operators reported the appliance still
+showing v0.1.2 in the Leptos sidebar — because the sidebar reads
+core's `CARGO_PKG_VERSION` which was untouched. Resolved by
+amending the rule: components that ship *inside* the appliance
+image (today: core, plus the WASM bundled into core) ride with
+the appliance tag even when their own diff is binary-irrelevant.
+Core was retagged at `v0.1.3` and the appliance was rebuilt with
+the new core image. Future releases follow the amended rule.
 
 ---
 
