@@ -110,6 +110,7 @@ const sidebars = {
         'development/topic-mapper',
       ],
     },
+    'release-notes',
   ],
 };
 
