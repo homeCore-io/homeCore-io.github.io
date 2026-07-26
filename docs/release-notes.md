@@ -20,9 +20,53 @@ components were tagged.
 
 ---
 
-## Unreleased (on `develop`, not yet tagged)
+## v0.1.6 — 2026-07-26
 
-**Theme:** Devices that no plugin owns — and the silence around them.
+**Theme:** One artifact per component — and devices that no plugin owns.
+
+Two unrelated bodies of work land together, because 0.1.6 is the first
+tagged round since 0.1.5 in May.
+
+### Deployment and release (operator-visible)
+
+homeCore now ships as **two containers**, wired together by compose:
+
+| Image | What it is |
+|---|---|
+| `ghcr.io/homecore-io/hc-core` | The REST/WebSocket API and the embedded MQTT broker. |
+| `ghcr.io/homecore-io/hc-web` | The web UI. nginx serves the app and proxies `/api/v1/*` to core. |
+
+- **The appliance image is retired.** `homecore-appliance` baked core and
+  every plugin into one container. Plugins install at runtime from the
+  signed registry, so the merged image was a different product from the
+  one being shipped. Existing appliance images stay in GHCR and keep
+  working; none are published any more. The
+  `homecore-appliance-*.tar.gz` release archive is gone for the same
+  reason.
+- **hc-core no longer carries a web UI.** It used to bundle a Leptos WASM
+  build. `hc-web` is the UI now, released for the first time at v0.1.6.
+- **Repaired image tags.** `hc-core:latest`, `:0.1.5` and `:0.1.4` had all
+  become unpullable — the tags existed but the amd64 child manifest each
+  one referenced had been deleted in the 2026-05-11 GHCR cleanup incident,
+  so `docker pull` failed with "content not found". v0.1.6 republishes a
+  working `:latest`. The cleanup job now fails rather than pruning against
+  an incomplete protected set, which is what allowed it.
+- **amd64 only.** aarch64 tarballs and images had in practice not been
+  produced for months — the matrix entry was switched off behind a
+  hardcoded override while the release still advertised a multi-arch
+  toggle. The pipeline now says amd64 and means it. If you need arm64,
+  say so; restoring it is a small change.
+- **The whole plugin registry is current.** Ten plugins had shipped
+  versions well ahead of what the index served (`hc-lutron` was at 0.1.10
+  against a published 0.1.4). All are reconciled, and `plugin.roku` is
+  published for the first time.
+
+Upgrade: `docker compose pull && docker compose up -d`. Installed plugins
+live in the data directory, not the image, so they are untouched.
+
+### Devices that no plugin owns
+
+**Theme:** the silence around them.
 
 A keypad button that had been dead since May turned out to be pointing
 at a Hue group the Hue plugin had stopped managing back in April. The
