@@ -588,30 +588,31 @@ username = "admin"
 password = "change-me"
 ```
 
-## Building a Docker image for a plugin
+## Distributing a plugin
 
-Use the generic `plugins/Dockerfile.plugin` template:
+Plugins do **not** ship as container images. They ship as signed `.tar.zst`
+artifacts in the [plugin registry](https://github.com/homeCore-io/registry):
+a `plugin.toml` manifest plus the binary, ed25519-signed, indexed at
+`https://homecore.io/registry/index.json`.
 
-```bash
-cd my-plugin
-docker build \
-  -f ../Dockerfile.plugin \
-  --build-arg PLUGIN_NAME=hc-my-plugin \
-  -t hc-my-plugin:latest \
-  .
-```
+Core downloads the artifact, verifies the signature against the public key in
+its `[registry]` config, unpacks it to
+`$HOMECORE_HOME/plugins/<id>/<version>/`, seeds a config with generated MQTT
+credentials, and runs the binary as a child process it supervises and
+restarts. Users install with Plugins → Add in the web UI.
 
-The container runs the plugin binary with `config/config.toml` as the argument. Mount the config directory to inject your configuration:
+Tagging `v0.1.0` in a plugin repo does all of this: the shared release
+workflow builds a static musl binary, packages the `.tar.zst`, attaches it to
+the GitHub Release, notifies the registry, and then polls the *served* index
+until the entry appears — so a green release means an installable plugin, not
+just a successful build.
 
-```yaml
-# docker-compose entry
-hc-my-plugin:
-  image: hc-my-plugin:latest
-  network_mode: host
-  volumes:
-    - ./docker/plugin-configs/hc-my-plugin.toml:/opt/plugin/config/config.toml:ro
-  restart: unless-stopped
-```
+There used to be a `plugins/Dockerfile.plugin` template for building a plugin
+into its own container, run with `network_mode: host` against core's broker.
+That shape is retired and the template is gone. If you need a plugin on a
+different host, the SDK still supports it — point `broker_host` /
+`broker_port` in the plugin's `[homecore]` config at core's broker, and expose
+the broker accordingly.
 
 ## Device type field
 

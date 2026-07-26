@@ -15,8 +15,8 @@ There are three install paths, listed in order of preference:
 
 1. **[Binary release](./binary-releases)** — pre-built static tarball,
    ready to extract and run. **The right choice for almost everyone.**
-2. **[Docker](./docker)** — single appliance image or compose bundle
-   with per-plugin fragments.
+2. **[Docker](./docker)** — two containers (hc-core + hc-web) wired
+   together by compose.
 3. **Build from source** — for plugin authors and core developers.
    That's what this page covers.
 
@@ -98,6 +98,10 @@ HomeCore uses the **current working directory** as its base. All data,
 config, logs, and rules are written relative to wherever you run the
 binary from. There are no hidden directories or scattered system files.
 
+Core serves the API; it does not serve a web UI. The UI is `hc-web`, which
+runs separately and proxies `/api/v1` to core — see [Docker](./docker). Core
+archives used to carry a `ui/dist/` WASM bundle and no longer do.
+
 Recommended layout (matches what binary-release tarballs extract to):
 
 ```
@@ -107,9 +111,7 @@ homecore/
 ├── config/
 │   ├── homecore.toml     ← main config file
 │   └── profiles/         ← ecosystem profiles (Tasmota, Shelly, …)
-├── ui/
-│   └── dist/             ← Web UI WASM bundle (core archive ships this; source builds need a separate trunk build)
-├── plugins/              ← per-plugin fragments (bin/ + config/) merge in here
+├── plugins/              ← installed plugin binaries (bin/ + config/)
 ├── rules/                ← automation rule RON files (hot-reloaded)
 ├── data/                 ← created automatically: state.redb, history.db
 └── logs/                 ← created automatically when logging.file is enabled

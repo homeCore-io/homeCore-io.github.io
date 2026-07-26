@@ -11,17 +11,25 @@ HomeCore publishes pre-built static binaries for every tagged release.
 For most users this is the fastest path: download a tarball, extract it,
 run.
 
-There are three flavors of release archive, all sharing the same
-top-level `homecore/` layout so they merge cleanly.
+There are two flavors of release archive, sharing the same top-level
+`homecore/` layout so they merge cleanly.
 
 | Flavor | Filename | Contents |
 |---|---|---|
-| **Core** | `homecore-core-vX.Y.Z-linux-{x86_64,aarch64}.tar.gz` | `homecore` binary + Web UI bundle + config templates + service templates |
-| **Plugin** | `<plugin>-vX.Y.Z-linux-{x86_64,aarch64}.tar.gz` | Single plugin fragment under `homecore/plugins/<name>/` |
-| **Appliance** | `homecore-appliance-vX.Y.Z-linux-{x86_64,aarch64}.tar.gz` | Core + every plugin merged into one tree |
+| **Core** | `homecore-core-vX.Y.Z-linux-x86_64.tar.gz` | `homecore` binary + config templates + service templates |
+| **Plugin** | `<plugin>-vX.Y.Z-linux-x86_64.tar.gz` | Single plugin fragment under `homecore/plugins/<name>/` |
 
 Every archive ships a matching `.sha256` sidecar. Statically linked
 against musl — no glibc, no OpenSSL, no system dependencies.
+
+Two things this does **not** include:
+
+- **A web UI.** Core serves the API. The UI is `hc-web` and runs
+  separately — see [Docker](./docker). Core archives used to bundle a
+  WASM UI and no longer do.
+- **An appliance archive.** `homecore-appliance-*.tar.gz` merged core
+  with every plugin into one tree. It is retired; installing plugins
+  from the registry through the UI replaces it.
 
 ---
 
@@ -97,12 +105,6 @@ homecore/
 `homecore/plugins/hc-hue/` subtree merges in without disturbing
 unrelated files.
 
-### Appliance archive
-
-Core + every plugin fragment pre-merged. Single tarball, ready to run.
-
----
-
 ## Quickstart
 
 ```bash
@@ -110,13 +112,13 @@ Core + every plugin fragment pre-merged. Single tarball, ready to run.
 mkdir -p ~/homecore-install
 cd ~/homecore-install
 
-# Pull the appliance archive for x86_64.
-curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.0/homecore-appliance-v0.1.0-linux-x86_64.tar.gz
-curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.0/homecore-appliance-v0.1.0-linux-x86_64.tar.gz.sha256
-sha256sum -c homecore-appliance-v0.1.0-linux-x86_64.tar.gz.sha256
+# Pull the core archive for x86_64.
+curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.5/homecore-core-v0.1.5-linux-x86_64.tar.gz
+curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.5/homecore-core-v0.1.5-linux-x86_64.tar.gz.sha256
+sha256sum -c homecore-core-v0.1.5-linux-x86_64.tar.gz.sha256
 
 # Extract. Produces ./homecore/
-tar -xzf homecore-appliance-v0.1.0-linux-x86_64.tar.gz
+tar -xzf homecore-core-v0.1.5-linux-x86_64.tar.gz
 
 # Copy the example config and start core.
 cd homecore
@@ -129,17 +131,20 @@ $EDITOR config/homecore.toml
 
 ## Mixing flavors
 
-You can install core + a subset of plugins instead of the full
-appliance. Order doesn't matter — each fragment lands under
-`homecore/plugins/<name>/`:
+Most people should install plugins from the web UI instead — Plugins →
+Add — which pulls a signed artifact from the plugin registry and lets core
+manage upgrades. Unpacking plugin tarballs by hand is for air-gapped hosts
+and for pinning a specific build.
+
+Order doesn't matter; each fragment lands under `homecore/plugins/<name>/`:
 
 ```bash
 # Core only
-tar -xzf homecore-core-v0.1.0-linux-x86_64.tar.gz
+tar -xzf homecore-core-v0.1.5-linux-x86_64.tar.gz
 
 # Add a couple of plugins later
-tar -xzf hc-hue-v0.1.0-linux-x86_64.tar.gz
-tar -xzf hc-yolink-v0.1.0-linux-x86_64.tar.gz
+tar -xzf hc-hue-v0.1.6-linux-x86_64.tar.gz
+tar -xzf hc-yolink-v0.1.7-linux-x86_64.tar.gz
 ```
 
 Then enable each plugin in `homecore/config/homecore.toml` under its
@@ -169,13 +174,17 @@ ship as compose bundles rather than tarballs.
 
 ## Architectures
 
-Both `linux-x86_64` (amd64) and `linux-aarch64` (arm64) tarballs are
-published per release. Both are statically linked musl binaries built
-inside the same `rust:alpine` Docker image, so behaviour is uniform
-across host distributions.
+`linux-x86_64` (amd64) only. Statically linked musl binaries, built inside
+a `rust:alpine` Docker image, so behaviour is uniform across host
+distributions.
 
-macOS and Windows builds are not currently published — run the Docker
-appliance image, or build from source.
+`linux-aarch64` (arm64) is **not currently published**. The release
+workflow had an aarch64 matrix entry, but it had been switched off long
+enough that no arm64 artifact has shipped in months; rather than keep
+advertising a build that was not happening, the pipeline now says amd64 and
+means it. Restoring it is a small change to the release workflow.
+
+macOS and Windows builds are not published either — build from source.
 
 ---
 

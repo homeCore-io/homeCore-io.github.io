@@ -20,6 +20,110 @@ components were tagged.
 
 ---
 
+## Unreleased (on `develop`, not yet tagged)
+
+**Theme:** Devices that no plugin owns — and the silence around them.
+
+A keypad button that had been dead since May turned out to be pointing
+at a Hue group the Hue plugin had stopped managing back in April. The
+device was still listed, still accepted commands, and still reported
+state — the state just never changed again. Everything downstream
+believed it.
+
+This round fixes that button, deletes the devices behind it, and adds
+the check that would have caught it in April.
+
+### The failure, for anyone who might hit it
+
+A device can outlive its plugin's interest in it. Turn off
+`publish_grouped_lights` in the Hue plugin and its grouped lights stop
+being registered — but homeCore's registration and retained state for
+them persist. Such an **orphaned** device then fails silently in *both*
+directions:
+
+- **Commands vanish.** Plugins subscribe to command topics per-device,
+  only for devices they registered. An orphan has no subscriber, so the
+  broker drops its commands. No error, anywhere — and the rule engine
+  still records the action as `fired: success`.
+- **State freezes.** Its attributes stay at whatever they last were,
+  forever, and rule conditions keep reading them as truth.
+
+Together those wedge a toggle permanently. The affected keypad had:
+
+```
+Btn1 "On"  — condition: group.on == false → turn on    ← could never pass
+Btn1 "Off" — condition: group.on == true  → turn off   ← always passed
+```
+
+The group was frozen `on: true`, so the "On" rule never fired *once* in
+two months (`condition_failed`, 9 of 9 presses), the "Off" rule fired
+every time, and its command evaporated at the broker. The button looked
+broken; every layer reported success.
+
+### Added
+
+- **`GET /api/v1/devices/orphaned`** — finds devices homeCore holds that
+  their owning plugin no longer manages.
+
+  Detection is a **count comparison, not a staleness threshold**. Every
+  management-capable plugin self-reports `device_count`; if core holds
+  more devices for that plugin than the plugin claims, the difference is
+  exactly the orphan count. Flagging on `last_seen` age is the obvious
+  approach and is wrong — plugins that publish only on change leave
+  healthy devices cold for months (a wall switch nobody flips is not
+  orphaned), so an age rule cries wolf on exactly the quiet devices you
+  care least about.
+
+  Worth running once after upgrading. On the system this was found on it
+  immediately turned up 11 more orphans in a *second* plugin, unrelated
+  and unnoticed.
+
+### Fixed
+
+- **`hc-hue`** now reports a command sent to a Hue device it no longer
+  manages — a `warn` plus a failed `plugin_command_result` — instead of
+  silently discarding it as another plugin's device. (This covers a
+  device pruned mid-run; a device orphaned across a restart is caught by
+  `/devices/orphaned` above, since its command never reaches the plugin
+  at all.)
+- **`hc-hue`** warns, rather than staying quiet, when it skips the
+  cross-restart reconcile that retires stale devices.
+- **Plugin SDK** warns when it cannot load its published-device snapshot.
+  That file is the only record of devices registered in earlier runs, so
+  losing it silently disables stale-device cleanup for every plugin.
+
+### Documentation
+
+- **`openapi.yaml` now matches the server** — 89 of 89 routes, 124 of 124
+  operations, up from 39. It had also stopped parsing entirely at some
+  point (an unquoted `description:` containing `": "` reads as YAML
+  mapping syntax), so nothing could consume it. Both fixed; the
+  "adding an endpoint" checklist now includes documenting it, which is
+  what was missing.
+
+### Upgrade notes
+
+- **Orphans from before the SDK's device-snapshot mechanism cannot be
+  auto-cleaned.** `reconcile_devices` computes `stale = known − live`
+  from its persisted `.published-device-ids.json`; devices registered
+  before that file existed were never written to it, so `known == live`
+  and the stale set is empty. They are structurally invisible to the
+  reconcile — running the plugin's **cleanup stale devices** action will
+  never remove them and will log nothing when it doesn't.
+
+  Delete them explicitly:
+
+  ```
+  GET    /api/v1/devices/orphaned      # review the suspects first
+  DELETE /api/v1/devices/{id}
+  ```
+
+  Check `affected_rules` in the delete response — deletion cascades into
+  rule files, disabling any automation that referenced the device. An
+  empty list means nothing was disturbed.
+
+---
+
 ## v0.1.5 — 2026-05-07
 
 **Theme:** Comfort fix + diagnostic toolkit + client UX cleanup.
