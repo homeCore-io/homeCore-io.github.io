@@ -173,8 +173,8 @@ so re-evaluate after each discovery sweep, reconnect, and config change rather
 than deciding once at startup — a plugin that raises `no_devices_configured` at
 boot and never looks again is still showing it after the user's devices arrive.
 
-Notices and capability actions are available in the Rust and Python SDKs. The
-Node.js and .NET SDKs cover registration, state, availability, the management
+Notices and capability actions are available in the Rust, Python and Node.js
+SDKs. The .NET SDK covers registration, state, availability, the management
 protocol, and log forwarding.
 
 :::note Plugin isolation via per-device subscriptions
@@ -419,19 +419,20 @@ forwarding work in all four. Two features do not yet:
 | | Rust | Python | Node.js | .NET |
 |---|:-:|:-:|:-:|:-:|
 | Devices, state, management, log forwarding | ✓ | ✓ | ✓ | ✓ |
-| **Notices** — the self-clearing problem reports the UI shows on a plugin's card | ✓ | ✓ | | |
-| **Capability actions** — the manifest the UI turns into buttons, immediate and streaming | ✓ | ✓ | | |
-| Per-device command subscription (see the isolation note above) | ✓ | ✓ | | |
+| **Notices** — the self-clearing problem reports the UI shows on a plugin's card | ✓ | ✓ | ✓ | |
+| **Capability actions** — the manifest the UI turns into buttons, immediate and streaming | ✓ | ✓ | ✓ | |
+| Per-device command subscription (see the isolation note above) | ✓ | ✓ | ✓ | |
 | Device persistence / `reconcile_devices` | ✓ | | | |
 
 Device *capability schemas* — the attributes of one device — work everywhere.
 It is the plugin-level action manifest that is limited.
 
-In Node.js and .NET a plugin still subscribes to `homecore/devices/+/cmd`, so
-it receives commands for devices belonging to other plugins and has to ignore
-them itself. Rust and Python subscribe per device.
+In .NET a plugin still subscribes to `homecore/devices/+/cmd`, so it receives
+commands for devices belonging to other plugins and has to ignore them itself.
+Rust, Python and Node.js subscribe per device.
 
-The Rust SDK is the reference implementation; Python is the closest to it.
+The Rust SDK is the reference implementation; Python and Node.js match it
+except for device persistence.
 
 ---
 
