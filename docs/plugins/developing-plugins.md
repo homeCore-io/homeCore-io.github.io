@@ -237,6 +237,20 @@ let report = publisher.reconcile_devices(live).await?;
   Operators can clean up zombies with the core endpoint
   `DELETE /api/v1/plugins/:id/devices` when needed.
 
+**The same thing in the other SDKs.** Identical semantics, idiomatic names:
+
+| | Enable | Reconcile |
+|---|---|---|
+| Rust | `with_device_persistence(path)` | `reconcile_devices(live)` |
+| Python | `enable_device_persistence(path)` | `reconcile_devices(live)` |
+| Node.js | `enableDevicePersistence(path)` | `reconcileDevices(live)` |
+| .NET | `EnableDevicePersistence(path)` | `ReconcileDevicesAsync(live)` |
+
+All four scope the snapshot filename by plugin id
+(`.published-device-ids.plugin.hue.json`), because deployments keep every
+plugin's config in one directory and every plugin derives the path the same way
+— unscoped, two plugins share one file and retire each other's devices.
+
 **Manual bulk wipe.** Independent of SDK reconcile, an admin can call:
 
 ```text
@@ -411,15 +425,9 @@ Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT`, and
 
 ## Choosing a language
 
-All four SDKs do the same job. Registration, state, availability, the
-management protocol, notices, capability actions — immediate and streaming —
-log forwarding, and cross-device state work in every one of them, so pick the
-language you would rather write the device integration in.
-
-One thing is not universal: **device persistence** (`reconcile_devices`, which
-unregisters devices that vanished from your upstream while the plugin was down)
-is Rust only. The [feature matrix](#sdk-feature-matrix) below is the full
-picture.
+All four SDKs do the same job — every feature in the
+[matrix](#sdk-feature-matrix) below is in all of them. Pick the language you
+would rather write the device integration in.
 
 The Rust SDK remains the reference implementation, and new protocol features
 land there first.
@@ -565,7 +573,7 @@ every convention.
 | Capability actions (streaming) | ✅ | ✅ | ✅ | ✅ |
 | Cross-device state subscription | ✅ | ✅ | ✅ | ✅ |
 | Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
-| Device persistence + reconcile | ✅ | — | — | — |
+| Device persistence + reconcile | ✅ | ✅ | ✅ | ✅ |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
 
