@@ -141,6 +141,26 @@ sentinel (cargo would reject the parent absorption).
 workspace's `[patch]` block (`plugins/`, `clients/`, or `sdks/`).
 Don't touch `.cargo/config.toml`.
 
+### The non-Rust SDKs
+
+The meta-layout is a cargo mechanism, so it covers `hc-plugin-sdk-rs` and
+nothing else. A Python, Node.js or .NET plugin points at its SDK's checkout
+directly, from the plugin's own directory:
+
+```bash
+pip install -e ../../sdks/hc-plugin-sdk-py
+npm install ../../sdks/hc-plugin-sdk-js
+dotnet add reference ../../sdks/hc-plugin-sdk-dotnet/HomeCoreSdk.csproj
+```
+
+All three link rather than copy — pip's `-e`, npm's directory install, and a
+.NET project reference — so an SDK edit is live in the plugin without a
+reinstall, the same property the `[patch]` block gives Rust.
+
+**None of the SDKs is published to a package registry.** Not crates.io, PyPI,
+npm or NuGet. Outside the workspace they install from a git tag; see
+[Installing an SDK](../plugins/developing-plugins#installing-an-sdk).
+
 The full design + history is at
 [`claude-notes/project_cross_repo_deps.md`](https://github.com/homeCore-io/homeCore/blob/develop/claude-notes/project_cross_repo_deps.md)
 in the homeCore repo.
