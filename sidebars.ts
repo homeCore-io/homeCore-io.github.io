@@ -89,6 +89,7 @@ const sidebars = {
         'plugins/isy',
         'plugins/thermostat',
         'plugins/ecowitt',
+        'plugins/roku',
       ],
     },
     {

@@ -35,7 +35,7 @@ HomeCore treats the plugin as the source of truth for device discovery. In norma
 Plugins can also declare **capability actions** — plugin-specific
 commands like "Pair Hue bridge", "Include Z-Wave device", "Rescan
 devices". These show up as buttons under **Actions** on the plugin's
-detail page in the admin UI and are exposable to MCP clients without
+page in the web UI and are exposable to MCP clients without
 plugin-specific code. See [Plugin Capabilities & Actions](./capabilities).
 
 ## Available plugins
@@ -49,15 +49,52 @@ plugin-specific code. See [Plugin Capabilities & Actions](./capabilities).
 | [hc-zwave](./zwave) | Rust | Z-Wave devices via zwave-js WebSocket |
 | [hc-wled](./wled) | Rust | WLED LED controllers |
 | [hc-isy](./isy) | Rust | ISY/IoX hub (Insteon, Z-Wave, Zigbee) |
+| [hc-caseta](./caseta) | Rust | Lutron Caséta Smart Bridge Pro |
+| [hc-ecowitt](./ecowitt) | Rust | Ecowitt weather gateways and consoles |
+| [hc-roku](./roku) | Rust | Roku players and TVs (ECP) |
 | [hc-thermostat](./thermostat) | Rust | Virtual thermostats (aggregated sensors → actuator) |
 | [http-poller](./http-poller) | Rust | Generic HTTP endpoint polling |
+
+Every one of these is its own repository, releases its own signed
+artifact, and is installed from the registry rather than being built into
+homeCore.
+
+## Installing a plugin
+
+The normal path is **Plugins → Add** in the web UI, or
+`POST /api/v1/plugins/install`. homeCore fetches the plugin's artifact
+from the [signed registry](https://homecore.io/registry/), verifies the
+index's ed25519 signature and the artifact's SHA-256 before unpacking
+anything, seeds a config file, and starts supervising it. No compose file
+to edit, no binary to place.
+
+Both `[registry].url` and `[registry].public_key` must be set or the
+registry endpoints return `503` — see
+[Configuration](../getting-started/configuration.md).
+
+An installed plugin is recorded in `config/plugins/managed.toml`, which
+homeCore owns. Your `homecore.toml` is never rewritten; a `[[plugins]]`
+block there is for a plugin you built or unpacked yourself.
+
+## Plugin notices
+
+A plugin reports its own problems as structured **notices**, and the web
+UI renders them inline on the plugin's card: missing credentials, a hub
+that will not answer, nothing discovered yet, a permission that needs
+changing on the device. They carry a severity and, where there is one, the
+action that fixes it.
+
+Notices are state, not log lines — a notice stays up while the condition
+holds and clears when it stops being true, so a plugin that says "no
+devices found" must re-evaluate that after each discovery sweep rather
+than deciding once at startup.
 
 ## Plugin configuration
 
 All plugins share the same `[homecore]` config section:
 
 ```toml
-# config/config.toml (in the plugin's directory)
+# config/plugins/<plugin_id>.toml — core-owned, passed to the plugin at launch
 
 [homecore]
 broker_host = "127.0.0.1"
@@ -66,7 +103,21 @@ plugin_id   = "plugin.hue"
 password    = ""           # set if broker auth is enabled
 ```
 
-The config file path defaults to `config/config.toml` relative to the binary's working directory. Override with the first CLI argument:
+homeCore owns that file. Each plugin's config lives at
+`<base>/config/plugins/<plugin_id>.toml` and the supervisor passes the
+path as the plugin's first argument, so the plugin still just reads a file
+— only the *location* moved out of the plugin's own tree, where a plugin
+upgrade could clobber it and where the API, the settings form, and an
+operator editing by hand all disagreed about which copy was real.
+
+Edit it from the UI (Plugins → the plugin → Configuration), over the API
+(`PUT /api/v1/plugins/{id}/config`), or by editing the file directly. Core
+watches the directory and **restarts that one plugin** so it re-reads its
+config — core itself does not restart, and no other plugin is touched. A
+write whose bytes are unchanged is ignored, and a transient unlink or
+rename never kills a running plugin.
+
+Run standalone for development by passing a path:
 
 ```bash
 ./hc-hue /etc/homecore-plugins/hue.toml
@@ -81,10 +132,10 @@ cd /path/to/hc-hue
 ./hc-hue config/config.toml
 ```
 
-Or with `run-dev.sh` for local development (relative paths from the workspace root):
+Or with `run-dev.sh` for local development, from the workspace root:
 
 ```bash
-./scripts/run-dev.sh   # starts HomeCore + all configured plugins
+./hc-scripts/run-dev.sh   # builds everything, then starts core + its plugins
 ```
 
 ## Plugin device registration
@@ -219,6 +270,12 @@ All Rust device plugins use the official SDK with full management protocol suppo
 - **hc-sonos** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-isy** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-zwave** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-caseta** — heartbeat, remote config, dynamic log level, MQTT log forwarding
+- **hc-ecowitt** — + gateway actions: `discover_gateways`, `refresh_sensors`,
+  `get_gateway_info`, `set_custom_server`
+- **hc-roku** — + device actions: `discover_devices`, `list_devices`,
+  `refresh_catalog`, `device_info`, `send_command`, `app_icon`,
+  `forget_stale_devices`
 - **hc-thermostat** — + custom actions: `recalculate_all`, `reload_config`,
   `add_thermostat`, `remove_thermostat`, `get_thermostats`.
   First plugin to use the SDK's cross-device state subscription
