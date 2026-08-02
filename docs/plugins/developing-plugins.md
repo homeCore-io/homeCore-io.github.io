@@ -411,22 +411,19 @@ Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT`, and
 
 ## Choosing a language
 
-Registration, state publishing, availability, the management protocol, and log
-forwarding work in all four. Two features do not yet:
+All four SDKs do the same job. Registration, state, availability, the
+management protocol, notices, and capability actions — immediate and streaming
+— work in every one of them, so pick the language you would rather write the
+device integration in.
 
-| | Rust | Python | Node.js | .NET |
-|---|:-:|:-:|:-:|:-:|
-| Devices, state, availability, management protocol | ✓ | ✓ | ✓ | ✓ |
-| **Notices** — the self-clearing problem reports the UI shows on a plugin's card | ✓ | ✓ | ✓ | ✓ |
-| **Capability actions** — the manifest the UI turns into buttons, immediate and streaming | ✓ | ✓ | ✓ | ✓ |
-| Per-device command subscription (see the isolation note above) | ✓ | ✓ | ✓ | ✓ |
-| Cross-device state subscription | ✓ | ✓ | ✓ | ✓ |
-| Log forwarding to the live log stream | ✓ | ✓ | ✓ | |
-| Device persistence / `reconcile_devices` | ✓ | | | |
+Two things are not universal: **log forwarding** to homeCore's live log stream
+is missing in .NET, and **device persistence** (`reconcile_devices`, which
+unregisters devices that vanished from your upstream while the plugin was down)
+is Rust only. The [feature matrix](#sdk-feature-matrix) below is the full
+picture.
 
-The Rust SDK is the reference implementation. Python, Node.js and .NET match it
-except where marked — pick the language you would rather write the device
-integration in.
+The Rust SDK remains the reference implementation, and new protocol features
+land there first.
 
 ---
 
@@ -541,8 +538,6 @@ every convention.
 
 ## SDK feature matrix
 
-All SDKs provide the same core capabilities:
-
 | Feature | Rust | Python | Node.js | .NET |
 |---|---|---|---|---|
 | Publish state (full + partial) | ✅ | ✅ | ✅ | ✅ |
@@ -551,12 +546,16 @@ All SDKs provide the same core capabilities:
 | Availability publishing | ✅ | ✅ | ✅ | ✅ |
 | Event publishing | ✅ | ✅ | ✅ | ✅ |
 | Command handling | ✅ | ✅ | ✅ | ✅ |
+| Per-device command subscription | ✅ | ✅ | ✅ | ✅ |
 | Plugin status | ✅ | ✅ | ✅ | ✅ |
 | Management protocol | ✅ | ✅ | ✅ | ✅ |
-| Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
 | Command change metadata | ✅ | ✅ | ✅ | ✅ |
 | Auto-reconnect | ✅ | ✅ | ✅ | ✅ |
-| Cross-device state subscription | ✅ | — | — | — |
+| Notices | ✅ | ✅ | ✅ | ✅ |
+| Capability actions (immediate) | ✅ | ✅ | ✅ | ✅ |
+| Capability actions (streaming) | ✅ | ✅ | ✅ | ✅ |
+| Cross-device state subscription | ✅ | ✅ | ✅ | ✅ |
+| Log forwarding (MQTT) | ✅ | ✅ | ✅ | — |
 | Device persistence + reconcile | ✅ | — | — | — |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
