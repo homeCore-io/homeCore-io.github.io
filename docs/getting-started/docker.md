@@ -177,7 +177,7 @@ hc-cli broker generate-mosquitto-config \
 That writes a Mosquitto config plus an ACL file derived from your
 `[[broker.clients]]` entries. Run Mosquitto in a sidecar container and point
 `[broker]` at it with `external_url = "mqtt://mosquitto:1883"`. Full plan at
-[`mqttAuthzPlan.md`](https://github.com/homeCore-io/homeCore/blob/develop/mqttAuthzPlan.md).
+the [MQTT broker guide](../administration/broker.md).
 
 ---
 

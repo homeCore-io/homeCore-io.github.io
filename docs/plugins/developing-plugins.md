@@ -108,7 +108,7 @@ The Rust SDK includes `DevicePublisher` for spawned tasks and full management pr
 :::note Plugin isolation via per-device subscriptions
 The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
 
-**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment) and `mqttAuthzPlan.md` in the repo root.
+**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
 :::
 
 ### Cross-restart device cleanup
@@ -176,9 +176,8 @@ DELETE /api/v1/plugins/<plugin_id>/devices
 …to delete every device whose `plugin_id` matches. The plugin stays
 registered; on its next sync cycle it re-registers anything still
 live. Useful for clearing zombies left over from development churn or
-config rearrangements without dropping the whole state DB. The
-homeCore Leptos admin UI exposes this as a **Wipe all devices**
-button on each plugin's detail page.
+config rearrangements without dropping the whole state DB. It is an
+API-only operation — the web UI does not surface a button for it.
 
 ### Cross-device consumer plugins
 
@@ -382,7 +381,7 @@ All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol autom
 Plugins declare plugin-specific actions in a typed manifest; the admin
 UI renders Actions buttons from it and hc-mcp exposes the entries as
 tools. Adding a new action **doesn't require any changes** to core,
-the SDKs, the Leptos client, or hc-mcp — the framework is fully
+the SDKs, the web UI, or hc-mcp — the framework is fully
 data-driven.
 
 See the dedicated [Plugin Capabilities & Actions](./capabilities) page
