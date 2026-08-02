@@ -173,12 +173,10 @@ so re-evaluate after each discovery sweep, reconnect, and config change rather
 than deciding once at startup — a plugin that raises `no_devices_configured` at
 boot and never looks again is still showing it after the user's devices arrive.
 
-Notices and capability actions are available in the Rust, Python and Node.js
-SDKs. The .NET SDK covers registration, state, availability, the management
-protocol, and log forwarding.
+Notices and capability actions are available in every SDK.
 
 :::note Plugin isolation via per-device subscriptions
-The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
+Every SDK uses per-device topic subscriptions — not wildcards. A plugin subscribes to `homecore/devices/{device_id}/cmd` for each device it owns, and receives commands for nothing else, which keeps well-behaved plugins from stomping on each other by convention. In Rust that is an explicit `subscribe_commands()` call; in Python, Node.js and .NET registering the device does it for you.
 
 **Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
 :::
@@ -418,21 +416,17 @@ forwarding work in all four. Two features do not yet:
 
 | | Rust | Python | Node.js | .NET |
 |---|:-:|:-:|:-:|:-:|
-| Devices, state, management, log forwarding | ✓ | ✓ | ✓ | ✓ |
-| **Notices** — the self-clearing problem reports the UI shows on a plugin's card | ✓ | ✓ | ✓ | |
-| **Capability actions** — the manifest the UI turns into buttons, immediate and streaming | ✓ | ✓ | ✓ | |
-| Per-device command subscription (see the isolation note above) | ✓ | ✓ | ✓ | |
+| Devices, state, availability, management protocol | ✓ | ✓ | ✓ | ✓ |
+| **Notices** — the self-clearing problem reports the UI shows on a plugin's card | ✓ | ✓ | ✓ | ✓ |
+| **Capability actions** — the manifest the UI turns into buttons, immediate and streaming | ✓ | ✓ | ✓ | ✓ |
+| Per-device command subscription (see the isolation note above) | ✓ | ✓ | ✓ | ✓ |
+| Cross-device state subscription | ✓ | ✓ | ✓ | ✓ |
+| Log forwarding to the live log stream | ✓ | ✓ | ✓ | |
 | Device persistence / `reconcile_devices` | ✓ | | | |
 
-Device *capability schemas* — the attributes of one device — work everywhere.
-It is the plugin-level action manifest that is limited.
-
-In .NET a plugin still subscribes to `homecore/devices/+/cmd`, so it receives
-commands for devices belonging to other plugins and has to ignore them itself.
-Rust, Python and Node.js subscribe per device.
-
-The Rust SDK is the reference implementation; Python and Node.js match it
-except for device persistence.
+The Rust SDK is the reference implementation. Python, Node.js and .NET match it
+except where marked — pick the language you would rather write the device
+integration in.
 
 ---
 
