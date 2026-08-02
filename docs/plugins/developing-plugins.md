@@ -11,6 +11,61 @@ Plugins can be written in any language that has an MQTT client library. HomeCore
 
 SDKs live in the `sdks/` directory of the workspace, each as an independent git repo.
 
+## Installing an SDK
+
+**None of the SDKs is published to a package registry** — not crates.io, PyPI,
+npm, or NuGet. That is deliberate for Rust (plugins pin the SDK by tag and adopt
+updates on their own cadence) and simply not set up yet for the others. So there
+is no `pip install homecore-plugin-sdk`; installing means either the local
+checkout or a git tag.
+
+### Working inside the homeCore workspace
+
+The normal case while developing a plugin. With `core/`, `plugins/` and `sdks/`
+cloned side by side, point your plugin at the checkout — SDK edits then take
+effect with no commit, tag or reinstall in between.
+
+| | From `plugins/hc-mything/` |
+|---|---|
+| Rust | nothing to do — see below |
+| Python | `pip install -e ../../sdks/hc-plugin-sdk-py` |
+| Node.js | `npm install ../../sdks/hc-plugin-sdk-js` |
+| .NET | `dotnet add reference ../../sdks/hc-plugin-sdk-dotnet/HomeCoreSdk.csproj` |
+
+Rust is the exception because the redirect is already done for you. A plugin's
+committed `Cargo.toml` declares the git dependency by tag, and the meta-workspace
+at `plugins/Cargo.toml` patches it to the checkout:
+
+```toml
+[patch."https://github.com/homeCore-io/hc-plugin-sdk-rs"]
+plugin-sdk-rs = { path = "../sdks/hc-plugin-sdk-rs" }
+```
+
+Built from inside `plugins/` you get the local source; cloned standalone by CI
+you get the tag. Check which with
+`cargo tree -p hc-yourplugin -i plugin-sdk-rs`. **Do not** change a plugin's own
+`Cargo.toml` to a `path` dependency — standalone CI has no workspace to patch
+it, so the build breaks there while working on your machine.
+
+Python's `-e` and npm's directory install both link rather than copy, so the
+same "edit and it is live" property holds. .NET builds the SDK from source as
+part of your build.
+
+### From a release
+
+Each SDK is tagged, so a plugin outside the workspace pins a known version:
+
+| | |
+|---|---|
+| Rust | `plugin-sdk-rs = { git = "https://github.com/homeCore-io/hc-plugin-sdk-rs", tag = "v0.3.10" }` |
+| Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.2.0` |
+| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.2.0` |
+| .NET | clone at the tag, then `dotnet add reference …/HomeCoreSdk.csproj` |
+
+NuGet has no git-install equivalent, which is why .NET clones.
+
+---
+
 ## Rust SDK (`hc-plugin-sdk-rs`)
 
 The fastest start is
@@ -26,7 +81,8 @@ gh repo create my-plugin --template homeCore-io/hc-plugin-template
 
 The crate is named `plugin-sdk-rs`. Pin it by tag: it re-exports core's
 `hc-types`, which is the plugin ABI, so an unpinned dependency means your
-build changes when core does.
+build changes when core does. See [Installing an SDK](#installing-an-sdk) for
+how this resolves locally.
 
 ```toml
 [dependencies]
@@ -308,7 +364,7 @@ See [`hc-thermostat`](./thermostat) for a reference implementation.
 
 ## Python SDK (`hc-plugin-sdk-py`)
 
-Subclass `PluginBase`, implement `on_command`, call `run()`. The API is
+[Install it](#installing-an-sdk) first. Subclass `PluginBase`, implement `on_command`, call `run()`. The API is
 synchronous — the SDK drives paho-mqtt's loop for you, so background work goes
 in a thread.
 
@@ -357,7 +413,7 @@ complete plugin.
 
 ## Node.js SDK (`hc-plugin-sdk-js`)
 
-Extend `PluginBase`, implement `onCommand`, call `run()`. Same shape as the
+[Install it](#installing-an-sdk) first. Extend `PluginBase`, implement `onCommand`, call `run()`. Same shape as the
 Python SDK, on mqtt.js v5.
 
 ```javascript
@@ -396,6 +452,8 @@ Requires Node.js 18+. See `examples/virtual_light.js` in the SDK repo.
 ---
 
 ## .NET SDK (`hc-plugin-sdk-dotnet`)
+
+[Install it](#installing-an-sdk) first.
 
 ```csharp
 using HomeCore.PluginSdk;
