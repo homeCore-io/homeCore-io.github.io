@@ -21,7 +21,7 @@ Cargo.lock per category. See [Meta-layout](#meta-layout) below.
 homeCore/
 ├── workspace.toml              ← authoritative repo list
 ├── plugins/Cargo.toml          ← meta-layout: every plugin as a workspace member
-├── clients/Cargo.toml          ← meta-layout: hc-tui + hc-web-leptos
+├── clients/Cargo.toml          ← meta-layout: the Rust clients (hc-tui)
 ├── sdks/Cargo.toml             ← meta-layout: hc-plugin-sdk-rs
 ├── .cargo/config.toml          ← profile + (no patches — those are per-category)
 │
@@ -30,7 +30,7 @@ homeCore/
 │                                  rust-release.yml)
 │
 ├── core/                       ← main HomeCore server (git repo: homeCore-io/homeCore)
-│   ├── Cargo.toml              ← internal workspace (12 crates)
+│   ├── Cargo.toml              ← internal workspace (16 crates)
 │   ├── Cargo.lock
 │   ├── config/
 │   │   ├── homecore.toml.example   ← committed; user-tracked TOMLs are gitignored
@@ -51,6 +51,11 @@ homeCore/
 │   │   ├── hc-scripting/       ← Rhai sandboxed runtime
 │   │   ├── hc-logging/         ← tracing setup, rolling files, log stream
 │   │   ├── hc-notify/          ← Pushover, email, Telegram
+│   │   ├── hc-config/          ← config model + the descriptor the UI's forms read
+│   │   ├── hc-influx/          ← optional InfluxDB v2 export of device state
+│   │   ├── hc-time/            ← configured-timezone helpers (never `chrono::Local`)
+│   │   ├── hc-api-types/       ← request/response types shared with Rust clients
+│   │   ├── hc-web-admin/       ← optional static-file mount for a pre-built UI
 │   │   └── hc-cli/             ← admin CLI (issuance, broker config gen, …)
 │   ├── src/                    ← homecore binary (main.rs)
 │   ├── rules/examples/         ← documented rule patterns
@@ -65,14 +70,16 @@ homeCore/
 │   ├── hc-wled/                ← WLED LED controllers
 │   ├── hc-zwave/               ← zwave-js WebSocket bridge
 │   ├── hc-isy/                 ← ISY/IoX (Insteon, Z-Wave gateway)
-│   ├── hc-thermostat/          ← thermostat synthesis
+│   ├── hc-thermostat/          ← virtual thermostat (sensors + actuator)
 │   ├── hc-ecowitt/             ← Ecowitt weather stations
+│   ├── hc-roku/                ← Roku TVs and players (ECP)
 │   └── hc-captest/             ← capability-spec conformance test plugin
 │
 ├── clients/                    ← UI and API consumers
-│   ├── hc-web-leptos/          ← Leptos/WASM admin (default bundled UI)
+│   ├── hc-web/                 ← Flutter web dashboard — THE web UI
 │   ├── hc-tui/                 ← Terminal UI (ratatui)
-│   └── hc-mcp/                 ← MCP server (Phase 1 + 2 + 4a/4b shipped)
+│   ├── hc-mcp/                 ← MCP server (Python)
+│   └── hc-web-leptos/          ← retired Leptos/WASM admin, kept for reference
 │
 └── sdks/                       ← Plugin SDKs
     ├── hc-plugin-sdk-rs/       ← Rust SDK (used by every Rust plugin)
@@ -97,10 +104,10 @@ workspace **at category level**:
 
 | Workspace manifest | Members | Why |
 |---|---|---|
-| `plugins/Cargo.toml` | All 11 plugin path-members | Shared `[patch]` for `hc-types`, `hc-logging`, `plugin-sdk-rs` |
-| `clients/Cargo.toml` | `hc-tui`, `hc-web-leptos` | Shared `[patch]` for `hc-types`, plus per-package release profile for the WASM bundle |
+| `plugins/Cargo.toml` | The 12 released + test plugin path-members | Shared `[patch]` for `hc-types`, `hc-logging`, `plugin-sdk-rs` |
+| `clients/Cargo.toml` | The Rust clients — `hc-tui` (and the retired `hc-web-leptos`) | Shared `[patch]` for `hc-types`. hc-web is Flutter and hc-mcp is Python, so neither is a member |
 | `sdks/Cargo.toml` | `hc-plugin-sdk-rs` | Shared `[patch]` for `hc-types`, `hc-logging` |
-| `core/Cargo.toml` | core's 12 internal crates | Already its own workspace; per-repo `[patch]` for `hc-captest`'s transitive `hc-types` |
+| `core/Cargo.toml` | core's 16 internal crates | Already its own workspace; per-repo `[patch]` for `hc-captest`'s transitive `hc-types` |
 
 The meta-layout files are **local-only** — they aren't in any git
 repo. New contributors set up the meta-layout by hand-copying from an
@@ -138,17 +145,18 @@ The full design + history is at
 [`claude-notes/project_cross_repo_deps.md`](https://github.com/homeCore-io/homeCore/blob/develop/claude-notes/project_cross_repo_deps.md)
 in the homeCore repo.
 
-## Leptos Admin UI (`hc-web-leptos`)
+## The web UI (`hc-web`)
 
-The `hc-web-leptos` client in `clients/hc-web-leptos/` is a Leptos/WASM single-page application built with Trunk. It includes an admin page at `/admin` with:
+`clients/hc-web/` is a Flutter application targeting the browser, and it
+is the web UI. It is not a Cargo workspace member and does not build with
+the rest of the tree — `flutter build web` produces the bundle, and its
+own Dockerfile wraps that in an nginx image which also proxies `/api/v1`
+to core.
 
-- User management (CRUD, password change)
-- System status overview
-- Backup download
-- Dynamic log level adjustment
-- Stale device reference detection and device cleanup
-
-See [Dev Workflow: Admin UI development](./dev-workflow#admin-ui-development) for the development and production build workflow.
+`clients/hc-web-leptos/` is the retired Leptos/WASM admin that core used
+to bake into its own binary. It is still a workspace member so the tree
+keeps building, but nothing ships it. See
+[Web UI overview](../web-ui/overview.md).
 
 ## Crate dependency order
 
@@ -174,8 +182,8 @@ hc-types          ← shared types only; no deps on other hc-* crates
 | Concern | Library | Version |
 |---|---|---|
 | Async runtime | `tokio` | 1 |
-| Embedded MQTT broker | `rumqttd` | 0.19 |
-| MQTT client | `rumqttc` | 0.24 |
+| Embedded MQTT broker | `rumqttd` | 0.20 |
+| MQTT client | `rumqttc` | 0.25 |
 | HTTP + WebSocket API | `axum` | 0.7 |
 | Device registry | `redb` | 2 |
 | Time-series history | `rusqlite` (bundled) | 0.31 |
@@ -184,7 +192,7 @@ hc-types          ← shared types only; no deps on other hc-* crates
 | Config | `toml` | 0.8 |
 | JWT auth | `jsonwebtoken` | - |
 | Password hashing | `argon2` | - |
-| OpenAPI generation | `utoipa` | 4 |
+| OpenAPI spec | hand-maintained `core/docs/openapi.yaml` (3.1.0), checked against the router by `tests/openapi_covers_router_test.rs` | — |
 | File watching | `notify` | 6 |
 | Error handling | `anyhow` (bins) + `thiserror` (libs) | - |
 | Logging | `tracing` + `tracing-appender` | - |
