@@ -412,18 +412,27 @@ Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT`, and
 ## Choosing a language
 
 All four SDKs do the same job. Registration, state, availability, the
-management protocol, notices, and capability actions — immediate and streaming
-— work in every one of them, so pick the language you would rather write the
-device integration in.
+management protocol, notices, capability actions — immediate and streaming —
+log forwarding, and cross-device state work in every one of them, so pick the
+language you would rather write the device integration in.
 
-Two things are not universal: **log forwarding** to homeCore's live log stream
-is missing in .NET, and **device persistence** (`reconcile_devices`, which
+One thing is not universal: **device persistence** (`reconcile_devices`, which
 unregisters devices that vanished from your upstream while the plugin was down)
 is Rust only. The [feature matrix](#sdk-feature-matrix) below is the full
 picture.
 
 The Rust SDK remains the reference implementation, and new protocol features
 land there first.
+
+:::caution Logging secrets in .NET
+Every SDK redacts field *values* whose names look secret. In Rust and Python a
+field passed alongside the message stays out of the message text, so that is
+enough. **.NET renders every template argument into the message**, so
+`LogInformation("connecting with {ApiKey}", key)` would publish the key in the
+text as well — the .NET SDK therefore also scrubs those values out of the
+rendered message. None of it helps with a secret you interpolate yourself, so
+the rule in every language is still: do not log secrets.
+:::
 
 ---
 
@@ -555,7 +564,7 @@ every convention.
 | Capability actions (immediate) | ✅ | ✅ | ✅ | ✅ |
 | Capability actions (streaming) | ✅ | ✅ | ✅ | ✅ |
 | Cross-device state subscription | ✅ | ✅ | ✅ | ✅ |
-| Log forwarding (MQTT) | ✅ | ✅ | ✅ | — |
+| Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
 | Device persistence + reconcile | ✅ | — | — | — |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
