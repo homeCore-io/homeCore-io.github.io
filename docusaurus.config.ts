@@ -13,8 +13,11 @@ const config: Config = {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
-  // Set the production url of your site here
-  url: 'https://homeCore-io.github.io',
+  // The production url. This is the custom domain configured in the repo's
+  // Pages settings; homeCore-io.github.io 301s here. It has to be the real
+  // one or every canonical link, og: tag and sitemap entry points at the
+  // redirect rather than the page.
+  url: 'https://homecore.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',

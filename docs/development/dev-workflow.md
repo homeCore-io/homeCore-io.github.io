@@ -15,13 +15,13 @@ launcher is `hc-scripts/run-dev.sh` from the workspace root:
 ```bash
 ./hc-scripts/run-dev.sh             # build all + run core (debug)
 ./hc-scripts/run-dev.sh --release   # release build
-./hc-scripts/run-dev.sh --webui     # also `trunk serve` hc-web-leptos on :3000
 ./hc-scripts/run-dev.sh --no-build  # skip cargo, use existing binaries
 ./hc-scripts/run-dev.sh --no-pull   # skip `git pull` in every repo
 ```
 
 The script:
-1. Pulls all 14+ component repos (core + 11 plugins + sdks + clients).
+1. Pulls every component repo listed in `workspace.toml` (core, the
+   plugins, the SDKs, the clients).
 2. Runs `cargo update` against each meta-layout workspace
    (`plugins/`, `clients/`, `sdks/`, plus core).
 3. Builds plugins via the meta-layout (`cargo build --manifest-path
@@ -29,8 +29,7 @@ The script:
    `plugins/target/debug/<name>` (the shared workspace target dir,
    not per-plugin).
 4. Builds homecore.
-5. Optionally builds + serves hc-web-leptos via `trunk serve`.
-6. Runs `homecore --config core/config/homecore.dev.toml`.
+5. Runs `homecore --config core/config/homecore.dev.toml`.
 
 The dev config's `[[plugins]]` blocks point at
 `../plugins/target/debug/<name>` so homecore launches whatever
@@ -177,35 +176,70 @@ cargo watch -x "check -p hc-core"
 cargo watch -x "test -p hc-api"
 ```
 
-## Test coverage
+## Tests
 
-| Crate | Tests | Coverage |
-|---|---|---|
-| `hc-auth` | 11 | Password hashing, JWT issue/validate/expire/tamper/role |
-| `hc-core` | 12 | Rule engine trigger matching, executor RepeatUntil/Delay, CallService |
-| `hc-api` | 22 | Event log ring buffer, WebSocket auth, scope enforcement |
-| `hc-topic-map` | 4 | Pattern matching and transforms |
-| `http-poller` | 19 | Path extraction, field_map, JSON↔Dynamic bridge, Rhai transform |
-| `homecore` (integration) | 1 | Full stack: virtual device → MQTT → rule fires → command |
-| **Total** | **69** | |
-
-## Admin UI development
-
-The Leptos/WASM admin UI (`hc-web-leptos`) has its own dev workflow that coexists with the server.
-
-**Development:** Run `trunk serve` on port 3000 from the `hc-web-leptos` directory. Trunk proxies `/api` requests to HomeCore on port 8080 automatically. Leave `[web_admin] enabled = false` in `homecore.toml` (the default) so the server does not serve static files that conflict with trunk's dev server.
-
-**Production:** Build with `trunk build --release`, copy the `dist/` directory to the deploy location, and enable in `homecore.toml`:
-
-```toml
-[web_admin]
-enabled   = true
-dist_path = "ui/dist"   # relative to HOMECORE_HOME
+```bash
+cd core
+cargo test --all-features            # the whole workspace, unit + integration
+cargo test -p hc-core                # one crate
+cargo test --test integration_test   # one integration binary
 ```
 
-HomeCore serves the built assets via tower-http `ServeDir` with SPA fallback. API routes at `/api/v1` take priority.
+Roughly 450 test functions across core at the time of writing, so a
+specific number here would be wrong within a week — `cargo test` is the
+count that matters. What the layers cover:
 
-**Both can coexist:** Disabling `web_admin` does not affect the trunk dev workflow. You can develop the UI with `trunk serve` while HomeCore runs with `web_admin` disabled, then switch to built-in serving for production.
+| Layer | What its tests are for |
+|---|---|
+| `hc-auth` | Password hashing, JWT issue/validate/expire/tamper, role→scope mapping, refresh rotation and reuse detection |
+| `hc-types` | The rule vocabulary, derived from the enums, so a client's mirror can be checked against the real thing |
+| `hc-core` | Trigger matching, condition evaluation, the action executor (Delay, RepeatUntil, Parallel), the scheduler |
+| `hc-state` | Device registry round-trips, history queries |
+| `hc-api` | Scope enforcement per route, WebSocket auth, session invalidation, atomic rule import, and the OpenAPI-vs-router check |
+| `homecore` (integration) | The full stack: virtual device → MQTT → rule fires → command back |
+
+Plugins and SDKs carry their own suites; `hc-captest` exists specifically
+to assert the capability spec end to end against a running core.
+
+## Web UI development
+
+The web UI is [hc-web](https://github.com/homeCore-io/hc-web) — Flutter,
+its own repo, built and served separately from core. You need the Flutter
+SDK, not cargo.
+
+The app calls `/api/v1` as a **relative** path on purpose (one build
+artifact runs anywhere, with no build-time configuration), and core sends
+no CORS headers at all — so a browser cannot call core cross-origin.
+Something has to make the API same-origin with the app. In production
+that is the nginx inside hc-web's container; in development it is a
+60-line proxy in the repo:
+
+```bash
+# Terminal 1 — proxy: serves the app and forwards /api/v1 to a real core
+HOMECORE_URL=http://127.0.0.1:8080 node tool/dev.mjs   # -> http://localhost:3001
+
+# Terminal 2 — Flutter's dev server, which does the incremental compile
+flutter run -d web-server --web-port 5001 --web-hostname 127.0.0.1
+```
+
+Press `R` in terminal 2 to hot-restart: seconds, rather than a
+four-minute image rebuild. WebSockets are proxied too — without them the
+app loads and then shows stale state forever, because
+`/api/v1/events/stream` is how it learns the house changed.
+
+`scripts/build.sh` produces the production bundle
+(`flutter build web --release` into `build/web`), which the repo's
+Dockerfile wraps in the nginx image.
+
+### The retired Leptos client
+
+`[web_admin]` in `homecore.toml` still exists and still serves a
+directory of static files from core's root path. It was built for the
+Leptos/WASM admin that core used to bake in; that client is retired, the
+setting defaults to off, and the standard deployment leaves it off.
+
+`run-dev.sh --webui` still builds and `trunk serve`s that retired client.
+It is not the flag you want for UI work — use the two terminals above.
 
 ## Isolated dev environment
 

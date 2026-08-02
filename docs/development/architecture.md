@@ -151,7 +151,7 @@ retain-then-clear-on-terminal lifecycle; see the
 
 ### SSE bridge (`handlers::get_plugin_stream_sse`)
 
-The Leptos admin client opens an `EventSource` against
+The web UI opens an `EventSource` against
 `GET /api/v1/plugins/:id/command/:rid/stream`. The handler is
 deliberately on the **public** router (browsers can't set
 `Authorization` on `EventSource`) and accepts `?token=<jwt>` or

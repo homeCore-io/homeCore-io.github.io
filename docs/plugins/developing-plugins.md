@@ -13,102 +13,174 @@ SDKs live in the `sdks/` directory of the workspace, each as an independent git 
 
 ## Rust SDK (`hc-plugin-sdk-rs`)
 
+The fastest start is
+[hc-plugin-template](https://github.com/homeCore-io/hc-plugin-template) — a
+working virtual-light plugin, small enough to read in one sitting, with the
+management protocol, a capability action, and a notice already wired up.
+
+```sh
+gh repo create my-plugin --template homeCore-io/hc-plugin-template
+```
+
 ### Add to Cargo.toml
+
+The crate is named `plugin-sdk-rs`. Pin it by tag: it re-exports core's
+`hc-types`, which is the plugin ABI, so an unpinned dependency means your
+build changes when core does.
 
 ```toml
 [dependencies]
-hc-plugin-sdk = { path = "../homeCore/sdks/hc-plugin-sdk-rs" }
-tokio = { version = "1", features = ["full"] }
-serde_json = "1"
+plugin-sdk-rs = { git = "https://github.com/homeCore-io/hc-plugin-sdk-rs", tag = "v0.3.10" }
+tokio         = { version = "1", features = ["full"] }
+serde_json    = "1"
+anyhow        = "1"
 ```
 
 ### Minimal plugin
 
 ```rust
-use hc_plugin_sdk::{PluginClient, PluginConfig, DevicePublisher};
+use plugin_sdk_rs::{PluginClient, PluginConfig};
 use serde_json::json;
 
 #[tokio::main]
-async fn main() {
-    let config = PluginConfig {
-        plugin_id:   "plugin.my-device".into(),
+async fn main() -> anyhow::Result<()> {
+    let client = PluginClient::connect(PluginConfig {
         broker_host: "127.0.0.1".into(),
         broker_port: 1883,
-        password:    "".into(),
-    };
+        plugin_id: "plugin.my-device".into(),
+        password: String::new(),
+    })
+    .await?;
 
-    let mut client = PluginClient::new(config).await.unwrap();
+    let publisher = client.device_publisher();
 
-    // Register a device
-    client.register_device(json!({
-        "device_id":   "my_device_001",
-        "plugin_id":   "plugin.my-device",
-        "name":        "My Device",
-        "area":        "living_room",
-        "device_type": "sensor",
-        "capabilities": {
-            "temperature": {"type": "number"},
-            "humidity":    {"type": "number"}
-        }
-    })).await.unwrap();
+    // Register the device.
+    publisher
+        .register_device_full(
+            "my_device_001",
+            "My Device",
+            Some("sensor"),
+            Some("living_room"),
+            Some(json!({
+                "temperature": { "type": "number" },
+                "humidity":    { "type": "number" }
+            })),
+        )
+        .await?;
 
-    // Publish initial state
-    client.publish_state("my_device_001", json!({
-        "temperature": 72.5,
-        "humidity": 45.0
-    })).await.unwrap();
+    // Subscribing to commands is a SEPARATE call. Skip it and the device
+    // appears in homeCore, updates its state, and silently ignores every
+    // command — nothing is listening on its cmd topic.
+    publisher.subscribe_commands("my_device_001").await?;
 
-    // Set device online
-    client.set_availability("my_device_001", true).await.unwrap();
+    publisher
+        .publish_state("my_device_001", &json!({ "temperature": 72.5, "humidity": 45.0 }))
+        .await?;
+    publisher.publish_availability("my_device_001", true).await?;
 
-    // Subscribe to commands
-    client.subscribe_commands("my_device_001", |cmd| {
-        println!("Received command: {cmd}");
-        // Apply the command to physical device...
-    }).await.unwrap();
-
-    // Keep running
-    client.run().await;
+    // Owns the process from here. Commands arrive on this callback, which is
+    // synchronous — hand slow work to a task over a channel.
+    client
+        .run(|device_id, payload| {
+            println!("Command for {device_id}: {payload}");
+        })
+        .await
 }
 ```
+
+A real plugin calls `run_managed` rather than `run`, passing the handle from
+`enable_management`, so core can heartbeat it, restart it, push configuration,
+and render its actions as buttons.
 
 ### Publishing state updates
 
 ```rust
-// Full state update (replaces previous state)
-client.publish_state("my_device_001", json!({
-    "temperature": 73.0,
-    "humidity": 44.5,
-    "battery": 87
-})).await?;
+// Full state (retained — replaces the previous state).
+publisher
+    .publish_state("my_device_001", &json!({
+        "temperature": 73.0,
+        "humidity": 44.5,
+        "battery": 87
+    }))
+    .await?;
 
-// Partial update (JSON merge-patch — only changed fields)
-client.publish_partial_state("my_device_001", json!({
-    "temperature": 73.0   // humidity and battery unchanged
-})).await?;
+// Partial (JSON merge-patch — only the fields given).
+publisher
+    .publish_state_partial("my_device_001", &json!({ "temperature": 73.0 }))
+    .await?;
+
+// After a command, attach provenance so the UI and the audit log can say
+// what caused the change instead of showing an anonymous update.
+publisher
+    .publish_state_for_command("my_device_001", &new_state, &command_payload, "my-plugin")
+    .await?;
 ```
 
 ### Handling commands
 
-```rust
-client.subscribe_commands("my_device_001", |cmd: serde_json::Value| {
-    if let Some(on) = cmd.get("on").and_then(|v| v.as_bool()) {
-        // Apply on/off to physical device
-        set_relay(on);
+homeCore never writes device state. A command arrives on
+`homecore/devices/{id}/cmd`, the plugin does whatever the device needs, and the
+plugin publishes what *actually happened*. That is why the UI can correctly
+show a light as off after a command the bulb refused.
 
-        // Publish the new state back
-        client.publish_state("my_device_001", json!({"on": on})).await?;
+```rust
+let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, serde_json::Value)>(64);
+
+tokio::spawn(async move {
+    while let Some((device_id, payload)) = rx.recv().await {
+        if let Some(on) = payload.get("on").and_then(|v| v.as_bool()) {
+            set_relay(on).await;                       // talk to the device
+            publisher                                   // then publish the truth
+                .publish_state_for_command(&device_id, &json!({ "on": on }), &payload, "my-plugin")
+                .await
+                .ok();
+        }
     }
-    Ok(())
-}).await?;
+});
+
+client
+    .run_managed(
+        move |device_id, payload| {
+            // try_send, not send: dropping a command under load beats blocking
+            // the MQTT event loop behind it.
+            let _ = tx.try_send((device_id, payload));
+        },
+        mgmt,
+    )
+    .await
 ```
 
-The Rust SDK includes `DevicePublisher` for spawned tasks and full management protocol support (heartbeat, remote config, dynamic log level).
+### Notices
+
+A notice is how a plugin's problem reaches the operator's screen rather than
+only the log. They render on the plugin's card in the web UI.
+
+```rust
+use plugin_sdk_rs::types::PluginNotice;
+
+let notices = client.notices();
+
+notices.raise(
+    PluginNotice::error("bridge_unreachable", "The bridge stopped answering")
+        .with_remedy("Check that the bridge is powered on and reachable"),
+);
+
+notices.clear("bridge_unreachable");   // when it answers again
+```
+
+**A notice is state, not a log line.** It stays up while the condition holds,
+so re-evaluate after each discovery sweep, reconnect, and config change rather
+than deciding once at startup — a plugin that raises `no_devices_configured` at
+boot and never looks again is still showing it after the user's devices arrive.
+
+Notices and capability actions are Rust-only today. The Python, Node.js, and
+.NET SDKs cover registration, state, availability, the management protocol, and
+log forwarding.
 
 :::note Plugin isolation via per-device subscriptions
 The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
 
-**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment) and `mqttAuthzPlan.md` in the repo root.
+**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
 :::
 
 ### Cross-restart device cleanup
@@ -176,9 +248,8 @@ DELETE /api/v1/plugins/<plugin_id>/devices
 …to delete every device whose `plugin_id` matches. The plugin stays
 registered; on its next sync cycle it re-registers anything still
 live. Useful for clearing zombies left over from development churn or
-config rearrangements without dropping the whole state DB. The
-homeCore Leptos admin UI exposes this as a **Wipe all devices**
-button on each plugin's detail page.
+config rearrangements without dropping the whole state DB. It is an
+API-only operation — the web UI does not surface a button for it.
 
 ### Cross-device consumer plugins
 
@@ -225,143 +296,133 @@ See [`hc-thermostat`](./thermostat) for a reference implementation.
 
 ## Python SDK (`hc-plugin-sdk-py`)
 
+Subclass `PluginBase`, implement `on_command`, call `run()`. The API is
+synchronous — the SDK drives paho-mqtt's loop for you, so background work goes
+in a thread.
+
 ```python
-from hc_plugin_sdk import PluginClient, PluginConfig
-import asyncio
-import json
+from homecore_plugin_sdk import PluginBase
 
-async def main():
-    config = PluginConfig(
-        plugin_id="plugin.my-sensor",
-        broker_host="127.0.0.1",
-        broker_port=1883,
-        password=""
-    )
+DEVICE_ID = "light.virtual_py_01"
+CAPABILITIES = {
+    "on":         {"type": "boolean"},
+    "brightness": {"type": "integer", "minimum": 0, "maximum": 255},
+}
 
-    client = await PluginClient.connect(config)
 
-    # Register device
-    await client.register_device({
-        "device_id": "my_sensor_001",
-        "plugin_id": "plugin.my-sensor",
-        "name": "Temperature Sensor",
-        "device_type": "sensor",
-        "capabilities": {
-            "temperature": {"type": "number"}
-        }
-    })
+class MyPlugin(PluginBase):
+    PLUGIN_ID = "plugin.my-sensor"
 
-    # Publish state
-    await client.publish_state("my_sensor_001", {"temperature": 72.5})
-    await client.set_availability("my_sensor_001", True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._state = {"on": False, "brightness": 128}
 
-    # Handle commands
-    async def on_command(device_id: str, cmd: dict):
-        print(f"Command for {device_id}: {cmd}")
+    def on_connect(self) -> None:
+        # Called once the broker connection is up — register here, not in
+        # __init__, so a reconnect re-registers too.
+        self.register_device(DEVICE_ID, "Virtual Light", CAPABILITIES, area="living_room")
+        self.publish_availability(DEVICE_ID, True)
+        self.publish_state(DEVICE_ID, dict(self._state))
+        self.publish_plugin_status("active")
 
-    await client.subscribe_commands("my_sensor_001", on_command)
-    await client.run_forever()
+    def on_command(self, device_id: str, payload: dict) -> None:
+        self._state.update({k: v for k, v in payload.items() if k in CAPABILITIES})
+        # Publish what you actually applied, with provenance attached.
+        self.publish_state_for_command(
+            device_id, dict(self._state), payload, fallback_source="my-plugin"
+        )
 
-asyncio.run(main())
+
+MyPlugin(broker_host="127.0.0.1", broker_port=1883).run()
 ```
 
-The Python SDK provides a `PluginBase` class with env var config support and uses paho-mqtt under the hood.
+Configuration comes from constructor arguments, then the environment
+(`HC_BROKER_HOST`, `HC_BROKER_PORT`, `HC_PLUGIN_PASSWORD`), then defaults.
+Requires Python 3.11+. See `examples/virtual_light.py` in the SDK repo for a
+complete plugin.
 
 ---
 
 ## Node.js SDK (`hc-plugin-sdk-js`)
 
+Extend `PluginBase`, implement `onCommand`, call `run()`. Same shape as the
+Python SDK, on mqtt.js v5.
+
 ```javascript
-const { PluginClient } = require('hc-plugin-sdk');
+const { PluginBase } = require('homecore-plugin-sdk');
 
-async function main() {
-  const client = new PluginClient({
-    pluginId: 'plugin.my-device',
-    brokerHost: '127.0.0.1',
-    brokerPort: 1883,
-    password: ''
-  });
+const DEVICE_ID = 'light.virtual_js_01';
+const CAPABILITIES = {
+  on:         { type: 'boolean' },
+  brightness: { type: 'integer', minimum: 0, maximum: 255 },
+};
 
-  await client.connect();
+class MyPlugin extends PluginBase {
+  constructor(options = {}) {
+    super({ pluginId: 'plugin.my-device', ...options });
+    this._state = { on: false, brightness: 128 };
+  }
 
-  await client.registerDevice({
-    device_id: 'my_device_001',
-    plugin_id: 'plugin.my-device',
-    name: 'My Device',
-    device_type: 'light',
-    capabilities: {
-      on: { type: 'boolean' },
-      brightness: { type: 'integer', minimum: 0, maximum: 255 }
-    }
-  });
+  onConnect() {
+    this.registerDevice(DEVICE_ID, 'Virtual Light', CAPABILITIES, 'living_room');
+    this.publishAvailability(DEVICE_ID, true);
+    this.publishState(DEVICE_ID, { ...this._state });
+    this.publishPluginStatus('active');
+  }
 
-  await client.publishState('my_device_001', { on: false, brightness: 0 });
-  await client.setAvailability('my_device_001', true);
-
-  client.onCommand('my_device_001', async (cmd) => {
-    console.log('Command:', cmd);
-    // apply to device...
-    await client.publishState('my_device_001', { on: cmd.on });
-  });
+  onCommand(deviceId, payload) {
+    Object.assign(this._state, payload);
+    this.publishStateForCommand(deviceId, { ...this._state }, payload, 'my-plugin');
+  }
 }
 
-main().catch(console.error);
+new MyPlugin({ brokerHost: '127.0.0.1', brokerPort: 1883 }).run();
 ```
 
-The Node.js SDK provides a `PluginBase` class using mqtt.js v5.
+Requires Node.js 18+. See `examples/virtual_light.js` in the SDK repo.
 
 ---
 
-## .NET Core SDK (`hc-plugin-sdk-dotnet`)
+## .NET SDK (`hc-plugin-sdk-dotnet`)
 
 ```csharp
-using HcPluginSdk;
+using HomeCore.PluginSdk;
 
-var config = new PluginConfig
-{
-    PluginId = "plugin.my-device",
-    BrokerHost = "127.0.0.1",
-    BrokerPort = 1883,
-    Password = ""
+var client = new PluginClient(new PluginOptions { PluginId = "plugin.my-device" });
+
+client.OnCommand += (deviceId, payload) => {
+    Console.WriteLine($"Command for {deviceId}: {payload}");
 };
 
-await using var client = new PluginClient(config);
 await client.ConnectAsync();
+await client.RegisterDeviceFullAsync("my_device_001", "My Device", deviceType: "sensor");
 
-// Register a device
-await client.RegisterDeviceAsync(new DeviceRegistration
-{
-    DeviceId = "my_device_001",
-    PluginId = "plugin.my-device",
-    Name = "My Device",
-    DeviceType = "sensor",
-    Capabilities = new Dictionary<string, object>
-    {
-        ["temperature"] = new { type = "number" },
-        ["humidity"] = new { type = "number" }
-    }
-});
+// Separate from registration — without it the device appears in homeCore and
+// silently ignores every command.
+await client.SubscribeCommandsAsync("my_device_001");
 
-// Publish state
-await client.PublishStateAsync("my_device_001", new
-{
-    temperature = 72.5,
-    humidity = 45.0
-});
-
-await client.SetAvailabilityAsync("my_device_001", true);
-
-// Handle commands
-client.OnCommand("my_device_001", async (cmd) =>
-{
-    Console.WriteLine($"Received command: {cmd}");
-});
-
-// Keep running
+await client.PublishStateAsync("my_device_001", new { temperature = 72.5 });
+await client.PublishAvailabilityAsync("my_device_001", true);
 await client.RunAsync();
 ```
 
-The .NET SDK uses MQTTnet 4.x, provides an async Task-based API, and supports the management protocol (heartbeat, remote config, dynamic log level).
+Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT`, and
+`HC_PLUGIN_PASSWORD` when the options are not set.
+
+---
+
+## Choosing a language
+
+The Rust SDK is the reference implementation, and two features are only there:
+
+- **Notices** — the self-clearing problem reports the web UI renders on a
+  plugin's card. Elsewhere you can log a problem, but not surface it there.
+- **Capability actions** — the plugin's action manifest, which the UI turns
+  into buttons and hc-mcp can call. Device *capability schemas* work in every
+  SDK; it is the plugin-level action manifest that is Rust-only.
+
+Registration, state publishing, availability, the management protocol, and log
+forwarding are the same across all four.
 
 ---
 
@@ -382,7 +443,7 @@ All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol autom
 Plugins declare plugin-specific actions in a typed manifest; the admin
 UI renders Actions buttons from it and hc-mcp exposes the entries as
 tools. Adding a new action **doesn't require any changes** to core,
-the SDKs, the Leptos client, or hc-mcp — the framework is fully
+the SDKs, the web UI, or hc-mcp — the framework is fully
 data-driven.
 
 See the dedicated [Plugin Capabilities & Actions](./capabilities) page

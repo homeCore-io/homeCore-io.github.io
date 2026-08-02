@@ -98,7 +98,7 @@ curl -s "http://localhost:8080/api/v1/audit?event_type=auth.login&result=failure
 
 ### Web UI
 
-The bundled [Leptos admin](../web-ui/overview.md) has an Audit page
+The [web UI](../web-ui/overview.md) has an Audit page
 with filter controls for each query field, infinite scroll for
 pagination, and a JSON detail expand on each row. Direct deep links
 preserve filter state via URL query params, so a security finding

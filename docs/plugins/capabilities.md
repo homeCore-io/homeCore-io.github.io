@@ -13,7 +13,7 @@ manifest at startup; the admin UI reads it to render Actions buttons and
 hc-mcp exposes the entries as tools so Claude can invoke them.
 
 The framework is **data-driven**: adding a new action to a plugin
-requires zero changes to HomeCore, the SDKs, the Leptos client, or
+requires zero changes to HomeCore, the SDKs, the web UI, or
 hc-mcp.
 
 ---
@@ -71,7 +71,7 @@ Only these JSON-Schema keywords are recognised in v1:
 `type` (`"string" | "integer" | "number" | "boolean" | "array" | "object"`),
 `default`, `enum`, `required`, `minimum`, `maximum`, `description`.
 
-The Leptos UI auto-renders inputs for these types. Arrays and objects
+The web UI auto-renders inputs for these types. Arrays and objects
 fall back to a raw-JSON textarea.
 
 ---
@@ -192,7 +192,7 @@ curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.zwave/command \
 
 ---
 
-## In the Leptos admin UI
+## In the web UI
 
 The plugin detail page renders a generic **Actions** card driven entirely
 by the manifest:
@@ -200,7 +200,7 @@ by the manifest:
 - Non-streaming + no params → single **Run** button.
 - Non-streaming + params → **Configure…** opens an inline form derived
   from the params schema.
-- Streaming → **Run** opens an `<ActionDrawer/>` modal that POSTs the
+- Streaming → **Run** opens an action drawer that POSTs the
   command, opens the SSE stream, and renders stages live: progress bar,
   awaiting-user banner with respond form, item list (one row per
   `item_key`, click to expand the full payload), warnings, terminal
@@ -303,6 +303,6 @@ These don't change without bumping `spec` to `"2"`:
 5. `requires_role` is enforced by core **before** forwarding the
    command. Plugin code never has to check permissions.
 6. Adding a new plugin action requires **zero** changes to core,
-   SDKs, the Leptos UI, or hc-mcp.
+   SDKs, the web UI, or hc-mcp.
 
 The full spec lives in `pluginCapabilitiesPlan.md` at the repo root.

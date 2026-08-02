@@ -155,7 +155,8 @@ external_url = "mqtt://mosquitto:1883"
 
 HomeCore will skip the embedded broker and connect to Mosquitto as any other client. Plugins connect using their existing `plugin_id` + `password` credentials — only the enforcement location changes.
 
-See `mqttAuthzPlan.md` at the repo root for the full design plus rollout plan.
+This page is the full design; `hc-cli broker generate-mosquitto-config`
+produces the deployment from your own config.
 
 ## TLS
 

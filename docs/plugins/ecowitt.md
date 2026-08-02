@@ -95,8 +95,7 @@ each registered as a separate device.
 ## Plugin actions
 
 `hc-ecowitt` ships a capabilities manifest exposing several
-gateway-management actions visible in the Leptos web admin and via
-`hc-mcp`:
+gateway-management actions visible in the web UI and via `hc-mcp`:
 
 - `discover_gateways` — UDP broadcast + HTTP probe of `manual_hosts`
 - `refresh_sensors` — force-poll the gateway and re-register devices

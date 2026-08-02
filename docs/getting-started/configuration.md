@@ -24,12 +24,6 @@ HomeCore is configured with a single TOML file. By default it looks for `config/
 host = "0.0.0.0"
 port = 8080
 
-# IP addresses or CIDR ranges that bypass JWT authentication entirely.
-# Requests from these IPs are granted Admin-level access without a token.
-# Useful for trusted LAN clients (dashboards, scripts on localhost).
-# When a Bearer token IS present, JWT validation always runs regardless of whitelist.
-whitelist = ["127.0.0.1", "192.168.1.0/24"]
-
 # ── MQTT Broker ───────────────────────────────────────────────────────────────
 [broker]
 host = "0.0.0.0"
@@ -66,10 +60,26 @@ allow_sub = ["homecore/devices/hue_+/cmd"]
 
 # ── Authentication ────────────────────────────────────────────────────────────
 [auth]
-# JWT signing secret. Change this! Use a long random string.
-# If not set, a random secret is generated each startup (tokens expire on restart).
-jwt_secret           = "change-this-to-a-long-random-string"
-token_expiry_hours   = 24
+# Nothing here is required. The HS256 signing secret is generated once and
+# persisted to <state-db-parent>/jwt_secret (0600), so tokens survive
+# restarts with no configuration at all. Setting `jwt_secret` inline still
+# works, takes precedence, and warns at startup — it is deprecated.
+token_expiry_hours        = 24     # access token lifetime
+refresh_token_expiry_days = 30     # refresh token lifetime
+audit_retention_days      = 365
+
+# IPs that get FULL ADMIN with no token at all. Deprecated. List individual
+# addresses — a CIDR range hands unauthenticated admin to every device on
+# that subnet, including whatever joins it next.
+# whitelist = ["127.0.0.1/32"]
+
+# The replacement: an admin-only Unix socket for same-host tooling (hc-cli),
+# authorised by filesystem permissions rather than network identity.
+# [auth.admin_uds]
+# enabled = true
+# path    = "/run/homecore/admin.sock"
+# group   = "homecore-admin"
+# mode    = "0660"
 
 # ── Location (required for solar triggers) ───────────────────────────────────
 [location]
@@ -101,13 +111,13 @@ catchup_window_minutes = 15
 plugin_ready_delay_secs = 10
 
 # ── Modes ─────────────────────────────────────────────────────────────────────
-[modes]
-# Path to modes.toml file. Hot-reloaded on change.
-path = "config/modes.toml"
+# Not a section here. Modes are defined in `config/modes.toml` next to this
+# file — a fixed path, hot-reloaded on change. See the modes.toml reference
+# further down.
 
-# ── Calendar ──────────────────────────────────────────────────────────────────
-# [calendar]
-# dir = "calendars"          # directory of .ics files; hot-reloaded
+# ── Calendars ─────────────────────────────────────────────────────────────────
+# [calendars]
+# dir = "config/calendars"   # directory of .ics files; hot-reloaded
 # expansion_days = 400       # how far ahead to expand recurring events
 
 # ── Notifications ─────────────────────────────────────────────────────────────
@@ -162,12 +172,19 @@ compress   = true
 format     = "json"
 prune_after_days = 30    # delete rotated files older than N days; 0 = never prune
 
-# Per-plugin tracing logs forwarded to the broker on
-# `homecore/plugins/<id>/logs` are merged into core's /logs/stream by
-# the StateBridge. Default forwarding level is "info" — bump to "debug"
-# for a single misbehaving plugin via the management API or here.
-[logging.plugin_forward]
-default_level = "info"   # trace | debug | info | warn | error
+# A second log file dedicated to rule-engine output, so the rule trace
+# does not have to be grepped out of everything else.
+[logging.rules_file]
+enabled          = false
+dir              = "logs"
+prefix           = "rules"
+rotation         = "daily"
+prune_after_days = 30
+
+# Per-plugin tracing logs are forwarded to the broker on
+# `homecore/plugins/<id>/logs` and merged into core's /logs/stream. The
+# level is set per plugin at runtime — Plugins → the plugin → log level,
+# or PATCH /api/v1/plugins/{id} — not in this file.
 
 # [logging.syslog]
 # enabled   = false
@@ -179,14 +196,16 @@ default_level = "info"   # trace | debug | info | warn | error
 # app_name  = "homecore"
 
 # ── Web Admin UI ──────────────────────────────────────────────────────────────
+# Optional static-file mount: serves a pre-built UI bundle from core's root
+# path. Off by default and left off in the standard deployment, where hc-web's
+# own nginx serves the app. Originally built for the retired Leptos client.
 [web_admin]
-enabled = false              # serve pre-built Leptos/WASM admin UI
-# dist_path = "ui/dist"     # path to trunk build output, relative to home dir
+enabled = false
+# dist_path = "ui/dist"     # bundle directory, relative to the home dir
 
-# ── Engine ────────────────────────────────────────────────────────────────────
-[engine]
-drain_timeout_secs = 10   # time to wait for in-flight rule tasks on shutdown
-fire_history_limit = 500  # max evaluation records per rule
+# ── Shutdown ──────────────────────────────────────────────────────────────────
+[shutdown]
+drain_timeout_secs = 10   # wait this long for in-flight rule actions, then stop
 
 # ── Plugins (managed) ────────────────────────────────────────────────────────
 # Each [[plugins]] entry defines a managed plugin that HomeCore supervises.
@@ -203,8 +222,43 @@ fire_history_limit = 500  # max evaluation records per rule
 # enabled = true
 
 # ── Ecosystem profiles ────────────────────────────────────────────────────────
-# [ecosystem]
-# profiles_dir = "config/profiles"   # directory of .toml profile files
+# Topic maps for devices that speak their own dialect (Tasmota, Shelly,
+# Zigbee2MQTT). Reference profiles ship in config/profiles/examples/.
+[profiles]
+dir = "config/profiles"
+
+# ── Prometheus metrics ────────────────────────────────────────────────────────
+# GET /api/v1/metrics is gated by source IP, and the list is empty by default,
+# which means every caller gets 403. Unlike [auth].whitelist this grants
+# nothing but the metrics text.
+[metrics]
+whitelist = ["127.0.0.1/32"]
+
+# ── Plugin registry ───────────────────────────────────────────────────────────
+# Both fields must be set for browse + install to work; otherwise those
+# endpoints return 503.
+[registry]
+url        = "https://homecore.io/registry/index.json"
+public_key = "d64zXOo99GE+uYAPbtbIwLUJHtBaACJB73cUppj93I8="
+
+# ── InfluxDB v2 export (optional) ─────────────────────────────────────────────
+# Streams numeric and boolean device attributes to InfluxDB as line protocol,
+# one measurement per attribute. include_devices is OPT-IN by design: an empty
+# list exports nothing. ["*"] exports everything, which with chatty sensors is
+# a lot — the channel is bounded and drops oldest rather than back-pressuring
+# the event bus.
+# [influx]
+# enabled             = true
+# url                 = "http://10.0.10.200:8086"
+# token               = "REPLACE_WITH_INFLUX_API_TOKEN"
+# org                 = "homecore"
+# bucket              = "devices"
+# flush_interval_secs = 10
+# batch_size          = 1000
+# channel_capacity    = 10000
+# include_devices     = ["sensor.*", "thermostat.*"]
+# exclude_attributes  = ["last_seen", "uptime"]
+# export_bools        = true
 ```
 
 ## Section reference
@@ -273,10 +327,15 @@ fire_history_limit = 500  # max evaluation records per rule
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Listen on the admin UDS. |
-| `path` | string | `/run/homecore/admin.sock` | Socket path. |
-| `mode` | integer (octal) | `0o660` | Filesystem permissions on the socket. |
-| `allowed_uids` | array of integers | `[]` | UIDs allowed to connect. Empty = only the homecore service UID, resolved at startup. |
+| `enabled` | bool | `false` | Listen on the admin UDS. |
+| `path` | string | `"/run/homecore/admin.sock"` | Socket path. |
+| `group` | string | `"homecore-admin"` | POSIX group that owns the socket. Its members can connect. |
+| `mode` | string (octal) | `"0660"` | Filesystem permissions on the socket. |
+| `allowed_uids` | array of integers | `[]` | Extra UIDs allowed to connect. The process UID is always allowed. |
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `initial_admin_password_file` | string | `<parent-of-state_db_path>/INITIAL_ADMIN_PASSWORD` | Where the first-boot admin password is written, `0600`. Set to `""` to skip the file and only log it. Never rewritten after first boot. |
 
 ### `[location]`
 
@@ -412,12 +471,18 @@ Built-in providers: `email` (SMTP), `pushover`, `telegram`. Channels that fail t
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `false` | Serve the pre-built Leptos/WASM admin UI as static files via tower-http `ServeDir` |
-| `dist_path` | string | `"ui/dist"` | Path to the `trunk build` output directory, relative to `HOMECORE_HOME` |
+| `enabled` | boolean | `false` | Serve a directory of static files from core's root path, via tower-http `ServeDir`. |
+| `dist_path` | string | — | The bundle directory, relative to `HOMECORE_HOME`. |
 
-When enabled, HomeCore serves the Leptos admin UI at the root path. API routes at `/api/v1` take priority over static file serving. A SPA fallback returns `index.html` for any unmatched path, enabling client-side routing. Disabled by default so that during development you can use `trunk serve` separately.
+When enabled, core serves that bundle at `/`, with API routes under `/api/v1`
+taking priority and a SPA fallback returning `index.html` for anything
+unmatched.
 
-See [Web UI overview](../web-ui/overview.md) for what the admin client provides.
+It is off by default and the standard deployment leaves it off: the web UI is
+[hc-web](../web-ui/overview.md), which ships its own nginx image and proxies
+`/api/v1` to core. This section was built for the Leptos client core used to
+bake in, and survives as a generic static mount for anyone self-hosting a
+bundle.
 
 ### `[calendars]`
 
@@ -432,7 +497,18 @@ The path to glue device definitions is fixed at `<base>/config/glue.toml` and is
 
 ### `[[plugins]]`
 
-Each entry defines a managed plugin that HomeCore supervises. Managed plugins support heartbeat monitoring, start/stop/restart, and remote configuration.
+Each entry declares a plugin for homeCore to supervise: spawn it, watch its
+heartbeat, start/stop/restart it, and push its configuration.
+
+**You rarely write one.** A registry install records itself in
+`config/plugins/managed.toml`, which homeCore owns and rewrites; your
+`homecore.toml` is never touched. The effective plugin set at boot is
+*static entries ∪ managed records − uninstalled ids*, with managed records
+winning on an id collision — so uninstalling a statically-declared plugin
+sticks (a tombstone) without homeCore editing your file to do it.
+
+Write a `[[plugins]]` block for a plugin you built or unpacked yourself and
+want supervised from a path you control.
 
 | Key | Type | Description |
 |---|---|---|
@@ -440,6 +516,48 @@ Each entry defines a managed plugin that HomeCore supervises. Managed plugins su
 | `binary` | string | Path to the plugin binary (relative to `HOMECORE_HOME`) |
 | `config` | string | Path to the plugin config file (relative to `HOMECORE_HOME`) |
 | `enabled` | boolean | Whether the plugin should be started automatically |
+
+### `[metrics]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `whitelist` | array of strings | `[]` | Source IPs or CIDR ranges allowed to scrape `GET /api/v1/metrics`. Empty — the default — means every caller gets `403`. IPv4 and IPv6. |
+
+Opening this stays an explicit act: metrics expose device, rule, and plugin
+counts, and defaulting them open to whatever subnet the host happens to sit on
+would widen the attack surface silently. The `403` body names the exact line to
+add. See [Metrics](../administration/metrics.md).
+
+### `[registry]`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | URL (or local path / `file://`) of the signed `index.json`. |
+| `public_key` | string | — | Base64 ed25519 public key that signs the index. |
+
+**Both** must be set, or `/registry/plugins` and `/plugins/install` return
+`503`. Core verifies the index signature and each artifact's SHA-256 before
+unpacking anything. See [Plugins](../plugins/overview.md).
+
+### `[influx]`
+
+Optional InfluxDB v2 export of device state. Off unless `enabled = true`.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Turn the exporter on. |
+| `url` | string | — | InfluxDB base URL; writes go to `<url>/api/v2/write`. |
+| `token` | string | — | API token with write access to the bucket. |
+| `org` / `bucket` | string | — | Influx organisation and bucket. |
+| `include_devices` | array of strings | `[]` | Device-id patterns to export. **Opt-in** — empty exports nothing. `["*"]` exports everything. |
+| `exclude_attributes` | array of strings | `[]` | Attributes to drop (e.g. `last_seen`). |
+| `export_bools` | bool | `true` | Write boolean attributes as `0`/`1`. |
+| `flush_interval_secs` | integer | `10` | Flush even when the batch is not full. |
+| `batch_size` | integer | `1000` | Maximum points per write. |
+| `channel_capacity` | integer | `10000` | Bounded backlog. Full means oldest events are dropped rather than back-pressuring the event bus. |
+
+One measurement per attribute, tagged with `device_id`, `area`, `plugin_id`,
+and `device_type`.
 
 ---
 

@@ -39,7 +39,6 @@ Each component repo publishes its own GitHub Releases page:
 
 - Core: [`homeCore-io/homeCore/releases`](https://github.com/homeCore-io/homeCore/releases)
 - Plugins: each `homeCore-io/hc-<name>/releases` (hue, yolink, lutron, …)
-- Appliance: published alongside core releases
 
 Workflow-dispatch and `develop`-branch builds also produce these
 tarballs — they're attached as GitHub Actions artifacts (90-day
@@ -56,8 +55,8 @@ gh run download -R homeCore-io/homeCore <run-id> -n linux-x86_64
 ## Verifying the download
 
 ```bash
-sha256sum -c homecore-core-v0.1.0-linux-x86_64.tar.gz.sha256
-# homecore-core-v0.1.0-linux-x86_64.tar.gz: OK
+sha256sum -c homecore-core-v0.1.18-linux-x86_64.tar.gz.sha256
+# homecore-core-v0.1.18-linux-x86_64.tar.gz: OK
 ```
 
 If the check fails, do not extract.
@@ -78,8 +77,6 @@ homecore/
 ├── config/
 │   ├── homecore.toml.example        # copy to homecore.toml and edit
 │   └── profiles/                    # ecosystem profiles (Tasmota, Shelly, …)
-├── ui/
-│   └── dist/                        # Leptos Web UI WASM bundle
 ├── scripts/
 │   └── service-templates/
 │       └── homecore.service         # systemd unit template
@@ -113,12 +110,12 @@ mkdir -p ~/homecore-install
 cd ~/homecore-install
 
 # Pull the core archive for x86_64.
-curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.5/homecore-core-v0.1.5-linux-x86_64.tar.gz
-curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.5/homecore-core-v0.1.5-linux-x86_64.tar.gz.sha256
-sha256sum -c homecore-core-v0.1.5-linux-x86_64.tar.gz.sha256
+curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.18/homecore-core-v0.1.18-linux-x86_64.tar.gz
+curl -fsSLO https://github.com/homeCore-io/homeCore/releases/download/v0.1.18/homecore-core-v0.1.18-linux-x86_64.tar.gz.sha256
+sha256sum -c homecore-core-v0.1.18-linux-x86_64.tar.gz.sha256
 
 # Extract. Produces ./homecore/
-tar -xzf homecore-core-v0.1.5-linux-x86_64.tar.gz
+tar -xzf homecore-core-v0.1.18-linux-x86_64.tar.gz
 
 # Copy the example config and start core.
 cd homecore
@@ -140,16 +137,30 @@ Order doesn't matter; each fragment lands under `homecore/plugins/<name>/`:
 
 ```bash
 # Core only
-tar -xzf homecore-core-v0.1.5-linux-x86_64.tar.gz
+tar -xzf homecore-core-v0.1.18-linux-x86_64.tar.gz
 
 # Add a couple of plugins later
-tar -xzf hc-hue-v0.1.6-linux-x86_64.tar.gz
-tar -xzf hc-yolink-v0.1.7-linux-x86_64.tar.gz
+tar -xzf hc-hue-v0.1.7-linux-x86_64.tar.gz
+tar -xzf hc-yolink-v0.1.8-linux-x86_64.tar.gz
 ```
 
-Then enable each plugin in `homecore/config/homecore.toml` under its
-own `[[plugins]]` block — see
-[Configuration](./configuration) for the schema.
+Then declare each one in `homecore/config/homecore.toml` under its own
+`[[plugins]]` block, pointing at where you unpacked it:
+
+```toml
+[[plugins]]
+id      = "plugin.hue"
+binary  = "plugins/hc-hue/bin/hc-hue"
+config  = "plugins/hc-hue/config/config.toml"
+enabled = true
+```
+
+The shipped example config deliberately declares **no** plugins. A
+registry install records itself separately, in
+`config/plugins/managed.toml`, and homeCore never rewrites your
+`homecore.toml` — so a `[[plugins]]` block is exactly the thing you write
+by hand, for a plugin you unpacked or built yourself. See
+[Configuration](./configuration) for the full schema.
 
 ---
 

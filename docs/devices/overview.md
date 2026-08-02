@@ -230,9 +230,8 @@ curl -s -X DELETE http://localhost:8080/api/v1/plugins/plugin.hue/devices \
 #   }
 ```
 
-The Leptos admin UI exposes this as a **Wipe all devices** button
-in the Devices section of each plugin's detail page (admin role
-required, hidden when the plugin has no registered devices).
+This is an API-only operation today — the web UI does not surface a
+button for it. It requires the `devices:write` scope.
 
 ## Device history
 
