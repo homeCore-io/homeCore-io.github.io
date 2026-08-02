@@ -623,7 +623,8 @@ Initial release. Runs a house, not yet packaged for general use.
 
 ### Clients
 
-- `hc-web-leptos` — Rust+WASM single-page admin (active client).
+- `hc-web-leptos` — Rust+WASM single-page admin. (Retired since; the web
+  UI is now `hc-web`.)
 - `hc-tui` — terminal UI built on `ratatui`.
 
 ### Distribution

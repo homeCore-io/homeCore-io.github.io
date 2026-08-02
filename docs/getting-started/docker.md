@@ -57,7 +57,7 @@ Open `http://<host-ip>:3000`, log in as `admin`, then Plugins → Add.
 | File | Networking | Use it when |
 |---|---|---|
 | `compose.yml` | bridge | **Start here.** |
-| `compose.host.yml` | host | You have Hue, Sonos, WLED or Roku — or discovery found nothing. |
+| `compose.host.yml` | host | You have Hue, Sonos, WLED, Roku or Ecowitt — or discovery found nothing. |
 | `compose-dev.yml` | bridge | You want the `:dev` tag, rebuilt on every push to develop. |
 
 The distinction that matters is **discovery**. Hue, Sonos, WLED and Roku find
@@ -68,8 +68,21 @@ than a networking choice. Sonos additionally serves UPnP event callbacks and
 must advertise an address the speakers can reach back on, which a NATed
 container IP is not.
 
-Plugins that reach out over ordinary TCP or HTTP — YoLink, Lutron, Caseta, ISY,
-Z-Wave, Ecowitt — work fine on the bridge setup.
+**Ecowitt is in the same position**, for two different reasons. Its gateway
+discovery is a UDP broadcast to `255.255.255.255:45000`, and a bridge network
+forwards broadcast no more than it forwards multicast. And *receiving* uploads
+means the gateway opens a connection **to** homeCore on
+`[ecowitt].listen_port` (default `8888`), which `compose.yml` does not
+publish — so setting `bind_addr = "0.0.0.0"` is not enough here, though it
+would be on bare metal.
+
+Ecowitt has one escape hatch the others do not: set `[ecowitt].gateway_ip` and
+the plugin polls the gateway over ordinary outbound HTTP, which works on the
+bridge unchanged.
+
+Plugins that only reach out over ordinary TCP or HTTP — YoLink, Lutron,
+Caseta, ISY, Z-Wave — work fine on the bridge setup, because outbound
+connections NAT out of a container without help.
 
 `compose.host.yml` is Linux only. Docker Desktop on macOS and Windows runs
 containers inside a VM, so host networking there does not reach the LAN's
@@ -114,10 +127,16 @@ homecore-data/
 └── logs/
 ```
 
-`homecore.toml` is bind-mounted read-only from the repo so it is version
-controlled alongside the compose file. Edit it and
-`docker compose restart homecore`. Drop the bind-mount to let the image seed its
-built-in default instead.
+**There is no config bind-mount.** The image seeds `config/homecore.toml`
+inside `homecore-data` on first boot, and the default is correct as shipped:
+core serves no UI, declares no plugins, and points at the signed registry. Edit
+that file and `docker compose restart homecore`; it is yours after first boot
+and is never overwritten.
+
+An earlier compose file did mount `homecore.toml` from the clone. Deployed
+without the repo, Docker created a *directory* at that path and core's seed
+copy had nowhere to land — `cp: can't create '/homecore/config/homecore.toml/config.toml'`.
+If you are carrying an old compose file locally, delete the mount.
 
 ### File ownership
 
@@ -148,7 +167,7 @@ it.
 | Tag | Meaning |
 |---|---|
 | `:latest` | Most recent tagged release. What `compose.yml` tracks. |
-| `:0.1.6` | A specific release, immutable. |
+| `:0.1.18` | A specific release, immutable. |
 | `:dev` | Rebuilt on every push to develop. Mutable. |
 | `:dev-<sha7>` | A specific develop build, immutable. |
 
@@ -156,8 +175,10 @@ it.
 up the newest image at the configured tag — which matters on `:dev`. On an
 immutable release tag the pull is a cheap no-op.
 
-To pin the whole stack, `git checkout v0.1.6` in the docker repo and use the
-compose file at that tag.
+To pin the whole stack, check the docker repo out at a tag and set both image
+versions explicitly. **Do not expect the numbers to line up**: core, hc-web and
+the docker repo are tagged on their own cadences, so `hc-core` and `hc-web` are
+routinely several releases apart.
 
 ---
 
@@ -226,7 +247,7 @@ docker compose ps            # both services "running"
 
 curl http://localhost:3000/api/v1/health     # through hc-web's proxy
 curl http://localhost:8080/api/v1/health     # core directly
-# {"status":"ok","version":"0.1.5"}
+# {"status":"ok","version":"0.1.18"}
 ```
 
 Checking both is worth the extra second: if core answers and the proxied call

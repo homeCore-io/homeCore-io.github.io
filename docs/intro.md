@@ -26,16 +26,16 @@ Physical devices (Zigbee, Z-Wave, WiFi, cloud APIs)
 Embedded MQTT broker (rumqttd — no separate process)
     ↕ rumqttc client
 HomeCore kernel
-  ├── State bridge     — MQTT → typed events
-  ├── Rule engine      — triggers / conditions / actions
-  ├── Scheduler        — time, solar, cron
-  ├── Mode manager     — named boolean modes + solar modes
-  ├── Timer manager    — countdown timer virtual devices
-  ├── Switch manager   — virtual on/off flag devices
-  └── REST + WS API    — everything over HTTP/WebSocket
+  ├── State bridge       — MQTT → typed events
+  ├── Rule engine        — triggers / conditions / actions
+  ├── Scheduler          — time, cron, solar, calendars
+  ├── Mode manager       — named boolean modes + solar modes
+  ├── Glue devices       — timers, switches, virtual state for rules
+  ├── Plugin supervisor  — install, spawn, health, config, notices
+  └── REST + WS API      — everything over HTTP/WebSocket
 Plugins (separate processes, any language)
-  ├── hc-hue, hc-yolink, hc-lutron, hc-sonos
-  ├── hc-zwave, hc-wled, hc-isy
+  ├── hc-hue, hc-yolink, hc-lutron, hc-caseta, hc-sonos
+  ├── hc-zwave, hc-wled, hc-isy, hc-roku, hc-ecowitt
   └── Your plugin (Rust/Python/Node/.NET SDK)
 ```
 
@@ -43,7 +43,7 @@ Plugins (separate processes, any language)
 
 1. **MQTT as the device fabric** — every device communicates via MQTT topics. Plugins publish state; HomeCore publishes commands. Nothing is hardwired.
 2. **Rules are data** — automations are RON files hot-reloaded at runtime. Create, edit, and delete rules through the API with no restart.
-3. **API-first** — every operation is available over REST or WebSocket. The web UI is just another API consumer.
+3. **API-first** — every operation is available over REST or WebSocket. The web UI ([hc-web](./web-ui/overview)) is just another API consumer, in its own repository and its own container.
 4. **No cloud dependency** — solar calculations use local lat/lon config. All automation logic runs offline.
 5. **Side-effect-free conditions** — rule conditions only read state. Dry-run and test mode work because conditions never have side effects.
 6. **Plugin isolation at the MQTT layer** — each plugin has its own credential + declared ACL patterns in `[[broker.clients]]`. The embedded rumqttd enforces CONNECT authn; for real per-topic enforcement (containers, third-party plugins, compliance), deploy against an external Mosquitto broker. See [the broker deployment guide](./administration/broker#external-mosquitto-deployment).
