@@ -173,9 +173,9 @@ so re-evaluate after each discovery sweep, reconnect, and config change rather
 than deciding once at startup — a plugin that raises `no_devices_configured` at
 boot and never looks again is still showing it after the user's devices arrive.
 
-Notices and capability actions are Rust-only today. The Python, Node.js, and
-.NET SDKs cover registration, state, availability, the management protocol, and
-log forwarding.
+Notices and capability actions are available in the Rust and Python SDKs. The
+Node.js and .NET SDKs cover registration, state, availability, the management
+protocol, and log forwarding.
 
 :::note Plugin isolation via per-device subscriptions
 The SDK uses per-device topic subscriptions — not wildcards. Each call to `subscribe_commands()` subscribes to `homecore/devices/{device_id}/cmd` for that specific device. A plugin only receives commands for devices it has explicitly subscribed to — which keeps well-behaved plugins from stomping on each other by convention.
@@ -413,16 +413,25 @@ Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT`, and
 
 ## Choosing a language
 
-The Rust SDK is the reference implementation, and two features are only there:
-
-- **Notices** — the self-clearing problem reports the web UI renders on a
-  plugin's card. Elsewhere you can log a problem, but not surface it there.
-- **Capability actions** — the plugin's action manifest, which the UI turns
-  into buttons and hc-mcp can call. Device *capability schemas* work in every
-  SDK; it is the plugin-level action manifest that is Rust-only.
-
 Registration, state publishing, availability, the management protocol, and log
-forwarding are the same across all four.
+forwarding work in all four. Two features do not yet:
+
+| | Rust | Python | Node.js | .NET |
+|---|:-:|:-:|:-:|:-:|
+| Devices, state, management, log forwarding | ✓ | ✓ | ✓ | ✓ |
+| **Notices** — the self-clearing problem reports the UI shows on a plugin's card | ✓ | ✓ | | |
+| **Capability actions** — the manifest the UI turns into buttons, immediate and streaming | ✓ | ✓ | | |
+| Per-device command subscription (see the isolation note above) | ✓ | ✓ | | |
+| Device persistence / `reconcile_devices` | ✓ | | | |
+
+Device *capability schemas* — the attributes of one device — work everywhere.
+It is the plugin-level action manifest that is limited.
+
+In Node.js and .NET a plugin still subscribes to `homecore/devices/+/cmd`, so
+it receives commands for devices belonging to other plugins and has to ignore
+them itself. Rust and Python subscribe per device.
+
+The Rust SDK is the reference implementation; Python is the closest to it.
 
 ---
 
