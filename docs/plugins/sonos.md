@@ -13,7 +13,7 @@ It also keeps its own standalone HTTP API. That is intentional. You can use the 
 
 ## SDK adoption
 
-hc-sonos is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
+hc-sonos is built on the official Rust plugin SDK (`plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
 
 ## What the plugin provides
 

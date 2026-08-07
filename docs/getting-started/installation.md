@@ -86,8 +86,10 @@ cargo build --release
 
 The binary is at `target/debug/homecore` or `target/release/homecore`.
 
-For a multi-component dev environment (core + plugins + UI together),
-clone the meta-layout repos and run `hc-scripts/run-dev.sh` — see
+Building `core` also builds every Rust plugin — they are workspace
+members of the same repo. For a full dev environment (core + plugins +
+UI together), clone the workspace with `hc-scripts/workspace-clone.sh`
+and run `hc-scripts/run-dev.sh` — see
 [Core Development → Workspace](../development/workspace).
 
 ---

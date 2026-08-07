@@ -123,7 +123,7 @@ your gateways live. Two fixes:
 
 ## SDK adoption
 
-`hc-ecowitt` is built on `hc-plugin-sdk-rs` and supports the full
+`hc-ecowitt` is built on `plugin-sdk-rs` and supports the full
 management protocol: heartbeat, remote configuration, dynamic log
 level, and MQTT log forwarding. The capability manifest lists every
 plugin action available to rules and `hc-mcp`.
