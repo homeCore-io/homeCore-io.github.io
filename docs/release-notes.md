@@ -20,6 +20,129 @@ components were tagged.
 
 ---
 
+## v0.1.63 — 2026-09-08
+
+**Theme:** Every device says what it is.
+
+A reference house of 184 devices had 107 with a capability schema. It now
+has 184. The gap was never one problem: some devices had no schema
+because core mis-wired its own, most because their plugin declared only
+part of what it supports, and the rest because two schema fields that
+already existed were set by nobody.
+
+Between this entry and v0.1.6 the project moved to per-component
+releases and shipped 56 core versions; those rounds are recorded in the
+per-component tags and on the
+[ci-glance dashboard](https://homecore-io.github.io/ci-glance/) rather
+than here.
+
+### What a client can do now that it could not
+
+- **Tell a reading from a battery.** `AttributeSchema.category` marks a
+  reading `diagnostic` (battery, signal, firmware, ip, model) or
+  `config` (a setting). Absent means primary. The field has been in the
+  schema for a while and read by the web UI for nearly as long — no
+  plugin ever set it, so a lock's battery was declared exactly as
+  primary as whether it was locked, and clients kept private lists of
+  attribute names to demote. One lexicon in core now backs every plugin
+  that builds attributes from a name.
+- **Know which reading leads.** `DeviceSchema.primary` is an ordered
+  list of the readings a device exists to report. A temperature/humidity
+  sensor leads with temperature; a multi-sensor that reports motion
+  leads with motion. homeCore derives it from the device's own type, so
+  no plugin has to declare anything, and a plugin that knows better can
+  override it. Before this, "the first attribute" was not even stable
+  between two reads of the same device — the attribute map has no order.
+- **Render a scene, a shade, a fan or a timeclock event.** See below.
+- **Show an enum value in a person's words.** An attribute's options may
+  now carry a label and an icon, matching what action parameters have
+  always had. Accepted, not yet emitted: no plugin declares a label in
+  this release, because a client that decodes options as plain strings
+  must be updated first. An option carrying neither extra is still sent
+  as the bare string it always was, so nothing changes on the wire yet.
+
+### Added
+
+- **Devices that declared nothing now declare themselves.** Lutron fans,
+  shades, pulsed contact closures, phantom scenes, occupancy groups and
+  timeclock events; every Caséta device except the Pico, which was the
+  only one that had a schema before; Hue scenes, sensors and the bridge;
+  the Ecowitt gateway; and core's own glue devices — timers, counters,
+  groups and the rest.
+- **A Lutron scene says whether its state can be trusted.** A phantom
+  scene's state is its button's LED, and RadioRA 2 answers 255 — no
+  state at all — for a button that has none, which is the shape a scene
+  tied to a Pico has. Those scenes declare no `on`; the ones that really
+  report declare it, and both publish the button and (where there is
+  one) the LED behind it. A scene whose status a client cannot show can
+  now say why.
+- **A momentary output declares an empty attribute set**, which is a
+  different statement from having no schema. A pulsed contact closure
+  has nothing to read — the Integration Guide forbids querying one — and
+  now says so rather than staying silent.
+
+### Fixed
+
+- **Core wrote glue-device schemas from a startup sweep that raced the
+  manager that creates them.** A timer added through the API got no
+  schema until the next restart, and one seeded from config could miss
+  it entirely. Every path that creates a core-owned device now writes
+  the schema with it.
+- **Hue scenes could not be activated by the id their schema declares.**
+  `{"action": "activate"}` is accepted alongside the older
+  `{"action": "activate_scene"}`, so one action works across Hue and
+  Lutron scenes.
+- **A Lutron LED event could be attributed to the wrong scene.** Phantom
+  LEDs are `button + 100` and keypad LEDs are `button + 80`, and both
+  subtractions land on real button numbers — component 106 is button 6's
+  LED, but 106 − 80 = 26 is a button someone may have a scene on. The
+  reading that applies is now chosen rather than guessed.
+- **A Lutron timeclock event ignored the attribute it publishes.** It
+  reported `enabled` and accepted only `enable`, so a client echoing
+  back what it had just read was silently dropped.
+
+### Documentation
+
+- The REST contract now describes `category`, `states`, `primary` and
+  the attribute-option forms. All four were being served without being
+  documented.
+- [Devices → overview](./devices/overview) explains what a
+  capability schema contains, rather than only how to fetch one.
+
+### Release matrix
+
+**Tagged at v0.1.63 (1 repo):** `homeCore` (core).
+
+**Plugins tagged in the same round (7):** `hc-lutron` 0.1.18,
+`hc-hue` 0.1.13, `hc-caseta` 0.1.12, `hc-ecowitt` 0.1.14,
+`hc-yolink` 0.1.14, `hc-zwave` 0.1.12, `hc-isy` 0.1.11.
+
+**Web UI:** `hc-web-flutter` 0.1.94 — reads `primary`, and accepts both
+attribute-option forms.
+
+**Skipped (no behavioural change):** `hc-roku` and `hc-thermostat` were
+edited only to compile against the new option type; their published
+schemas are byte-identical.
+
+### Upgrade notes
+
+- **Restart the plugins, not only core.** The two halves arrive by
+  different routes: `primary` is computed by the API when it serves a
+  schema, so it appears as soon as core is new enough — even for
+  schemas stored by older plugins. Everything else (`category`, and
+  every schema listed under *Added*) is published by the plugin as a
+  retained MQTT message at registration, so a plugin that has not
+  restarted is still silent.
+- **A Lutron scene settles about a second after the bridge connects**,
+  once its LED query is answered. Before that it declares status on the
+  assumption that it has an LED, which is true of every phantom scene
+  that is not tied to a Pico.
+- **Nothing needs migrating and nothing needs purging.** A republished
+  schema replaces the old one by device id, and every field added here
+  is optional — a client that ignores them behaves exactly as it did.
+
+---
+
 ## v0.1.6 — 2026-07-26
 
 **Theme:** One artifact per component — and devices that no plugin owns.
