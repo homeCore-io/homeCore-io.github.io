@@ -165,6 +165,21 @@ When HomeCore receives that registration it:
 
 ### Explicit capabilities example
 
+:::tip Prefer a device schema
+
+The `capabilities` blob below is the original shape and still accepted. What a
+modern plugin publishes is a **device schema** on
+`homecore/devices/{id}/schema` — attribute kinds and ranges, both names of
+every boolean, which readings are housekeeping, which one leads, and the
+actions the device takes that are not attribute writes. That is what lets a
+client render controls for hardware it has never heard of.
+
+See [Declaring a
+device](./developing-plugins#declaring-a-device), and the checklist in [Before
+you release a plugin](./developing-plugins#before-you-release-a-plugin).
+
+:::
+
 Plugins can also publish an explicit schema when they need a custom device shape:
 
 ```json

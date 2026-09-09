@@ -915,6 +915,266 @@ different host, the SDK still supports it — point `broker_host` /
 `broker_port` in the plugin's `[homecore]` config at core's broker, and expose
 the broker accordingly.
 
+## Declaring a device
+
+Registering a device tells homeCore it exists. The **device schema** tells
+every client what to draw for it, and it is the half most plugins skip.
+
+A client will not offer a control the plugin has not promised. So a device
+without a schema still works — state flows, commands arrive — and appears as a
+row of raw JSON that nobody can operate. Measured on the reference house before
+this was taken seriously: **77 of 184 devices published no schema**, including
+every scene, fan and timer. Each one was a plugin that registered and stopped.
+
+```rust
+use plugin_sdk_rs::types::schema::{
+    AttributeKind, AttributeSchema, BoolStates, DeviceSchema, StateLabel,
+};
+
+let mut attributes = HashMap::new();
+attributes.insert("on".into(), AttributeSchema {
+    kind: AttributeKind::Bool,
+    writable: true,
+    display_name: Some("Power".into()),
+    states: Some(BoolStates {
+        when_true:  StateLabel::verbed("on", "turns on"),
+        when_false: StateLabel::verbed("off", "turns off"),
+    }),
+    ..Default::default()
+});
+attributes.insert("brightness_pct".into(), AttributeSchema {
+    kind: AttributeKind::Integer,
+    writable: true,
+    display_name: Some("Brightness".into()),
+    unit: Some("%".into()),
+    min: Some(0.0), max: Some(100.0), step: Some(1.0),
+    ..Default::default()
+});
+
+publisher.register_device_schema(&device_id, &DeviceSchema {
+    attributes,
+    ..Default::default()
+}).await?;
+```
+
+The schema is published **retained**, so it survives the plugin being down and
+a client connecting later still knows what the device means. Republish it when
+the set of attributes changes — a sensor that gains a reading gains an
+attribute.
+
+### Typed registration writes the same slot
+
+Registering with a `device_type` can resolve a **built-in** schema for that
+type, if the operator has a `config/profiles/device-types.toml`. It is stored
+in the same place your own schema goes, so the two are not additive — the last
+write wins.
+
+Publish your schema **after** the registration it belongs to, which is what the
+template does. And know that a *re*-registration re-resolves the built-in one:
+a plugin that re-registers periodically (to refresh a device's identity, say)
+against a core with a type registry will overwrite its own schema each time
+unless it republishes alongside.
+
+Your own schema is the better path for anything with attributes worth
+describing. The built-in resolution exists so a plugin that says only
+`device_type: "light"` still gets something.
+
+### An attribute
+
+| Field | What it is for |
+|---|---|
+| `kind` | `bool`, `integer`, `float`, `string`, `enum`, `color_xy`, `color_rgb`, `color_temp`, `json`. This is what picks the control. |
+| `writable` | Whether a write reaches the device. **A read-only attribute rendered as a slider is a lie the user discovers by dragging it.** |
+| `display_name` | What a person reads. Absent falls back to the attribute name. |
+| `unit` | `%`, `°C`, `lux`, `W`. Must be *true* — see below. |
+| `min` / `max` / `step` | The range the command path actually clamps to. |
+| `options` | For `enum`: the values, optionally with a label and an icon each. |
+| `states` | For `bool`: what both of its states are called. |
+| `category` | `diagnostic` or `config` — what a reading is *for*, when it is not what the device is for. |
+
+### Both names of a boolean
+
+A boolean attribute is **two events, not one**. A client given only `open`
+offers one row, and catching the door closing needs a Not gate wrapped round
+the trigger — so `closed` reads as "open, but Not", a logic gate standing in
+for a word the device already has.
+
+```rust
+states: Some(BoolStates {
+    when_true:  StateLabel::verbed("open", "opens"),
+    when_false: StateLabel::verbed("closed", "closes"),
+})
+```
+
+Two forms because English will not derive one from the other: `open` → "opens",
+but `locked` → "locks" and `motion` → "detects motion". A condition reads the
+adjective ("while the door is open"), a trigger reads the verb ("when the door
+opens").
+
+### Which readings are the point of the device
+
+A door lock reports whether it is locked. It also reports battery, signal
+strength and firmware. Rendering all four the same way buries the one an
+operator came for.
+
+- **`category: diagnostic`** — health and identity: battery, RSSI, firmware,
+  ip, model, a `*_unit` sibling, anything `supports_*`.
+- **`category: config`** — a setting that shapes behaviour rather than
+  reporting it.
+- **Absent** — primary. The ordinary case.
+
+Do not repeat the list by hand. `AttributeCategory::for_name` holds the
+cross-plugin lexicon and fills the common names for you:
+
+```rust
+for (name, attr) in attributes.iter_mut() {
+    if attr.category.is_none() {
+        attr.category = AttributeCategory::for_name(name);
+    }
+}
+```
+
+Set it explicitly for anything only your plugin can know — an ISY sensor's
+`unit` is metadata about its `value`, and no shared list can tell.
+
+`DeviceSchema.primary` ranks what is left, most important first. **You usually
+do not set it**: homeCore derives it from the device's `device_type` when it
+serves the schema, so a `temperature_sensor` leads with `temperature` and a
+multi-sensor reporting motion leads with `motion`. Declare it only when you
+know better than the type does.
+
+### Things a device *does*
+
+An attribute write is `{"source": "Netflix"}`. An action is
+`{"action": "launch_app", "app": "Netflix"}`. Both reach the plugin on the same
+`cmd` topic, so declaring actions costs no new transport:
+
+```rust
+use plugin_sdk_rs::device_actions::{with_actions, Action, Param};
+
+let schema = with_actions(&schema, vec![
+    Action::new("activate")
+        .label("Activate the scene")
+        .category("Scenes")
+        .icon("scene")
+        .sentence("activate {device}"),
+]);
+publisher.register_device_schema_json(&device_id, &schema).await?;
+```
+
+`sentence` is load-bearing rather than decoration: a client that cannot phrase
+a payload shows the user raw JSON in their rule list. `icon` is a semantic name
+(`scene`, `remote`, `snowflake`), not a font codepoint — each client maps it to
+its own set.
+
+**Declare an action only if the command dispatcher really takes it.** The
+mirror of the promise is a test: every arm of your dispatcher is either
+declared or deliberately excluded. Without it the declaration drifts and a
+client renders a control that does nothing — worse than not offering it.
+
+### Publishing state without deleting your own work
+
+`publish_state` **replaces** the retained document. `publish_state_partial`
+merges into it.
+
+If anything else publishes to the same device — a slow info refresher, a second
+task, a facet compacted onto a primary — a full publish deletes what the other
+one wrote, and the next refresh puts it back. That churn is not theoretical:
+one WLED controller produced a `device_state_changed` listing sixteen
+attributes, in both directions, forever, because its light state was published
+whole every WebSocket push while sixteen hardware facts were merged on a
+five-minute tick.
+
+Use a partial for anything that is one publisher's half of a device.
+
+### Never publish a value that changes by itself
+
+An `uptime` counter makes **every poll a state change** for a device that did
+nothing. Two Rokus reporting that time had passed accounted for 111 of the last
+200 events in the whole house.
+
+Drop them. A reboot is already visible as availability dropping, and homeCore
+records `last_seen` for every device. The same applies to an on-device clock,
+and to any field that ticks on its own between reads.
+
+### Read and write the same name
+
+The command path and the schema must agree, attribute by attribute:
+
+| Published | Accepted | Result |
+|---|---|---|
+| `preset_id` | `preset` | A client reads the value, writes it back, nothing happens |
+| `enabled` | `enable` | Same |
+| `effect_id` | `effect` | Same |
+
+All three of those shipped. If you must keep an old spelling for existing
+rules, accept both and declare the one you publish.
+
+## Before you release a plugin
+
+Each of these has been a real bug in a shipped homeCore plugin. Most are one
+line to check and invisible until someone is looking at the device.
+
+**The device**
+
+- [ ] Every device registers a `device_type`. A WLED controller had none for
+      its whole life, so every client filtering by type skipped it.
+- [ ] Every device publishes a schema — including the ones that feel too
+      simple to need one. A scene that takes `activate` and reports nothing
+      still declares that: an empty attribute set is a statement, and "no
+      schema" is a different one.
+
+**The attributes**
+
+- [ ] Every attribute you publish is declared, under the name you publish it.
+- [ ] Every attribute you declare is one you publish, or one the command path
+      accepts.
+- [ ] Every boolean has `states`, both sides named.
+- [ ] Every `unit` is true of the value. A 0-5 battery level declared `%`
+      rendered a healthy sensor as "2%".
+- [ ] Every `min`/`max` matches what the command path clamps to.
+- [ ] Housekeeping carries `category`; ask `AttributeCategory::for_name`
+      before writing your own list.
+- [ ] Names are `snake_case`, no dots. Nothing treats a dot specially, but no
+      other plugin uses one and a client humanising `led.count` renders
+      "Led.count".
+
+**The publishing**
+
+- [ ] Partial publishes for anything that is one publisher's half of a device.
+- [ ] No self-changing values in state — no uptime, no device clock.
+- [ ] The schema is republished when the set of attributes changes.
+- [ ] Availability is published, and set false when the device is unreachable.
+
+**The plugin**
+
+- [ ] Config section is `#[serde(default)]` with a `Default` impl, or a
+      freshly installed plugin crash-loops on "missing field" before it can
+      publish its config schema.
+- [ ] `config_schema` and `config_descriptor` both published; the descriptor
+      covers every schema field (`missing_schema_coverage` tests it).
+- [ ] Commands are subscribed as well as registered — forgetting
+      `subscribe_commands` gives a device whose state updates and whose
+      commands go nowhere.
+
+**The check that catches most of it**
+
+Read the device back off a running homeCore. Every defect above is invisible in
+the source and obvious here:
+
+```bash
+curl -s "$CORE/api/v1/devices?include_schema=true" \
+  | jq '.[] | select(.plugin_id=="plugin.mine")
+        | {id: .device_id, type: .device_type,
+           declared: (.schema.attributes // {} | keys),
+           published: (.attributes | keys),
+           primary: .schema.primary}'
+```
+
+Anything in `published` that is not in `declared` is a value nobody can
+operate. Anything in `declared` that never appears in `published` is a control
+that does nothing.
+
 ## Device type field
 
 Register a `device_type` string to help UIs categorize devices correctly and filter scenes from device lists:
