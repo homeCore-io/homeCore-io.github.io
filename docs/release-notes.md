@@ -25,6 +25,27 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.67 — 2026-09-09
+
+**Theme:** The spec says which version it is.
+
+Nothing an operator will notice, and the entry exists because that is
+still worth knowing.
+
+v0.1.66 shipped with `docs/openapi.yaml` stamped `0.1.65`. The version
+lives in two files — the crate manifest and the spec's `info.version` —
+and only one of them was bumped, so a release described itself as its
+predecessor. A test exists for exactly this and caught it, after the tag
+had already gone out and its artifacts had been built.
+
+This release stamps both. If you fetched the v0.1.66 spec and are
+matching it against a running core, take this one instead; the described
+API is identical.
+
+**Upgrade notes:** none.
+
+---
+
 ## v0.1.66 — 2026-09-09
 
 **Theme:** Somewhere to put what you made.
