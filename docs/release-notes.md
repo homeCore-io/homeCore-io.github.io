@@ -18,6 +18,86 @@ cohort moves roughly together but not all components ship in every
 patch round. The release matrix for each version below lists which
 components were tagged.
 
+**Every core release has an entry here**, including the rounds where
+nothing an operator would notice changed — those say so. An entry is
+written as part of cutting the release, because a tag with no entry is
+a release nobody outside the workspace can find out about.
+
+---
+
+## v0.1.66 — 2026-09-09
+
+**Theme:** Somewhere to put what you made.
+
+Two new scopes, `content:read` and `content:write`, and nothing else.
+
+**No permissions change today.** Reading joins the other reads, writing
+joins authoring beside `dashboards:write` and `skins:write`, so the same
+four roles may write — admin, user, rule_editor, service_operator — and
+the same three may not. Nobody gains or loses access on upgrade.
+
+**What they are for.** A client is starting to keep what a household
+authored: widget templates, icon rules, the images somebody uploaded.
+That content lives in core today only because the previous web client
+compiled ahead of time and could hold nothing itself, which is why
+`/assets` and `/dashboards/templates` exist. It is moving back to the
+client that makes it.
+
+What does *not* move is identity. The house has one set of users, roles
+and revocations and it is core's, so a client presents the caller's own
+bearer, asks `/auth/me` who it belongs to and `/auth/roles` what that
+role may do, and enforces the answer itself. These two scopes are the
+vocabulary for that conversation.
+
+You will find them in `GET /auth/roles` and on no operation in the API
+spec. That is deliberate: the thing they authorise is not here. The
+OpenAPI preamble says so, so a reader who notices does not go looking
+for a missing endpoint.
+
+**Upgrade notes:** none. Existing tokens keep working; a client that has
+not been taught the new scopes falls back to the dashboard ones.
+
+---
+
+## v0.1.65 — 2026-09-08
+
+**Theme:** A chart asks for points, not rows.
+
+Device history was returning every attribute of a device interleaved,
+with no way to ask for one — so a client drawing six hours of a single
+temperature fetched every reading that device had produced and threw
+most of it away. On a sensor that reports a dozen attributes, a chart's
+thousand-row budget could run out before reaching the one asked for, and
+the chart came up empty on a device that plainly had the data.
+
+History now takes an attribute filter and downsamples server-side.
+
+**Upgrade notes:** none. The existing shape still answers.
+
+---
+
+## v0.1.64 — 2026-09-08
+
+**Theme:** What the deployed house showed that the source did not.
+
+A round of fixes found by running against a real 184-device house rather
+than by reading code.
+
+- **The Hue bridge declares itself** — the last device in the house with
+  no capability schema. Every device now has one.
+- **A WLED controller stops overwriting half of itself**, so its
+  attributes no longer arrive with pieces missing.
+- **A Roku stops reporting that time has passed** when nothing is
+  playing, which had made it look like a device in constant motion.
+- **Three filed issues closed**: an absent reading, a scale that
+  misreported itself, and an advertisement a device made about a
+  capability it did not have.
+
+Also released alongside: hc-lutron 0.1.18, hc-yolink 0.1.14,
+hc-zwave 0.1.12.
+
+**Upgrade notes:** none.
+
 ---
 
 ## v0.1.63 — 2026-09-08
