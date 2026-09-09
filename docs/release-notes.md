@@ -25,6 +25,53 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.68 — 2026-09-09
+
+**Theme:** An API key is a credential for the whole API.
+
+Two things an API key could not do, both found while working out how a
+wall panel should authenticate. If you use API keys, this release
+matters; if you only ever log in with a password, nothing here changes
+what you see.
+
+### A key opened no stream
+
+`/events/stream`, `/logs/stream` and the media route take their
+credential in a `?token=` query parameter, because a browser cannot set
+a header on a WebSocket upgrade. All three validated it as a JWT, so an
+API key worked for every REST call and silently for none of these.
+
+A display authenticated with a key would load its dashboard and then
+never hear another word from the house — a frozen picture with nothing
+saying why. All three now accept keys on the same terms as the header
+path.
+
+### `/auth/me` now says what the credential may do
+
+It described the *user*: a key names its owner, so the profile and its
+`role` were the owner's, while the key's real authority is the narrower
+set of scopes it was issued with. Anything reading `role` and looking up
+that role's rights gave a deliberately restricted key everything its
+creator could do.
+
+The response now carries `scopes` — what **this credential** may do, for
+password sessions and keys alike. **If you authorise against `/auth/me`,
+read `scopes` and not `role`.**
+
+### Two smaller things that came with consolidating
+
+- The event stream never checked token version, so a session ended by a
+  password change could keep streaming. It does now, as the header path
+  always has.
+- The media route accepted a key in its `Authorization` header but not
+  in its `?token=` parameter.
+
+**Upgrade notes:** none, and no permissions change. A whitelisted caller
+still receives `404` from `/auth/me`, which is correct — the bypass
+trusts an address, not a person, so there is no profile to return.
+
+---
+
 ## v0.1.67 — 2026-09-09
 
 **Theme:** The spec says which version it is.
