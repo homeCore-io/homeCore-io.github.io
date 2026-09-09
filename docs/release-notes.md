@@ -18,6 +18,230 @@ cohort moves roughly together but not all components ship in every
 patch round. The release matrix for each version below lists which
 components were tagged.
 
+**Every core release has an entry here**, including the rounds where
+nothing an operator would notice changed — those say so. An entry is
+written as part of cutting the release, because a tag with no entry is
+a release nobody outside the workspace can find out about.
+
+---
+
+## v0.1.67 — 2026-09-09
+
+**Theme:** The spec says which version it is.
+
+Nothing an operator will notice, and the entry exists because that is
+still worth knowing.
+
+v0.1.66 shipped with `docs/openapi.yaml` stamped `0.1.65`. The version
+lives in two files — the crate manifest and the spec's `info.version` —
+and only one of them was bumped, so a release described itself as its
+predecessor. A test exists for exactly this and caught it, after the tag
+had already gone out and its artifacts had been built.
+
+This release stamps both. If you fetched the v0.1.66 spec and are
+matching it against a running core, take this one instead; the described
+API is identical.
+
+**Upgrade notes:** none.
+
+---
+
+## v0.1.66 — 2026-09-09
+
+**Theme:** Somewhere to put what you made.
+
+Two new scopes, `content:read` and `content:write`, and nothing else.
+
+**No permissions change today.** Reading joins the other reads, writing
+joins authoring beside `dashboards:write` and `skins:write`, so the same
+four roles may write — admin, user, rule_editor, service_operator — and
+the same three may not. Nobody gains or loses access on upgrade.
+
+**What they are for.** A client is starting to keep what a household
+authored: widget templates, icon rules, the images somebody uploaded.
+That content lives in core today only because the previous web client
+compiled ahead of time and could hold nothing itself, which is why
+`/assets` and `/dashboards/templates` exist. It is moving back to the
+client that makes it.
+
+What does *not* move is identity. The house has one set of users, roles
+and revocations and it is core's, so a client presents the caller's own
+bearer, asks `/auth/me` who it belongs to and `/auth/roles` what that
+role may do, and enforces the answer itself. These two scopes are the
+vocabulary for that conversation.
+
+You will find them in `GET /auth/roles` and on no operation in the API
+spec. That is deliberate: the thing they authorise is not here. The
+OpenAPI preamble says so, so a reader who notices does not go looking
+for a missing endpoint.
+
+**Upgrade notes:** none. Existing tokens keep working; a client that has
+not been taught the new scopes falls back to the dashboard ones.
+
+---
+
+## v0.1.65 — 2026-09-08
+
+**Theme:** A chart asks for points, not rows.
+
+Device history was returning every attribute of a device interleaved,
+with no way to ask for one — so a client drawing six hours of a single
+temperature fetched every reading that device had produced and threw
+most of it away. On a sensor that reports a dozen attributes, a chart's
+thousand-row budget could run out before reaching the one asked for, and
+the chart came up empty on a device that plainly had the data.
+
+History now takes an attribute filter and downsamples server-side.
+
+**Upgrade notes:** none. The existing shape still answers.
+
+---
+
+## v0.1.64 — 2026-09-08
+
+**Theme:** What the deployed house showed that the source did not.
+
+A round of fixes found by running against a real 184-device house rather
+than by reading code.
+
+- **The Hue bridge declares itself** — the last device in the house with
+  no capability schema. Every device now has one.
+- **A WLED controller stops overwriting half of itself**, so its
+  attributes no longer arrive with pieces missing.
+- **A Roku stops reporting that time has passed** when nothing is
+  playing, which had made it look like a device in constant motion.
+- **Three filed issues closed**: an absent reading, a scale that
+  misreported itself, and an advertisement a device made about a
+  capability it did not have.
+
+Also released alongside: hc-lutron 0.1.18, hc-yolink 0.1.14,
+hc-zwave 0.1.12.
+
+**Upgrade notes:** none.
+
+---
+
+## v0.1.63 — 2026-09-08
+
+**Theme:** Every device says what it is.
+
+A reference house of 184 devices had 107 with a capability schema. It now
+has 184. The gap was never one problem: some devices had no schema
+because core mis-wired its own, most because their plugin declared only
+part of what it supports, and the rest because two schema fields that
+already existed were set by nobody.
+
+Between this entry and v0.1.6 the project moved to per-component
+releases and shipped 56 core versions; those rounds are recorded in the
+per-component tags and on the
+[ci-glance dashboard](https://homecore-io.github.io/ci-glance/) rather
+than here.
+
+### What a client can do now that it could not
+
+- **Tell a reading from a battery.** `AttributeSchema.category` marks a
+  reading `diagnostic` (battery, signal, firmware, ip, model) or
+  `config` (a setting). Absent means primary. The field has been in the
+  schema for a while and read by the web UI for nearly as long — no
+  plugin ever set it, so a lock's battery was declared exactly as
+  primary as whether it was locked, and clients kept private lists of
+  attribute names to demote. One lexicon in core now backs every plugin
+  that builds attributes from a name.
+- **Know which reading leads.** `DeviceSchema.primary` is an ordered
+  list of the readings a device exists to report. A temperature/humidity
+  sensor leads with temperature; a multi-sensor that reports motion
+  leads with motion. homeCore derives it from the device's own type, so
+  no plugin has to declare anything, and a plugin that knows better can
+  override it. Before this, "the first attribute" was not even stable
+  between two reads of the same device — the attribute map has no order.
+- **Render a scene, a shade, a fan or a timeclock event.** See below.
+- **Show an enum value in a person's words.** An attribute's options may
+  now carry a label and an icon, matching what action parameters have
+  always had. Accepted, not yet emitted: no plugin declares a label in
+  this release, because a client that decodes options as plain strings
+  must be updated first. An option carrying neither extra is still sent
+  as the bare string it always was, so nothing changes on the wire yet.
+
+### Added
+
+- **Devices that declared nothing now declare themselves.** Lutron fans,
+  shades, pulsed contact closures, phantom scenes, occupancy groups and
+  timeclock events; every Caséta device except the Pico, which was the
+  only one that had a schema before; Hue scenes, sensors and the bridge;
+  the Ecowitt gateway; and core's own glue devices — timers, counters,
+  groups and the rest.
+- **A Lutron scene says whether its state can be trusted.** A phantom
+  scene's state is its button's LED, and RadioRA 2 answers 255 — no
+  state at all — for a button that has none, which is the shape a scene
+  tied to a Pico has. Those scenes declare no `on`; the ones that really
+  report declare it, and both publish the button and (where there is
+  one) the LED behind it. A scene whose status a client cannot show can
+  now say why.
+- **A momentary output declares an empty attribute set**, which is a
+  different statement from having no schema. A pulsed contact closure
+  has nothing to read — the Integration Guide forbids querying one — and
+  now says so rather than staying silent.
+
+### Fixed
+
+- **Core wrote glue-device schemas from a startup sweep that raced the
+  manager that creates them.** A timer added through the API got no
+  schema until the next restart, and one seeded from config could miss
+  it entirely. Every path that creates a core-owned device now writes
+  the schema with it.
+- **Hue scenes could not be activated by the id their schema declares.**
+  `{"action": "activate"}` is accepted alongside the older
+  `{"action": "activate_scene"}`, so one action works across Hue and
+  Lutron scenes.
+- **A Lutron LED event could be attributed to the wrong scene.** Phantom
+  LEDs are `button + 100` and keypad LEDs are `button + 80`, and both
+  subtractions land on real button numbers — component 106 is button 6's
+  LED, but 106 − 80 = 26 is a button someone may have a scene on. The
+  reading that applies is now chosen rather than guessed.
+- **A Lutron timeclock event ignored the attribute it publishes.** It
+  reported `enabled` and accepted only `enable`, so a client echoing
+  back what it had just read was silently dropped.
+
+### Documentation
+
+- The REST contract now describes `category`, `states`, `primary` and
+  the attribute-option forms. All four were being served without being
+  documented.
+- [Devices → overview](./devices/overview) explains what a
+  capability schema contains, rather than only how to fetch one.
+
+### Release matrix
+
+**Tagged at v0.1.63 (1 repo):** `homeCore` (core).
+
+**Plugins tagged in the same round (7):** `hc-lutron` 0.1.18,
+`hc-hue` 0.1.13, `hc-caseta` 0.1.12, `hc-ecowitt` 0.1.14,
+`hc-yolink` 0.1.14, `hc-zwave` 0.1.12, `hc-isy` 0.1.11.
+
+**Web UI:** `hc-web-flutter` 0.1.94 — reads `primary`, and accepts both
+attribute-option forms.
+
+**Skipped (no behavioural change):** `hc-roku` and `hc-thermostat` were
+edited only to compile against the new option type; their published
+schemas are byte-identical.
+
+### Upgrade notes
+
+- **Restart the plugins, not only core.** The two halves arrive by
+  different routes: `primary` is computed by the API when it serves a
+  schema, so it appears as soon as core is new enough — even for
+  schemas stored by older plugins. Everything else (`category`, and
+  every schema listed under *Added*) is published by the plugin as a
+  retained MQTT message at registration, so a plugin that has not
+  restarted is still silent.
+- **A Lutron scene settles about a second after the bridge connects**,
+  once its LED query is answered. Before that it declares status on the
+  assumption that it has an LED, which is true of every phantom scene
+  that is not tied to a Pico.
+- **Nothing needs migrating and nothing needs purging.** A republished
+  schema replaces the old one by device id, and every field added here
+  is optional — a client that ignores them behaves exactly as it did.
+
 ---
 
 ## v0.1.6 — 2026-07-26

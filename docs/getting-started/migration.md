@@ -112,10 +112,10 @@ This creates the full workspace layout:
 
 ```
 ~/homeCore/
-  core/
-  plugins/hc-yolink/  hc-lutron/  hc-sonos/  hc-hue/  hc-wled/  ...
-  clients/hc-web-leptos/  hc-tui/  hc-web-admin-react/  ...
-  sdks/hc-plugin-sdk-rs/  hc-plugin-sdk-py/  hc-plugin-sdk-js/  hc-plugin-sdk-dotnet/
+  core/                     ← the server, its crates, the Rust SDK and every Rust plugin
+  plugins/hc-matter/        ← plugins that are not Rust
+  clients/hc-web/  hc-tui/  hc-mcp/  ...
+  sdks/hc-plugin-sdk-py/  hc-plugin-sdk-js/  hc-plugin-sdk-dotnet/
 ```
 
 ---

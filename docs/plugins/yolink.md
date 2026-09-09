@@ -122,7 +122,7 @@ shows up in homeCore without waiting for the next poll cycle.
 
 ## SDK adoption
 
-hc-yolink is built on the official Rust plugin SDK (`hc-plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
+hc-yolink is built on the official Rust plugin SDK (`plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
 
 ## Background initial state fetch
 

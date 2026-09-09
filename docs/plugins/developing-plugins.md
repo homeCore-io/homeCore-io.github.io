@@ -9,55 +9,68 @@ sidebar_position: 2
 
 Plugins can be written in any language that has an MQTT client library. HomeCore provides first-class SDKs for Rust, Python, Node.js, and .NET Core.
 
-SDKs live in the `sdks/` directory of the workspace, each as an independent git repo.
+**The Rust SDK and every Rust plugin live inside the homeCore repository**, at
+`sdk/rust` and `plugins/<name>`. The Python, Node.js and .NET SDKs are separate
+repositories, cloned into `sdks/` alongside `core/`.
 
 ## Installing an SDK
 
 **None of the SDKs is published to a package registry** — not crates.io, PyPI,
-npm, or NuGet. That is deliberate for Rust (plugins pin the SDK by tag and adopt
-updates on their own cadence) and simply not set up yet for the others. So there
-is no `pip install homecore-plugin-sdk`; installing means either the local
-checkout or a git tag.
+npm, or NuGet. So there is no `pip install homecore-plugin-sdk`; installing
+means the local checkout or a git tag.
 
-### Working inside the homeCore workspace
+### Rust
 
-The normal case while developing a plugin. With `core/`, `plugins/` and `sdks/`
-cloned side by side, point your plugin at the checkout — SDK edits then take
-effect with no commit, tag or reinstall in between.
+Nothing to install. Your plugin is a workspace member of the homeCore repo
+beside the SDK, and depends on it by path:
 
-| | From `plugins/hc-mything/` |
+```toml
+[dependencies]
+plugin-sdk-rs = { path = "../../sdk/rust" }
+```
+
+An SDK edit is live in every plugin on the next `cargo build`, and the repo-root
+`cargo fmt` / `clippy` / `test` cover core, the SDK and all thirteen plugins
+together — so a change that breaks a plugin fails at once rather than at that
+plugin's next release.
+
+:::note This replaced a much more complicated arrangement
+Rust plugins used to be separate repositories, each pinning `hc-plugin-sdk-rs`
+by git tag, redirected to a local checkout by a `[patch]` table in a
+`plugins/Cargo.toml` meta-workspace. That is all gone — the plugin repos are
+archived read-only and the meta-workspace no longer exists. Instructions
+mentioning any of it predate the monorepo.
+:::
+
+For a Rust plugin developed *outside* the homeCore repo, pin the core release
+tag — the SDK re-exports `hc-types`, which is the plugin ABI:
+
+```toml
+plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.29" }
+```
+
+No `path` key is needed: cargo finds `plugin-sdk-rs` by package name among the
+repo's workspace members.
+
+### Python, Node.js and .NET
+
+These SDKs are still their own repositories. With `core/` and `sdks/` cloned
+side by side, point your plugin at the checkout:
+
+| | From your plugin's directory |
 |---|---|
-| Rust | nothing to do — see below |
 | Python | `pip install -e ../../sdks/hc-plugin-sdk-py` |
 | Node.js | `npm install ../../sdks/hc-plugin-sdk-js` |
 | .NET | `dotnet add reference ../../sdks/hc-plugin-sdk-dotnet/HomeCoreSdk.csproj` |
 
-Rust is the exception because the redirect is already done for you. A plugin's
-committed `Cargo.toml` declares the git dependency by tag, and the meta-workspace
-at `plugins/Cargo.toml` patches it to the checkout:
+Python's `-e` and npm's directory install both link rather than copy, so an SDK
+edit is live without a reinstall. .NET builds the SDK from source as part of
+your build.
 
-```toml
-[patch."https://github.com/homeCore-io/hc-plugin-sdk-rs"]
-plugin-sdk-rs = { path = "../sdks/hc-plugin-sdk-rs" }
-```
-
-Built from inside `plugins/` you get the local source; cloned standalone by CI
-you get the tag. Check which with
-`cargo tree -p hc-yourplugin -i plugin-sdk-rs`. **Do not** change a plugin's own
-`Cargo.toml` to a `path` dependency — standalone CI has no workspace to patch
-it, so the build breaks there while working on your machine.
-
-Python's `-e` and npm's directory install both link rather than copy, so the
-same "edit and it is live" property holds. .NET builds the SDK from source as
-part of your build.
-
-### From a release
-
-Each SDK is tagged, so a plugin outside the workspace pins a known version:
+From a release instead:
 
 | | |
 |---|---|
-| Rust | `plugin-sdk-rs = { git = "https://github.com/homeCore-io/hc-plugin-sdk-rs", tag = "v0.3.10" }` |
 | Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.2.0` |
 | Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.2.0` |
 | .NET | clone at the tag, then `dotnet add reference …/HomeCoreSdk.csproj` |
@@ -66,27 +79,29 @@ NuGet has no git-install equivalent, which is why .NET clones.
 
 ---
 
-## Rust SDK (`hc-plugin-sdk-rs`)
+## Rust SDK (`plugin-sdk-rs`)
 
-The fastest start is
-[hc-plugin-template](https://github.com/homeCore-io/hc-plugin-template) — a
-working virtual-light plugin, small enough to read in one sitting, with the
-management protocol, a capability action, and a notice already wired up.
+The fastest start is `plugins/hc-plugin-template` — a working virtual-light
+plugin, small enough to read in one sitting, with the management protocol, a
+config schema and descriptor, a capability action, and a notice already wired
+up.
 
 ```sh
-gh repo create my-plugin --template homeCore-io/hc-plugin-template
+cp -r plugins/hc-plugin-template plugins/hc-mything
+$EDITOR Cargo.toml          # add "plugins/hc-mything" to [workspace] members
 ```
+
+Then rename the package and binary in its `Cargo.toml`, the `plugin_id` in its
+config, and the `Descriptor::new` id in `config.rs`.
 
 ### Add to Cargo.toml
 
-The crate is named `plugin-sdk-rs`. Pin it by tag: it re-exports core's
-`hc-types`, which is the plugin ABI, so an unpinned dependency means your
-build changes when core does. See [Installing an SDK](#installing-an-sdk) for
-how this resolves locally.
+The crate is named `plugin-sdk-rs`. See
+[Installing an SDK](#installing-an-sdk).
 
 ```toml
 [dependencies]
-plugin-sdk-rs = { git = "https://github.com/homeCore-io/hc-plugin-sdk-rs", tag = "v0.3.10" }
+plugin-sdk-rs = { path = "../../sdk/rust" }
 tokio         = { version = "1", features = ["full"] }
 serde_json    = "1"
 anyhow        = "1"
@@ -108,7 +123,19 @@ async fn main() -> anyhow::Result<()> {
     })
     .await?;
 
+    // Take handles BEFORE starting the loop — `run` consumes the client.
     let publisher = client.device_publisher();
+
+    // Start the event loop FIRST. Commands arrive on this callback, which is
+    // synchronous — hand slow work to a task over a channel. See
+    // "Start the event loop before you register" below.
+    let event_loop = tokio::spawn(async move {
+        client
+            .run(|device_id, payload| {
+                println!("Command for {device_id}: {payload}");
+            })
+            .await
+    });
 
     // Register the device.
     publisher
@@ -134,19 +161,35 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     publisher.publish_availability("my_device_001", true).await?;
 
-    // Owns the process from here. Commands arrive on this callback, which is
-    // synchronous — hand slow work to a task over a channel.
-    client
-        .run(|device_id, payload| {
-            println!("Command for {device_id}: {payload}");
-        })
-        .await
+    // Returns only when the loop stops.
+    event_loop.await?
 }
 ```
 
 A real plugin calls `run_managed` rather than `run`, passing the handle from
 `enable_management`, so core can heartbeat it, restart it, push configuration,
 and render its actions as buttons.
+
+### Start the event loop before you register
+
+`run` / `run_managed` is what *drives* the MQTT connection. Until one of them is
+polling, nothing you publish leaves the process — it queues, and the queue holds
+64 messages.
+
+Registering one device costs four of them: register, subscribe, state,
+availability. So a plugin that registers its devices and *then* calls
+`run_managed` works fine with three devices and **hangs at startup with
+seventeen**, never reaching the line that would have drained the queue. There is
+no error and no log line; it simply stops, on a machine that differs from yours
+only in how many devices are configured.
+
+Measured against a real broker, a plugin registering 40 devices gets through 12
+of them in the register-first order, and all 40 when the loop is spawned first.
+Every shipped plugin spawns it first.
+
+Nothing is lost by starting early: a command for a device you have not
+registered cannot arrive, because the subscription that would carry it does not
+exist until you make it.
 
 ### Publishing state updates
 
@@ -514,6 +557,109 @@ Plugins built with the official SDKs can opt into the management protocol, which
 
 All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol automatically when enabled.
 
+## Configuration: schema and descriptor
+
+An operator configures your plugin from its page in the web UI. What they see
+there is decided by two documents you publish on the capability manifest — and
+if you publish neither, they get a raw TOML textarea.
+
+| | What it is | Who writes it |
+|---|---|---|
+| **Config schema** | JSON Schema of your config: what fields exist, of what type | Derived from your config structs |
+| **Config descriptor** | How to *present* them: sections, units, help text, secrets, conditionals | You, by hand |
+
+Publish both. The schema stays authoritative for existence and for core-side
+validation; the descriptor annotates intent. Core serves them at
+`GET /plugins/{id}/config/schema` and `GET /plugins/{id}/config/descriptor`.
+
+```rust
+let mgmt = match config::config_schema() {
+    Some(schema) => mgmt.with_config_schema(schema),
+    None => mgmt,
+};
+let mgmt = mgmt.with_config_descriptor(config::config_descriptor());
+```
+
+The descriptor is built with typed builders, so a mistyped field kind is a
+compile error rather than a field that silently never renders:
+
+```rust
+use plugin_sdk_rs::config_descriptor::{Cond, Descriptor, Field, Section};
+
+Descriptor::new("plugin.example")
+    .title("Example")
+    .section(
+        Section::new("api", "HTTP API")
+            .field(Field::toggle("api.enabled").label("Enable HTTP API").default(true))
+            .field(
+                Field::port("api.port")
+                    .label("Port")
+                    .default(8080)
+                    .visible_when(Cond::truthy("api.enabled")),
+            ),
+    )
+    .section(
+        Section::new("connection", "Connection")
+            .hidden()
+            .field(Field::secret("homecore.password").label("Broker password")),
+    )
+    .build()
+```
+
+Field kinds include `toggle`, `text`, `host`, `port`, `url`, `secret`, `int`,
+`number`, `duration`, `enumeration`, `select`, `list`, `table`, `note` and
+`link`. A `table` can bind to a live core resource (`Source::core_resource`) so
+a form edits the device registry rather than your TOML.
+
+:::warning A published descriptor is authoritative
+The editor renders your descriptor **instead of** deriving a form from the
+schema. So a config field the descriptor omits is not merely unlabelled — it is
+uneditable, while the schema still declares it and your plugin still reads it.
+hc-sonos shipped a descriptor missing its logging section once, and those
+settings simply vanished from the page.
+
+Guard it with a test. Every shipped plugin has this one, and
+`missing_schema_coverage` is in the SDK for it:
+
+```rust
+#[test]
+fn descriptor_covers_every_schema_field() {
+    let missing = plugin_sdk_rs::config_descriptor::missing_schema_coverage(
+        &config_schema().unwrap(),
+        &config_descriptor(),
+        &["homecore.plugin_id"],   // justified omissions, with a reason
+    );
+    assert!(missing.is_empty(), "missing from the descriptor: {missing:?}");
+}
+```
+
+The third argument is an explicit allow-list, so an intentional omission is a
+line someone had to write and can be reviewed, rather than an oversight.
+:::
+
+Hiding a section (`.hidden()`) still counts as covering its fields — use that
+for values core writes at install, like the broker host and password, rather
+than leaving them out.
+
+Schema derivation is behind a cargo feature in every Rust plugin, so it can be
+compiled out:
+
+```toml
+[features]
+default = ["schema"]
+schema  = ["dep:schemars", "plugin-sdk-rs/schema"]
+```
+
+**In the other SDKs**, both documents ride the capability manifest exactly the
+same way — `config_schema` / `config_descriptor` on the Python `Capabilities`
+dataclass, `configSchema` / `configDescriptor` in the Node.js constructor
+options, `ConfigSchema` / `ConfigDescriptor` on the .NET record. What is
+Rust-only is the *typed authoring*: the `Descriptor` / `Section` / `Field`
+builders and `missing_schema_coverage`. Elsewhere you hand over a plain
+dict/object, so a mistyped field kind is caught by the editor not rendering it
+rather than by the compiler — which makes the coverage habit more important
+there, not less.
+
 ## Capability manifest
 
 Plugins declare plugin-specific actions in a typed manifest; the admin
@@ -699,17 +845,29 @@ Incoming payload is a JSON object with device-specific fields. Apply them to the
 
 ## Plugin file structure conventions
 
+A Rust plugin is a directory under `plugins/` in the homeCore repo, and a
+workspace member:
+
 ```
-my-plugin/
-├── Cargo.toml           # [package] name = "hc-my-plugin"
-├── .gitignore
+plugins/hc-my-plugin/
+├── Cargo.toml                  # [package] name = "hc-my-plugin"
 ├── config/
-│   └── config.toml      # default config (not committed if contains secrets)
-├── config.example.toml  # committed example without secrets
+│   └── config.toml.example     # committed example, no secrets
 ├── src/
-│   └── main.rs
+│   ├── main.rs                 # connect → manage → describe → run → register
+│   └── config.rs               # the config structs, schema and descriptor
 └── README.md
 ```
+
+Add `"plugins/hc-my-plugin"` to `[workspace] members` in the repo-root
+`Cargo.toml`. That is the only registration step: CI, formatting, clippy and
+tests already run over every member, and the release workflow derives everything
+it needs from the directory name.
+
+In a real install you never place `config.toml` yourself — core seeds it at
+`config/plugins/<plugin_id>.toml`, hands the path to your process as `argv[1]`,
+and restarts the plugin when an operator edits it. The committed
+`config.toml.example` is for running the binary by hand during development.
 
 `config.toml` structure:
 
@@ -740,11 +898,15 @@ its `[registry]` config, unpacks it to
 credentials, and runs the binary as a child process it supervises and
 restarts. Users install with Plugins → Add in the web UI.
 
-Tagging `v0.1.0` in a plugin repo does all of this: the shared release
-workflow builds a static musl binary, packages the `.tar.zst`, attaches it to
-the GitHub Release, notifies the registry, and then polls the *served* index
-until the entry appears — so a green release means an installable plugin, not
-just a successful build.
+Releasing is one tag on the homeCore repo. Bump your plugin's `Cargo.toml` on
+`develop`, merge to `main`, and push `hc-my-plugin-v0.1.0`. The shared workflow
+recognises the `hc-<name>-v<version>` shape, builds a static musl binary,
+packages the `.tar.zst`, attaches it to the GitHub Release, notifies the
+registry, and then polls the *served* index until the entry appears — so a green
+release means an installable plugin, not just a successful build. A plain
+`v<version>` tag releases the server instead.
+
+There is no per-plugin workflow to copy, and no SDK tag to push first.
 
 There used to be a `plugins/Dockerfile.plugin` template for building a plugin
 into its own container, run with `network_mode: host` against core's broker.
@@ -772,11 +934,17 @@ Register a `device_type` string to help UIs categorize devices correctly and fil
 
 ## Testing your plugin
 
-Use the virtual-device example as a reference for the full SDK lifecycle:
+`plugins/hc-plugin-template` is the reference for the full SDK lifecycle — it
+publishes virtual lights and needs no hardware:
 
 ```bash
-cargo run -p virtual-device -- --broker 127.0.0.1 --port 1883 --id plugin.virtual
+cargo run -p hc-plugin-template -- plugins/hc-plugin-template/config/config.toml
 ```
+
+Run it against a homeCore whose broker is on `127.0.0.1:1883`, or point
+`[homecore] broker_host`/`broker_port` at one elsewhere. Copy in extra
+`[[template.devices]]` entries to see how your plugin behaves with a realistic
+device count — that is how the event-loop ordering above shows itself.
 
 Test that your plugin's devices appear:
 

@@ -95,7 +95,7 @@ and subscribes to real-time state updates from the bridge.
 
 ## SDK adoption
 
-`hc-caseta` is built on `hc-plugin-sdk-rs` and supports the full
+`hc-caseta` is built on `plugin-sdk-rs` and supports the full
 management protocol: heartbeat, remote configuration, dynamic log
 level, and MQTT log forwarding.
 

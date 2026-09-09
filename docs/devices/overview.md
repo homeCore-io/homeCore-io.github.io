@@ -108,6 +108,53 @@ curl -s http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_1/schema \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
+A schema is what lets a client render a device it has never heard of. It has
+three parts.
+
+**`attributes`** — what the device reports and, where `writable` is true, what
+it accepts. Each carries the `kind` that picks a control, plus `unit`, `min`,
+`max`, `step` and `options` where they apply. Two fields say more than the
+value alone:
+
+- **`states`** names both sides of a boolean in the device's own words —
+  `open`/`closed`, `locked`/`unlocked`, `motion`/`clear` — with the verb a
+  trigger reads ("when the door *opens*"). A boolean is two events, not one,
+  and without this a client shows "open, but Not" for the other half.
+- **`category`** says what a reading is *for* when it is not what the device
+  is for: `diagnostic` for battery, signal, firmware, ip and model, `config`
+  for a setting. **Absent means primary.** A door lock reports whether it is
+  locked and also its battery; a client that renders both the same way buries
+  the one you came for.
+
+**`primary`** — the readings the device *is* for, most important first. A
+temperature/humidity sensor leads with `temperature`; a multi-sensor that
+reports motion leads with `motion`. homeCore derives this from the device's own
+type unless the plugin declared its own order, so a client with one row to fill
+does not have to guess.
+
+**`actions`** — commands that are not attribute writes: a scene's `activate`, a
+shade's `raise`/`lower`/`stop`, a keypad's `press_button`. Each carries a
+label, an optional icon and its parameters, so a rule editor can offer them
+without knowing what brand it is talking to.
+
+```json
+{
+  "primary": ["temperature", "humidity"],
+  "attributes": {
+    "temperature": { "kind": "float", "writable": false, "unit": "°C" },
+    "humidity":    { "kind": "float", "writable": false, "unit": "%" },
+    "battery":     { "kind": "integer", "writable": false, "unit": "%",
+                     "category": "diagnostic" }
+  }
+}
+```
+
+A device with no schema returns `404` with `{"error": "schema not found"}`.
+That is not a fault: a plugin declares what it knows, and some devices predate
+the descriptor. An **empty** attribute set is a different statement — a
+momentary output such as a pulsed contact closure genuinely has nothing to
+read, and says so.
+
 ### Command a device
 
 `PATCH /devices/{id}/state` sends a command to the device via MQTT.

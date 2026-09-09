@@ -21,22 +21,25 @@ launcher is `hc-scripts/run-dev.sh` from the workspace root:
 
 The script:
 1. Pulls every component repo listed in `workspace.toml` (core, the
-   plugins, the SDKs, the clients).
-2. Runs `cargo update` against each meta-layout workspace
-   (`plugins/`, `clients/`, `sdks/`, plus core).
-3. Builds plugins via the meta-layout (`cargo build --manifest-path
-   plugins/Cargo.toml -p <name>`) — binaries land at
-   `plugins/target/debug/<name>` (the shared workspace target dir,
-   not per-plugin).
-4. Builds homecore.
-5. Runs `homecore --config core/config/homecore.dev.toml`.
+   non-Rust SDKs and plugins, the clients).
+2. Runs `cargo update` in each Rust workspace it finds.
+3. Builds the server. Every Rust plugin is a member of core's
+   workspace, so they are built by the same command — binaries land in
+   `core/target/debug/<name>` with no separate plugin build step.
+4. Runs `homecore --config core/config/homecore.dev.toml`.
 
-The dev config's `[[plugins]]` blocks point at
-`../plugins/target/debug/<name>` so homecore launches whatever
-`run-dev.sh` just built. **If a code change doesn't seem to take
-effect after restart, the most common cause is a stale binary at the
-old per-plugin target path** — the meta-layout reshape moved outputs
-to the shared dir.
+The dev config's `[[plugins]]` blocks point at `target/debug/<name>`,
+relative to `HOMECORE_HOME` (which in development is `core/`), so
+homecore launches exactly what was just built.
+
+:::caution run-dev.sh is not sandboxed
+It starts a real homeCore with the real plugin configs, so it connects
+to whatever hubs, bridges and cloud accounts those configs name. That is
+usually what you want on a dev box and emphatically not what you want
+while testing something destructive. To work in isolation, write a
+config with its own ports, its own `[storage]` paths and no
+`[[plugins]]`, and pass it with `--config`.
+:::
 
 For tighter loops on a single component, you can also run cargo
 directly. Three terminal windows is enough:
@@ -130,10 +133,10 @@ lints are stylistic-only allowances — see
 
 The `package` recipe wraps `hc-scripts/build-archive.sh` — same script
 CI uses to produce release tarballs. `BIN_NAME` auto-derives from the
-directory name, so the same Justfile ships byte-identical to every
-plugin without per-repo customization. Override the script path with
-`HC_SCRIPTS=/path/to/hc-scripts just package` if your checkout doesn't
-follow the meta-layout.
+directory name, so the same Justfile works for every plugin without
+customization. Override the script path with
+`HC_SCRIPTS=/path/to/hc-scripts just package` if `hc-scripts` is not
+checked out beside `core`.
 
 Install `just` once if needed:
 
