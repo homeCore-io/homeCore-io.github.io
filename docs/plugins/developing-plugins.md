@@ -701,7 +701,10 @@ let mgmt = client
             item_key: None,
             item_operations: None,
             requires_role: hc_types::RequiresRole::User,
-            timeout_ms: None,
+            // Always declare one. Core's default window is 5000ms, which
+            // fails any action that talks to hardware — and an inherited
+            // default is not a decision anybody can see.
+            timeout_ms: Some(20_000),
         }],
     })
     .with_custom_handler(move |cmd| match cmd["action"].as_str()? {
@@ -1100,6 +1103,40 @@ Drop them. A reboot is already visible as availability dropping, and homeCore
 records `last_seen` for every device. The same applies to an on-device clock,
 and to any field that ticks on its own between reads.
 
+### An action that repairs must repair the declaration
+
+Most plugins gate publication on first sighting — a `registry.ensure_*` that
+returns false for a device this process has already seen. That is right for a
+periodic loop and wrong for the button an operator presses when a device looks
+wrong, because it means *Rescan devices* re-reads the bridge and republishes
+nothing.
+
+**homeCore can lose a schema while your plugin still believes it published
+one.** An unregister deletes the device *and* its schema, a restore from an
+older backup predates it, and a typed registration can overwrite it. If your
+repair action does not republish, the only repair is restarting the plugin —
+which is what empties the in-memory registry.
+
+Five of homeCore's own plugins had this. The fix in each was the same shape:
+an operator-initiated pass forgets what it published, so the next pass says
+everything again exactly once.
+
+```rust
+// Set by the manifest action, read by the pass that follows.
+if force_republish {
+    registry.forget_publications();
+}
+```
+
+Do **not** republish on the periodic path. Everything published is an upsert
+against a retained topic, so saying it again costs nothing when nothing is
+wrong — but on a timer it is churn, and one `device_schema_changed` event per
+device per tick.
+
+If your plugin is a receiver rather than a poller, the honest version is a
+flag your next inbound report reads, and an action description that says so:
+there is nothing to describe until the hardware speaks.
+
 ### Read and write the same name
 
 The command path and the schema must agree, attribute by attribute:
@@ -1113,10 +1150,61 @@ The command path and the schema must agree, attribute by attribute:
 All three of those shipped. If you must keep an old spelling for existing
 rules, accept both and declare the one you publish.
 
+## Let the build check it for you
+
+Most of the checklist below is not a thing to remember. It is
+`plugin_sdk_rs::conformance`, and a plugin that skips it fails `cargo test`:
+
+```rust
+#[cfg(test)]
+mod conformance_tests {
+    #[test]
+    fn the_declaration_follows_the_rules() {
+        plugin_sdk_rs::conformance::check_all(&device_schema(), &capabilities())
+            .assert_ok();
+    }
+
+    /// The routed list is written by hand on purpose — it is the one thing
+    /// the SDK cannot see, because it lives inside your `match`.
+    #[test]
+    fn every_action_is_both_advertised_and_routed() {
+        plugin_sdk_rs::conformance::check_actions_routed(&capabilities(), &["say_hello"])
+            .assert_ok();
+    }
+}
+```
+
+`hc-plugin-template` ships with both, so a plugin copied from it starts
+conformant.
+
+What the checks catch, each of which has been a real bug in a shipped plugin:
+
+| Check | What it catches |
+| --- | --- |
+| `check_device_schema` | a boolean naming one state or neither; an enum with no options; a dotted or non-snake_case name; housekeeping declared as a reading; `min` above `max`; an action with no sentence, or one that never names the device; an action claiming to write an attribute the schema does not declare |
+| `check_manifest` | an action with no label, or no `timeout_ms` — core's 5 s default fails anything that talks to hardware |
+| `check_actions_routed` | an action advertised but not routed (a button that does nothing) and one routed but not advertised (a capability nobody can find) |
+| `check_writables` | an attribute declared writable that your command path ignores — the control a user discovers is fake by using it |
+
+`check_writables` takes your dispatcher as a closure, since only your plugin
+knows what a payload does:
+
+```rust
+plugin_sdk_rs::conformance::check_writables(&device_schema(), |name| {
+    !translate_command(&json!({ name: sample_value(name) })).is_empty()
+})
+.assert_ok();
+```
+
+This is the same arrangement `config_descriptor::missing_schema_coverage`
+already uses for the config half: the SDK holds the rule, your test calls it,
+and the rule cannot rot in a document nobody re-reads.
+
 ## Before you release a plugin
 
-Each of these has been a real bug in a shipped homeCore plugin. Most are one
-line to check and invisible until someone is looking at the device.
+Each of these has been a real bug in a shipped homeCore plugin. **The ones
+marked ✓ are checked by `conformance` above** — the rest are things only you
+can know.
 
 **The device**
 
@@ -1132,18 +1220,19 @@ line to check and invisible until someone is looking at the device.
 - [ ] Every attribute you publish is declared, under the name you publish it.
 - [ ] Every attribute you declare is one you publish, or one the command path
       accepts.
-- [ ] Every boolean has `states`, both sides named.
+- [ ] ✓ Every boolean has `states`, both sides named.
 - [ ] Every `unit` is true of the value. A 0-5 battery level declared `%`
       rendered a healthy sensor as "2%".
-- [ ] Every `min`/`max` matches what the command path clamps to.
-- [ ] Housekeeping carries `category`; ask `AttributeCategory::for_name`
+- [ ] ✓ Every `min`/`max` is a range, and matches what the command path clamps to.
+- [ ] ✓ Housekeeping carries `category`; ask `AttributeCategory::for_name`
       before writing your own list.
-- [ ] Names are `snake_case`, no dots. Nothing treats a dot specially, but no
-      other plugin uses one and a client humanising `led.count` renders
+- [ ] ✓ Names are `snake_case`, no dots. Nothing treats a dot specially, but
+      no other plugin uses one and a client humanising `led.count` renders
       "Led.count".
 
 **The publishing**
 
+- [ ] Your repair action republishes declarations, not only state.
 - [ ] Partial publishes for anything that is one publisher's half of a device.
 - [ ] No self-changing values in state — no uptime, no device clock.
 - [ ] The schema is republished when the set of attributes changes.
@@ -1180,7 +1269,32 @@ that does nothing.
 
 ## Device type field
 
-Register a `device_type` string to help UIs categorize devices correctly and filter scenes from device lists:
+Register a `device_type` string to help UIs categorize devices correctly and filter scenes from device lists.
+
+**Publish what the device *is*, not the protocol you reach it over.** Every
+Z-Wave node in homeCore registered as `device_type: "zwave"` until recently, so
+a lock, four outlets, a door sensor and a motion sensor arrived
+indistinguishable and every client filtering or ranking by type had nothing to
+work with.
+
+**Ask the bridge — it usually knows.** zwave-js had been sending
+`deviceClass.generic` / `.specific` on every node the whole time. Hue, Lutron
+and Caséta all report a device kind of their own. Reading it is nearly always
+better than a config field somebody has to fill in.
+
+**Where the bridge's answer is ambiguous, read what the device reports.** Z-Wave
+describes a door sensor and a motion sensor identically — both are
+"Notification Sensor" — and the only thing separating them is that one
+publishes a contact and the other publishes motion.
+
+**Say nothing rather than guessing.** Omitting `device_type` leaves whatever
+homeCore already stored alone, so a device that has not finished interviewing
+can register bare now and be typed on the next registration, with no special
+path. The same is true of any registration that does not know: a rename
+handler knows the new name and nothing else, and re-asserting a type there
+undoes whatever the informed registration worked out.
+
+The common values:
 
 | `device_type` | Description |
 |---|---|
