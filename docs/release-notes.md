@@ -25,6 +25,50 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.69 — 2026-09-09
+
+**Theme:** A device's declaration can change, and now says so.
+
+### For anyone building against the API
+
+**`device_schema_changed` is a new event.** It fires when a device changes
+what it *declares* — the attributes and actions it says it has — rather than
+when a value changes. The event carries the names, so a client can decide
+whether it cares before refetching `GET /devices/{id}/schema`.
+
+This matters because device schemas are not static, and became less so with
+the September schema work. A Lutron phantom scene upgrades its own about a
+second after the bridge connects, once its LED query is answered. The Ecowitt
+plugin republishes when a sensor's set of readings changes. Hue republishes
+when a sensor gains a facet, Z-Wave on a rescan. Until now nothing announced
+any of it: a client showing controls built from the schema kept the old ones
+until somebody reloaded the page.
+
+**The event stream's documented type list was eight of twenty-one.** It had
+never included `device_name_changed`, and nothing added since. All twenty-one
+are listed now, checked against the code that names them, so filtering by
+`?type=` can be written from the spec rather than by experiment.
+
+### Unchanged
+
+Nothing an operator does changes here, and no device behaves differently.
+This is an addition to the API surface for the people writing against it.
+
+### Release matrix
+
+**Tagged at v0.1.69 (1 repo):** `homeCore` (core). No plugin changed.
+
+### Upgrade notes
+
+- **Nothing to do.** A client that ignores the new event behaves exactly as
+  it did; one that subscribes to everything sees a new `type` it can ignore
+  or act on.
+- Core-owned devices — timers, counters, modes — do **not** emit this event.
+  They write their schemas when the device is created, which a client learns
+  about by the device appearing.
+
+---
+
 ## v0.1.68 — 2026-09-09
 
 **Theme:** An API key is a credential for the whole API.
