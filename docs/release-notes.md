@@ -25,6 +25,46 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.71 — 2026-09-10
+
+**Theme:** Every value a device shows you is a value something can name.
+
+### Attributes nothing declared
+
+Reading the reference house back after the September schema work: **82 of 178
+devices published at least one attribute their own schema never mentioned.**
+An undeclared attribute still shows up — as a raw name and a raw value, with
+nothing to label it, rank it, or fold it away as housekeeping.
+
+Two unrelated causes, both closed.
+
+**Hue's hand-written schemas covered the controls and stopped.** A light
+declared four attributes and published nineteen — the bridge and resource ids,
+its capability flags, the colour-temperature bounds. A scene declared whether
+it was active and published eight. They are all described now, and demoted
+where they are not readings, so a light's page leads with brightness rather
+than with the id of the bridge it is on.
+
+**homeCore stored its own bookkeeping as if the device had reported it.** A
+WLED controller carried a `correlation_id` among its readings — homeCore's
+term for "which command caused this", presented as something the light strip
+had said. Provenance is stripped from device state now.
+
+### Release matrix
+
+**Tagged at v0.1.71:** `homeCore` (core), `hc-hue` 0.1.15.
+
+### Upgrade notes
+
+- **Restart hc-hue**, or press *Refresh devices* on it — either republishes the
+  fuller schemas. The plugin gained that ability in 0.1.14 yesterday.
+- Existing `correlation_id` values already stored on a device disappear the
+  next time it reports.
+- Nothing that was working stops: every attribute still has the same name and
+  the same value, and more of them now have a label.
+
+---
+
 ## v0.1.70 — 2026-09-09
 
 **Theme:** A Z-Wave device stops calling itself "Z-Wave".
