@@ -25,6 +25,34 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.72 — 2026-09-10
+
+**Theme:** Two things v0.1.71 missed, found by running it.
+
+**A value already stored stayed stored.** v0.1.71 stopped homeCore's own
+bookkeeping arriving as a device reading, and said existing ones would clear
+on the device's next report. That was only true for a plugin that publishes
+its whole state each time; one that publishes changes — which is most of them,
+and hc-wled since 0.1.13 — would have carried it indefinitely. The keys are
+cleared from what is stored now, so any device that reports again cleans
+itself.
+
+**The Hue bridge was the one device its own fix missed.** Lights and scenes
+were filled in from what they publish; the bridge is registered on a different
+path and kept showing its id, kind and name with nothing to label them. It
+goes through the same filler.
+
+### Release matrix
+
+**Tagged at v0.1.72:** `homeCore` (core), `hc-hue` 0.1.16.
+
+### Upgrade notes
+
+- **Nothing to do.** Devices clean themselves as they report; the Hue bridge
+  updates when the plugin restarts or *Refresh devices* is pressed.
+
+---
+
 ## v0.1.71 — 2026-09-10
 
 **Theme:** Every value a device shows you is a value something can name.
@@ -58,8 +86,10 @@ had said. Provenance is stripped from device state now.
 
 - **Restart hc-hue**, or press *Refresh devices* on it — either republishes the
   fuller schemas. The plugin gained that ability in 0.1.14 yesterday.
-- Existing `correlation_id` values already stored on a device disappear the
-  next time it reports.
+- Existing `correlation_id` values already stored on a device are cleared by
+  v0.1.72 — this release stopped new ones arriving but left the stored ones
+  alone, which showed up immediately on a plugin that publishes changes
+  rather than whole states.
 - Nothing that was working stops: every attribute still has the same name and
   the same value, and more of them now have a label.
 
