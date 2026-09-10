@@ -965,9 +965,12 @@ attribute.
 ### Typed registration writes the same slot
 
 Registering with a `device_type` can resolve a **built-in** schema for that
-type, if the operator has a `config/profiles/device-types.toml`. It is stored
-in the same place your own schema goes, so the two are not additive — the last
-write wins.
+type, if the operator has a `config/profiles/device-types.toml`. That catalog
+exists for the topic-mapper — so a Tasmota or Shelly device with no plugin
+behind it can name a type instead of hand-writing a schema — but the resolution
+runs on every registration that carries a `device_type`, yours included, and
+stores the result where your own schema goes. The two are not additive: the
+last write wins.
 
 Publish your schema **after** the registration it belongs to, which is what the
 template does. And know that a *re*-registration re-resolves the built-in one:
