@@ -25,6 +25,39 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.73 — 2026-09-10
+
+**Theme:** Every device says exactly what it shows you.
+
+The end of a run that started with 82 of 178 devices publishing at least one
+attribute nothing described. This release takes it to none.
+
+**Timers** publish when they started and, if you named the countdown, that
+name. Both are now labelled, and both sit with the housekeeping rather than
+beside the time remaining.
+
+**Rokus** publish eleven facts about the box itself — model, serial, firmware,
+the network it is on — lifted out of a nested blob so an automation can ask
+"is this a TV?" without picking through JSON. They are labelled and folded
+away now, while the channel that is playing stays where you can see it.
+
+Earlier in the run: Hue's lights, scenes and bridge (v0.1.71–72), Lutron's
+keypads, dimmers and scenes, and Sonos's now-playing and catalogues (their own
+plugin releases).
+
+### Release matrix
+
+**Tagged at v0.1.73:** `homeCore` (core), `hc-roku` 0.1.10.
+
+### Upgrade notes
+
+- **Restart hc-roku** or press *Discover devices* on it; core's own timers
+  update on the next tick.
+- Nothing renames and nothing disappears — the same attributes, with labels
+  and with the housekeeping marked as such.
+
+---
+
 ## v0.1.72 — 2026-09-10
 
 **Theme:** Two things v0.1.71 missed, found by running it.
