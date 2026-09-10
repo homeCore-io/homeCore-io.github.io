@@ -25,6 +25,48 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.74 — 2026-09-10
+
+**Theme:** How long has it been like that?
+
+### "Clear for 40 minutes" is answerable now
+
+Every device carried a `last_change` timestamp that looked like it said when
+the device last changed. It did not — it said when homeCore last *heard* from
+it, which for a sensor reporting every few seconds is always "a moment ago".
+An occupancy sensor clear since breakfast looked like it had just gone clear.
+
+`attributes_changed_at` records when each reading last actually moved, and it
+survives a restart, so a wall panel that rebooted overnight does not tell you
+the whole house changed at 3am. It is **per reading**, which matters: asking
+how long a room has been clear should not be reset by the same sensor's
+battery percentage ticking over.
+
+The old field keeps its job — it answers "what turned that on?", which is a
+different and equally useful question.
+
+Automations get the same fix: a rule saying "no motion for 20 minutes" could
+not become true until 20 minutes after a restart. It can now.
+
+### A Hue sensor's temperature said °C and meant °F
+
+If you have your Hue bridge set to Fahrenheit, the motion sensor's temperature
+was labelled °C while reporting °F — so 71 °F read as 71 °C, which is 160 °F.
+The label now follows what the device says it is using.
+
+### Release matrix
+
+**Tagged at v0.1.74:** `homeCore` (core), `hc-hue` 0.1.17.
+
+### Upgrade notes
+
+- **Nothing to do.** `attributes_changed_at` fills in as devices report; a
+  reading that has not moved since the upgrade simply has no entry yet, and a
+  client should fall back rather than assume.
+- Restart hc-hue, or press *Refresh devices*, for the temperature label.
+
+---
+
 ## v0.1.73 — 2026-09-10
 
 **Theme:** Every device says exactly what it shows you.
