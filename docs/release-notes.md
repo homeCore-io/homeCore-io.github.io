@@ -25,6 +25,60 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.70 — 2026-09-09
+
+**Theme:** A Z-Wave device stops calling itself "Z-Wave".
+
+### Every Z-Wave node had the wrong type
+
+Every node this plugin registered carried `device_type: "zwave"` — the
+protocol it speaks, not the thing it is. A door lock, four outlets, a door
+sensor and a motion sensor all arrived indistinguishable, so any client
+filtering a list by type, choosing an icon, or deciding which reading to lead
+with had nothing to work from.
+
+zwave-js had been sending the answer on every node the whole time. The plugin
+now reads it, and on the reference network that means:
+
+| Node | What it registers as now |
+|---|---|
+| Living Room lock | `lock` |
+| Four outlets and a plug | `switch` |
+| Test Door Sensor | `contact_sensor` |
+| Test Motion Sensor | `motion_sensor` |
+| The controller itself | `gateway` |
+
+The two sensors are worth a note: Z-Wave describes both of them identically —
+"Notification Sensor" — so the class alone cannot separate a door sensor from
+a motion sensor. What separates them is that one reports a contact and the
+other reports motion, so that is what the plugin reads when the class runs
+out.
+
+A node that has not finished its interview yet says nothing rather than
+guessing, and fills its type in on the next registration.
+
+### Modes had no type at all
+
+The two devices in the reference house reporting no `device_type` were both
+modes — the only device family registering without one. They are `mode` now,
+and lead with whether they are on.
+
+### Release matrix
+
+**Tagged at v0.1.70:** `homeCore` (core), `hc-zwave` 0.1.13.
+
+### Upgrade notes
+
+- **Restart hc-zwave to see the change.** Types are set at registration, so
+  nodes keep their old `zwave` type until the plugin reconnects and
+  re-registers them.
+- **A dashboard or rule that filters on `device_type == "zwave"` will stop
+  matching.** Nothing in homeCore does this by default, but a hand-written
+  filter might; point it at the real type, which is what it wanted.
+- Modes gaining a type is additive — nothing filtered on "no type".
+
+---
+
 ## v0.1.69 — 2026-09-09
 
 **Theme:** A device's declaration can change, and now says so.
