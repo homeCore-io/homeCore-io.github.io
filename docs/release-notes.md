@@ -25,6 +25,52 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.76 — 2026-10-16
+
+**Theme:** homeCore says what needs attention.
+
+### Alerts
+
+homeCore now keeps a list of what needs attention in the house, and every
+client sees the same one. It is worked out by homeCore itself, so it is right
+whether or not any screen is open, and it clears itself when the problem goes
+away. These are always alerts:
+
+- **something wet** or **smoke** (shown as urgent);
+- **a lock jammed** — where the lock says so (`jammed`, or a last alert that
+  mentions a jam);
+- **a battery low**, using your `[battery]` threshold and recover band;
+- **a device offline** for five minutes — long enough that a bridge
+  restarting doesn't raise one for everything behind it.
+
+**Time rules** add the ones that depend on the clock: "the garage door open
+after 22:00", "the front door unlocked for 30 minutes". A rule names one or
+more devices, the state that counts, optionally the hours it applies (a
+window can run past midnight) and how long the state must have lasted. How
+long something has been open is remembered across a restart. Rules are made
+in the new web app's Settings → Alerts, or over the API.
+
+For client authors: `GET /api/v1/alerts` lists the active alerts (most
+serious first); `/api/v1/alert-rules` holds the rules; the event stream
+announces `alert_raised` and `alert_cleared`, and its `?snapshot=true` frame
+now includes `alerts`. Reading alerts needs `devices:read`; rules need
+`automations:read` / `automations:write`, like automations.
+
+### Release matrix
+
+**Tagged at v0.1.76:** `homeCore` (core).
+
+### Upgrade notes
+
+- Nothing to change. Expect a few alerts as soon as it starts if anything is
+  already wet, jammed, offline or low on battery — devices that only report
+  "battery low" without a percentage count too.
+- Alerts do not send notifications. To be told on your phone, keep using an
+  automation with a notify action; alerts are what screens show.
+- Existing clients see no difference unless they ask for alerts.
+
+---
+
 ## v0.1.75 — 2026-10-16
 
 **Theme:** A room stays the same room.
