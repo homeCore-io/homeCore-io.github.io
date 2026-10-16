@@ -25,6 +25,72 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.75 — 2026-10-16
+
+**Theme:** A room stays the same room.
+
+### Renaming a room sticks
+
+A room used to be only its short name (`tv_room`), so renaming it made a
+different room — anything that remembered it, like a pinned room in a client,
+lost it — and the rename did not last: the next time the Hue bridge registered
+its devices it said "Tv room" again, and they went back.
+
+Now each room has an id that never changes, and keeps its name exactly as you
+type it — "TV Room", "Kid's Room". Rename it and the devices stay in it. Its
+old name keeps working behind the scenes, so a bridge that still calls it
+"Tv room" puts its devices in the renamed room instead of bringing the old one
+back.
+
+A room a bridge reports that you do not have yet is still created
+automatically, spelled the way the bridge spells it. Deleting such a room only
+lasts until the bridge reports it again; to fold it into another room for
+good, **merge** it (`POST /areas/{id}/merge`) — its devices move, and the
+bridge's name for it points at the room you merged it into from then on.
+
+### Every open screen hears about edits
+
+Renaming a device, moving it to another room, changing its icon or display
+type, adding or removing devices, and changing rooms or scenes used to be
+saved without telling anybody — a wall panel kept showing the old name until
+it was reloaded. They are now all announced on the event stream
+(`device_added`, `device_metadata_changed`, `device_removed`, `room_changed`,
+`room_removed`, `scene_changed`, `scene_removed`).
+
+A client can also ask the stream for the whole house when it connects
+(`?snapshot=true`), so after a dropped connection it catches up in one step.
+Existing clients do not ask for it and see no difference.
+
+### Fixes
+
+- **The event stream honours who you signed in as.** From an address on the
+  `[auth].whitelist`, the stream treated everybody as admin even when they had
+  signed in as someone else; the REST API never did. Now a sign-in always
+  counts, on both.
+- **Assigning a room to several devices at once now sticks.** It was being
+  undone the next time their plugin registered them.
+
+### Release matrix
+
+**Tagged at v0.1.75:** `homeCore` (core).
+
+### Upgrade notes
+
+- **Rooms are converted once, on the first start.** Every room keeps the id it
+  had, and gets a readable name from its short one: `tv_room` becomes
+  "Tv Room", `bathroom_2` "Bathroom 2". Where a bridge has its own spelling
+  ("Master Bedroom"), that replaces the guess when the bridge next registers.
+  Names you type are never replaced. Rename any you want to look different.
+  **Take a backup before upgrading**, as for any change to stored data.
+- `GET /areas` now returns the name as typed in `name`, plus `slug` (the
+  short form devices carry), `aliases` and `named_by`. A client that treated
+  `name` as the short form should use `slug`. hc-web and hc-tui show names
+  much as before.
+- Rules are unaffected: they refer to devices by names assigned once, which a
+  room rename does not change.
+
+---
+
 ## v0.1.74 — 2026-09-10
 
 **Theme:** How long has it been like that?
