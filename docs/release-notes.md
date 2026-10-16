@@ -25,6 +25,59 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.77 — 2026-10-16
+
+**Theme:** A tablet on the wall that isn't anybody.
+
+### Security: API keys are no longer admins by default
+
+homeCore treated **every API key as an admin** in its admin-only checks —
+managing users, backup and restore, reading and changing the system's
+configuration, restarting — whatever scopes the key was given. A key made to
+only read the house could, for example, create users.
+
+Now a key is an admin only if it was given an admin's scopes (it holds
+`users:write`). **Keys made with an admin's full scopes work as before.** A
+narrower key that was being used for admin tasks will now get `403` for them;
+give it the scopes it needs, or use an admin's full set.
+
+### Displays
+
+A kitchen panel or hall tablet can now be **its own identity** instead of
+somebody's account. An admin makes a display (`POST /api/v1/displays`, or
+Settings → Displays in the new web app) and is shown its key once; the tablet
+is set up with that key. A display can see the house, use devices and run
+scenes — and nothing else: it can never be an admin, edit anything, or manage
+users or keys. Removing it (`DELETE /api/v1/displays/{id}`) stops it at once.
+
+Running scenes now also accepts a new, narrower `scenes:run` scope, which
+displays hold, so a panel can run scenes without being able to change them.
+People and keys with `scenes:write` are unaffected.
+
+### PINs
+
+Each person can set a **PIN** (`PUT /api/v1/auth/pin`, with their password; 4
+to 8 digits, and no two people can share one). At a display, a PIN unlocks
+the full app as that person for **five minutes**, then the display goes back
+to being itself. Only a display can be unlocked with a PIN, and five wrong
+PINs in fifteen minutes make that display wait.
+
+### Release matrix
+
+**Tagged at v0.1.77:** `homeCore` (core).
+
+### Upgrade notes
+
+- **Check any API key you use for admin work** (scripts, other tools): if it
+  was made with fewer than an admin's scopes, admin endpoints now refuse it.
+- Nothing else to change. Nobody has a PIN until they set one, and there are
+  no displays until an admin makes one.
+- Whitelisted addresses (`[auth].whitelist`) are unchanged — but a display
+  key is the better way to put a tablet on the wall: a whitelisted address is
+  a full admin.
+
+---
+
 ## v0.1.76 — 2026-10-16
 
 **Theme:** homeCore says what needs attention.
