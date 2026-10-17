@@ -25,6 +25,100 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.78 — 2026-10-17
+
+**Theme:** What the new web app needs to run the house — and a record of who
+changed what.
+
+### Automations
+
+- **A rule can start at several moments.** Besides `trigger`, a rule may list
+  more in `triggers`; any of them starts it. Its history says which one did.
+- **"If / otherwise" steps can check the house directly** — a device's state,
+  a mode, a time window, and And/Or/Not of those — as well as with a Rhai
+  expression as before. Together these let a pair of rules ("turn on when…",
+  "turn off when…") become one.
+- **Changes to rules are announced** on the event stream (`rule_changed`,
+  `rule_removed`), so every open screen updates when a rule is edited
+  elsewhere.
+- **A draft can be tested before it's saved** (`POST /automations/test`).
+
+### Plugins
+
+- **Turning off a plugin installed from the registry now stays off** — across
+  a restart of homeCore, and through an update. Before, both turned it back on.
+- homeCore now says when a plugin **comes back online**, not only when it goes
+  away.
+- Saving a plugin's settings from the web app changes only what changed: the
+  file keeps its comments and layout, and a masked password sent back unchanged
+  is left alone. Lists in a settings file (the thermostats, say) are edited in
+  place.
+
+### People and access
+
+- **A household-member role.** Family members can use every device and run
+  every scene, see alerts and set up their own Home — and change nothing
+  shared: no renaming or deleting devices, no rules, rooms, settings, plugins
+  or people. It comes with a new permission, `devices:command`, for using a
+  device without being able to rename or delete it.
+- **Changing someone's role signs them out everywhere**, so the new role
+  applies at once. Their own API keys lose anything the new role doesn't allow.
+- **Removing someone revokes their API keys.** Before, a removed person's keys
+  kept working. Display keys they made are the house's and stay.
+- **The house always keeps an admin**: the only admin can't be demoted or
+  removed.
+- **An admin can clear a forgotten PIN** (`DELETE /auth/users/{id}/pin`); the
+  person then chooses a new one.
+
+### The audit records changes
+
+The audit used to hold sign-ins, accounts and API keys. **It now records every
+change made through the API to how the house works** — rules, devices,
+helpers, modes, rooms, scenes, alert rules, plugins and the log level — with
+who made it and what it was called at the time, so a removed rule or room can
+still be told apart. Setting values are never recorded, only which settings
+changed (and on/off).
+
+### Backup and restore
+
+- **Restore no longer writes over homeCore's databases while it runs.** That
+  could leave the house half restored if anything failed partway. Now a backup
+  can be checked first (`POST /system/restore?check=true` says what it would
+  put back), and restoring stages it: **homeCore puts it in place at its next
+  start**, before it opens anything. Restart homeCore to finish a restore.
+- Backups now include **calendars**, and record when they were taken.
+
+### Fixed
+
+- After a calendar was added or uploaded, homeCore **reloaded the calendar
+  folder five times a second for as long as it ran**, filling the log. Its
+  own reading of the files set off the next reload.
+
+### Release matrix
+
+**Tagged at v0.1.78:** `homeCore` (core). The new web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately.
+
+### Upgrade notes
+
+- **Finish a restore with a restart.** `POST /system/restore` now stages the
+  backup; nothing changes until homeCore restarts. Anything that restored and
+  expected the house to change at once must now restart homeCore (the Flutter
+  console already says to).
+- **Changing someone's role now signs them out**, on every device.
+- **Removing someone revokes their API keys.** If a script runs on a key made
+  by someone you remove, make it a new key first.
+- Existing roles gain `devices:command` and `scenes:run` alongside what they
+  had; existing API keys are unchanged.
+- **Rules that use several moments or checks in if/otherwise can't be read by
+  an older homeCore** — keep a backup before downgrading.
+- **Update hc-tui** if anyone has the household-member role: older versions
+  can't list people once one exists.
+- The audit grows faster now that it records changes; `[auth]
+  audit_retention_days` (default 365) still governs how long it keeps them.
+
+---
+
 ## v0.1.77 — 2026-10-16
 
 **Theme:** A tablet on the wall that isn't anybody.
