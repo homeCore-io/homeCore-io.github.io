@@ -25,6 +25,48 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.79 — 2026-10-17
+
+**Theme:** Calendars that repeat the way they're written.
+
+### Repeating calendar events
+
+homeCore used to repeat only **yearly** events (holidays). A weekly bin day, a
+school day or a fortnightly recycling collection was kept only at its first
+date, so rules asking "is there a calendar event now?" or waiting for one
+missed every later occurrence.
+
+Now every repeat in an `.ics` file is followed:
+
+- Daily, weekly, every other week, monthly — by date or "the second Tuesday" —
+  and yearly, with counts and end dates.
+- Dates the calendar skips, extra dates it adds, and single occurrences moved
+  or cancelled.
+- Times in their own time zone; a time with none, and all-day dates, in the
+  house's. A weekly 07:00 stays 07:00 when the clocks change.
+
+### Fixed
+
+- **An all-day event is active all day.** A calendar reloaded after midnight
+  dropped that day's all-day event, so "bin day today" stopped being true at
+  00:01. Events already under way are now kept.
+- **All-day events start at the house's midnight**, not midnight UTC (8 p.m.
+  the evening before, in New York).
+
+### Release matrix
+
+**Tagged at v0.1.79:** `homeCore` (core).
+
+### Upgrade notes
+
+- **A calendar trigger on an all-day event fires at the house's midnight**
+  (plus any offset), where before it fired at midnight UTC. Check any rule
+  that runs "N minutes before" an all-day event.
+- Calendars with repeating events now have many more events; nothing to do —
+  they are read again when homeCore starts or the file changes.
+
+---
+
 ## v0.1.78 — 2026-10-17
 
 **Theme:** What the new web app needs to run the house — and a record of who
