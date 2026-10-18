@@ -25,6 +25,72 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.83 — 2026-10-18
+
+**Theme:** Backups homeCore makes by itself, a list of where you're signed
+in, and a newer Rust toolchain.
+
+### Backups
+
+- **homeCore backs itself up once a day.** Each backup is the same file
+  **Back up now** gives you, kept in `backups/` in homeCore's home
+  (`/homecore/backups` in the container, so on the `homecore-data` volume).
+  The newest 7 are kept, and older ones are deleted. How often, how many
+  and the folder are under Configuration › Backups (`[backup] every_hours`,
+  `keep`, `dir`). `every_hours = 0` turns the schedule off.
+- **A restart doesn't add a backup.** The next one is due a full interval
+  after the newest one already in the folder.
+- **Each one counts as a backup**: it's in the audit like one you take, so
+  "Last backup" on Data & backups includes it.
+- **The kept backups can be listed and downloaded** (`GET /system/backups`,
+  `GET /system/backups/{name}`; Settings › Data & backups). Admins only.
+- They sit on the same disk as homeCore. Keep a copy somewhere else as well.
+
+### Signing in
+
+- **See where you're signed in** (`GET /auth/sessions`; Me › Signed in):
+  each browser or app, since when, and when it was last used.
+- **Sign one out** (`DELETE /auth/sessions/{id}`), or **sign out
+  everywhere** (`POST /auth/sessions/end-all`). Signing out everywhere ends
+  every session of yours at once, including the one you're using. Both are
+  recorded in the audit.
+- Sessions started before this release don't know their browser or start
+  time. They show what they can until they next sign in.
+
+### Under the hood
+
+- **Rust 1.99.** CI, the container and the release binaries (core and
+  plugins) are all built with Rust 1.99 now. Before, CI and the container
+  used 1.95, and release binaries used whatever was newest that day. The
+  container's base is Alpine 3.24 (was 3.23).
+- No other change you'd see.
+
+### Release matrix
+
+**Tagged at v0.1.83:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately. App v0.1.12
+uses the above: the backup schedule and list on Data & backups, and Signed
+in on Me. It also, by itself:
+
+- tells an admin on the System page when a newer homeCore or app is out.
+  The app's server asks GitHub at most every six hours; homeCore never
+  does. `HC_UPDATE_CHECK=off` on the app's container turns this off.
+- offers every option a device action takes.
+- adds number and colour controls (WLED).
+- lists a plugin's own devices in its settings.
+- keeps screens up to date as they change.
+- shows each person only what their role lets them use.
+
+### Upgrade notes
+
+- **Backups start by themselves.** The first is made when homeCore starts
+  after the upgrade, then one a day. Each is about the size of the state and
+  history files together, times the 7 kept. Set `[backup] every_hours = 0`
+  if you don't want them.
+- Nothing else to do.
+
+---
+
 ## v0.1.82 — 2026-10-18
 
 **Theme:** Removed devices stay removed, helpers and modes that can be
