@@ -25,6 +25,98 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.84 — 2026-10-18
+
+**Theme:** Keys and sign-outs that mean what they say, rules that can ask
+more, and plugins that say what's dangerous.
+
+### Security
+
+- **An API key can't make or change keys any more** unless it was given
+  `api_keys:admin`. Before, any key — a wall tablet's display key included —
+  could make itself a new key with everything its owner's role allows, widen
+  itself, or drop its address fence. A key made by anyone also never gets
+  more than the person or key making it holds.
+- **Logs are for admins** (`GET /logs`, `/logs/stream`). Before, any
+  signed-in person or key, a display included, could read them.
+
+### Signing in
+
+- **Signing out ends the session in homeCore, at once** (new
+  `POST /auth/logout`, used by the app). Before, signing out only forgot the
+  browser's cookies, and the session kept working.
+- **Ending a session from another device takes effect at once**, not when its
+  access token ran out (up to a day). This holds across a restart.
+- **The sessions list marks the one you're using** (`current`).
+
+### Automations
+
+- **An if/otherwise can ask anything a rule's own checks can**: a calendar, a
+  house value, a private boolean, time since a change, who changed it last.
+- **Testing a rule answers house-value and calendar checks** instead of
+  saying no; a private boolean says it can't be told in a test.
+- **Rules paused by another rule can be seen and resumed**
+  (`GET /automations/paused`, `DELETE /automations/{id}/pause`).
+- **"Use the value that started it" works.** A step sent the bare reading
+  (`true`) as the whole command, which a device couldn't use; it now sends it
+  under the step's setting (`{"on": true}`), so one device can follow another.
+- **Starting a timer keeps its own length and its "start again"** unless the
+  start says otherwise. A rule's longer start no longer replaces the timer's
+  own length.
+- **Every calendar moment of a rule counts**, not only the first.
+- **A threshold helper is re-checked when its line changes**, not at the next
+  reading.
+
+### Notifications, backups, the broker
+
+- **Pushover "Emergency" works.** It needs how often to repeat and when to
+  stop, which homeCore never sent, so every emergency message failed. New
+  `retry` (default 60 s) and `expire` (default 1 h) on a Pushover channel.
+- **A kept backup can be put back where it is**
+  (`POST /system/backups/{name}/restore`; Data & backups › Put back…),
+  without downloading and uploading it.
+- **The MQTT v5 listener can be turned off**: `[broker] v5_port = 0`. The
+  form said "empty = off", but empty meant 1884.
+- The "Serve the bundled UI" switch is gone from the form: it did nothing
+  without a folder the form doesn't offer. `homecore.toml` still takes both.
+
+### Live updates
+
+- **A screen that falls behind is brought up to date.** One too slow to keep
+  up used to miss changes silently until it reconnected; it is now sent the
+  house as it stands.
+
+### Plugins
+
+- **A plugin can mark an action dangerous**, and a screen asks first. Marked:
+  WLED's reboot (every strip), Ecowitt's gateway reboot, Z-Wave's exclude,
+  Hue's unpair and clean-up, Roku's forgetting stale devices.
+- **WLED effects and palettes by name** — WLED publishes their names and
+  offers "Choose an effect" / "Choose a palette".
+- **The thermostat's actions start from its current setpoint and mode.**
+
+### Release matrix
+
+**Tagged at v0.1.84:** `homeCore` (core), `hc-wled` 0.1.15,
+`hc-thermostat` 0.1.14, `hc-ecowitt` 0.1.17, `hc-hue` 0.1.18, `hc-roku`
+0.1.11, `hc-zwave` 0.1.14. The web app, `ghcr.io/homecore-io/hc-web-svelte`,
+is released separately (v0.1.13 uses the above, and also: a password reset
+for someone else works again, readers of the audit and plugins can open
+them, calendars for anyone who makes rules, house values on the automations
+list, and plugin fields keep their names and help).
+
+### Upgrade notes
+
+- **Anything that read logs without being an admin** gets 403 now. Use an
+  admin's key for it.
+- **A script whose key makes or changes keys** needs `api_keys:admin` on it.
+- **Sessions signed in before the upgrade** can't be ended at once: they
+  carry no session id. They still end when their access token runs out;
+  signing in again gives a session that can.
+- Plugins update from the registry as usual; core works with the old ones.
+
+---
+
 ## v0.1.83 — 2026-10-18
 
 **Theme:** Backups homeCore makes by itself, a list of where you're signed
