@@ -25,6 +25,91 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.81 — 2026-10-18
+
+**Theme:** Alerts you can answer, rules you can run, and displays that only
+use the house.
+
+### Alerts
+
+- **Seen.** Anyone who may use the house — a display included — can mark an
+  alert as seen. It stays, marked with who and when, until its condition
+  ends; if it comes back, it's new again. homeCore keeps this in memory, so
+  after a restart an alert that is still true shows as unseen.
+- **Ignore.** An admin can stop showing some alerts: one kind on one device
+  (low battery on the hall sensor), every one of a kind (every low battery),
+  everything about a device, or one rule's — for good, or until a time. What
+  an ignore covers clears at once, isn't raised while it lasts, and isn't
+  sent anywhere; a low battery it covers isn't sent by `[battery]
+  notify_channel` either. Ignores are kept, and listed until removed.
+- **Notifications.** A time rule can name a channel (or `all`) to tell when
+  one of its alerts is raised. Something wet, smoky, jammed or offline is
+  sent to the new **`[alerts] notify_channel`** (in Configuration › Alerts);
+  a low battery still goes to `[battery] notify_channel`. Nothing is sent on
+  homeCore's first look after it starts, so a restart doesn't resend every
+  alert that is already true.
+- **Readings over or under a line.** A time rule can watch a number — a
+  freezer above −10 °C, humidity above 80 % — as well as a state, and can say
+  "isn't". "For at least" counts from when the reading first crossed the line.
+
+### Automations
+
+- **Run a rule now**, as if its moment came — even while it's off, paused or
+  resting. Its checks still decide unless you ask to skip them. The run is in
+  its history as a manual run, with who asked.
+- **Test a rule at another time.** A dry run can judge the checks as if it
+  were, say, 22:30 tomorrow: time windows and "how long" checks move to then,
+  devices and modes stay as they are now, and a script still reads the real
+  clock (the result says so).
+
+### Modes, displays, timers
+
+- **A mode can be renamed.** Its id — and so every rule that uses it — stays.
+- **A display can be renamed.** Its key, and the tablet using it, carry on.
+- **A timer can be given more time** while it runs or is paused
+  (`{"command": "extend", "duration_secs": 300}`); a repeating timer's next
+  cycle is its usual length.
+
+### Plugins
+
+- **A plugin's log level stays changed.** Setting it is now written to
+  `[logging] level` in the plugin's own settings, so it starts at that level
+  next time. (A plugin running on another runtime keeps its file there; for
+  it, the change still lasts until it restarts.)
+- homeCore now sends **`plugin_offline`** when a plugin goes offline. The
+  event existed but was never sent.
+
+### Fixed
+
+- **A timer that was paused and resumed** worked out how much time it had
+  left from its full length, so it read wrong — and came back wrong after a
+  restart — until it finished.
+
+### Security
+
+- **Displays can no longer rename, move or delete devices**, or restart
+  homeCore. They were given more than they needed (`devices:write`); they now
+  hold `devices:command` — they still control devices and run scenes. This
+  applies to displays made before this release too, without remaking them.
+
+### Release matrix
+
+**Tagged at v0.1.81:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately (v0.1.10 uses the
+above: seen and ignored alerts, readings and channels in alert rules, run
+now, test at a time, renaming modes and displays, more time on a timer).
+
+### Upgrade notes
+
+- **A display that renamed, moved or deleted devices** (none of the house's
+  apps do) is refused now (403).
+- To have wet, smoke, jammed and offline alerts sent somewhere, set
+  **Configuration › Alerts › Notify channel**. Until then they're shown, not
+  sent, as before.
+- Nothing else to do.
+
+---
+
 ## v0.1.80 — 2026-10-17
 
 **Theme:** API keys kept to where they're used, and the last settings the
