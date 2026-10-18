@@ -25,6 +25,64 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.80 — 2026-10-17
+
+**Theme:** API keys kept to where they're used, and the last settings the
+form couldn't reach.
+
+### API keys limited by address
+
+A key could always be given a list of addresses it may be used from, but
+homeCore never checked it. It does now: a key with a list is refused (403)
+from anywhere else — on the API and on the live event and log streams. A
+list homeCore can't read refuses the key rather than letting it through, and
+an entry that isn't an address or a network (`10.0.10.0/24`, `192.168.1.7`)
+is turned down when the key is made or changed.
+
+The address is the one homeCore sees. A program that reaches homeCore through
+the web app is seen at the web app's address.
+
+### Settings
+
+- **Per-module log levels** (`[logging.targets]`, e.g. `hc_core = "debug"`)
+  are in the settings form, under Logging → Per module. Before, they could
+  only be changed in the file.
+- **A setting can be taken out** through the API: a patch that sends `null`
+  for a key removes it from the file (homeCore's settings and plugins'
+  alike). It's how the form removes a per-module level.
+
+### Calendars
+
+- The calendar list says **how often a fetched calendar is fetched again**.
+- **Deleting a calendar names every rule that uses it** — rules that only
+  check "is there an event now?" as well as those it starts. Before, only the
+  second kind were listed.
+
+### Fixed
+
+- A calendar fetched through the API said it was never fetched again until
+  homeCore restarted, though it was.
+
+### Documentation
+
+- The API reference now says webhooks need no sign-in (the address is the
+  secret) and answer 200, which is what they have always done.
+
+### Release matrix
+
+**Tagged at v0.1.80:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately (v0.1.8 uses the
+above: address limits on keys, per-module log levels, calendar refresh).
+
+### Upgrade notes
+
+- **Check any API key that has an address list.** It was ignored before and
+  is enforced now; a key used from an address not on its list stops working.
+  A key without a list is unaffected. `hc-cli` shows a key's list.
+- Nothing else to do.
+
+---
+
 ## v0.1.79 — 2026-10-17
 
 **Theme:** Calendars that repeat the way they're written.
