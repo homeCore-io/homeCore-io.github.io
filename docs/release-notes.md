@@ -25,6 +25,87 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.82 — 2026-10-18
+
+**Theme:** Removed devices stay removed, helpers and modes that can be
+changed fully, and the old ways of making timers and switches gone.
+
+### Devices
+
+- **A plugin device you delete stays deleted.** It used to come back the
+  next time its plugin reported it. homeCore now remembers it: its plugin
+  reporting it again — registering it, its state, its availability — doesn't
+  bring it back. A new list (`GET /devices/removed`; Settings › Devices ›
+  Removed) has **Bring back**, after which it returns on its plugin's next
+  report, with its recorded history. Helpers and modes aren't remembered —
+  nothing reports them.
+- **Replace a device in every rule at once** (`POST /automations/repoint`):
+  for a sensor swapped for a new one, or one deleted. Rules turned off only
+  because the old device was deleted are turned on again.
+
+### Helpers and modes
+
+- **A schedule's blocks can be changed** after it's made. They're checked
+  (days, and two times) and the schedule is worked out again at once.
+- **Changing a helper is announced** like any device change, so every open
+  screen shows it as it now is.
+- **Deleting a helper** (`DELETE /glue/{id}`) turns off the rules that name
+  it and says which, as deleting a device does. It now refuses anything
+  that isn't a helper; before, it would delete any device and leave its
+  rules as they were.
+- **Helpers and modes have their name for rules as soon as they're made**,
+  not after the next restart.
+- **A sun-following mode's events can be changed** (`PATCH /modes/{id}`:
+  `on_event`, `off_event`, offsets), and new ones made without editing
+  `modes.toml`. Moving an offset now updates the mode's on and off times at
+  once, rather than at the next sunrise or sunset.
+
+### Automations
+
+- **Hub variables can be listed** (`GET /automations/variables`).
+- **The audit can pick out a kind**: `event_type=auth.*` is every sign-in
+  kind and `!auth.*` everything else.
+
+### Plugins
+
+- **Turning on a plugin that has stopped running starts it.** Before, a
+  plugin that crashed while on stayed down unless restarted.
+- **A plugin version needing a newer homeCore isn't installed** — homeCore
+  says which it needs — and installing with no version picks the newest
+  that runs here.
+
+### Settings file
+
+- A new notification channel is written with its name and type first,
+  rather than its fields in alphabetical order, and homeCore no longer
+  writes an empty `[notify]` section of its own.
+
+### Removed
+
+- **The `core.timer` and `core.switch` kinds, and the `/timers` and
+  `/switches` endpoints.** Timers and switches are helpers, made and listed
+  with `/glue` (`{"type": "timer", …}`), as they have been since helpers
+  were added; the startup step that converted old switches is gone with
+  them. `hc-tui`'s timer and switch screens used those endpoints and no
+  longer work; it is being rewritten.
+
+### Release matrix
+
+**Tagged at v0.1.82:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately (v0.1.11 uses
+the above: removed devices, schedule editing, mode sun events, repointing,
+the audit's kinds, hub variable suggestions, starting a stopped plugin).
+
+### Upgrade notes
+
+- **Anything that made timers or switches with `/timers` or `/switches`**
+  must use `/glue`. Nothing in the house's apps but `hc-tui` did.
+- **A device deleted before this release** isn't remembered — if its plugin
+  still reports it, it's back already; delete it again to keep it out.
+- Nothing else to do.
+
+---
+
 ## v0.1.81 — 2026-10-18
 
 **Theme:** Alerts you can answer, rules you can run, and displays that only
