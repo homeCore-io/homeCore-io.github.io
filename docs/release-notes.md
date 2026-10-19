@@ -88,6 +88,13 @@ automations that act on alerts.
 SDK is 0.4.2 (alerts). The web app, `ghcr.io/homecore-io/hc-web-svelte`,
 is released separately as v0.1.14, which uses all of the above.
 
+**App v0.1.15 (2026-10-19)** follows with no core change: the WLED plugin's
+page now leads with its controllers instead of a list of the plugin's raw
+actions, lists the backups the plugin keeps (put a controller's presets or
+settings back, or download one), and has the plugin's few settings —
+where the effect catalogue lives, polling, which firmware to offer, and
+controllers on other networks — on the page itself.
+
 ### Upgrade notes
 
 - **Update WLED to 0.1.16 with core**, from the registry as usual. Older
