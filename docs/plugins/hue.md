@@ -27,7 +27,9 @@ Install it from **Settings › Plugins › Add**, then open its page and choose
 4. its lights, rooms and scenes arrive.
 
 The key the bridge hands back is kept by homeCore, not in a settings file. A
-bridge you remove can be added again the same way.
+bridge you remove can be added again the same way. If a bridge's address
+changes, correct it on the plugin's page: homeCore checks the new address
+answers as that same bridge, and connects there.
 
 ## Its screens
 
@@ -44,8 +46,10 @@ All of these come with the plugin itself — update the plugin, and they update.
   opal and the rest) with their speed, its room's scenes as swatches of their
   colours, and what it is — model, signal, software. *Identify* flashes it.
 - **A room's or zone's panel**: its scenes (with *keep their colours moving*
-  and a fade time), all its lights at once — off, warm, cool, one colour — and
-  each light with its own switch.
+  and a fade time); saving how its lights are now as a new scene, and
+  renaming or deleting one; all its lights at once — off, warm, cool, one
+  colour; each light with its own switch; and the zones its lights are also
+  in.
 - **A motion sensor's panel**: motion, temperature and light level, the
   motions of the day, sensitivity, and pausing it.
 - **A switch's panel**: each of its buttons and how it was last pressed —
@@ -56,6 +60,14 @@ All of these come with the plugin itself — update the plugin, and they update.
 - **Hue scenes**, a card you add yourself (Edit → Add a card): the scenes of
   the rooms you choose, to tap, and an All off. Set it up from the card's
   settings in Edit.
+
+## Scenes
+
+Every Hue scene is a scene in homeCore, named with its room, with its colours
+on every swatch. **Smart scenes** — Hue's ones that change through the day,
+like *Natural light* — are there too, to apply like any other; change their
+times in the Hue app. A scene renamed, added or deleted in the Hue app follows
+in homeCore within seconds, as does a light renamed or moved to another room.
 
 ## Rooms and zones
 
@@ -123,6 +135,8 @@ What the screens send, for anyone writing their own:
 | light, room | `{"action": "breathe"}` | pulse once |
 | light, room | `{"action": "signal", "kind": "on_off", "duration_ms": 5000}` | blink, then put it back (`on_off_color` and `alternating` take `colors`) |
 | scene | `{"action": "activate", "dynamic": true, "duration_ms": 2000}` | apply it, colours moving, fading in |
+| scene | `{"action": "rename", "name": "Movie"}`, `{"action": "delete"}` | rename it, delete it from the bridge |
+| room | `{"action": "save_scene", "name": "Movie"}` | save its lights as they are as a new scene |
 | light, room | `{"action": "activate", "scene_id": "<the scene's resource_id>"}` | apply a scene through it |
 | motion sensor | `{"motion_sensitivity": 2}`, `{"enabled": false}` | sensitivity 0–2; pause it |
 
