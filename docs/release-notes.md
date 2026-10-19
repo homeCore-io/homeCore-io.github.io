@@ -25,6 +25,55 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.87 — 2026-10-19
+
+**Theme:** WLED's screens now come with WLED, and plugins' screens can do more.
+
+### WLED
+
+- **Nothing to relearn.** WLED's plugin page, a controller's panel and the
+  automation editor's WLED step look and work as they did — they now come
+  with the WLED plugin itself, so they update with it, not with the app.
+- **Names everywhere.** Each controller now tells homeCore the names of its
+  presets, playlists, effects and palettes, so automations say “Halloween 1”
+  — in the moments ("Eaves lights' preset becomes “Halloween 1”"), the checks
+  and the steps — everywhere they are shown.
+- **Firmware from a file** goes to the plugin through homeCore now; the
+  plugin backs the controller up, sends the file and waits for it to come
+  back, as before. A file that isn't a firmware image is turned away before
+  anything happens to the controller.
+
+### For plugin authors
+
+- A plugin's screens can now also be the automation editor's form for steps
+  on its devices (`rule.step`), and word those steps in automation sentences.
+- `host` gained `upload` (send a file to one of the plugin's actions —
+  `POST /plugins/{id}/upload/{action}`, up to 32 MiB), `store` (documents
+  the app keeps for the plugin's screens), `fetch` (homeCore's API as the
+  viewer) and each device's firmware version.
+- A plugin that names a device's numbers in its schema (`options` on an
+  integer attribute) gets those names in every picker and sentence with no
+  screen of its own.
+- The Python (0.5.0), Node.js (0.4.0) and .NET (0.4.0) SDKs can serve a
+  plugin's own screens, like the Rust SDK (now 0.6.0, which also receives
+  files sent to actions).
+
+### Release matrix
+
+**Tagged at v0.1.87:** `homeCore` (core), `hc-wled` 0.1.19. The Rust plugin
+SDK is 0.6.0. The web app, `ghcr.io/homecore-io/hc-web-svelte`, is released
+separately as v0.1.18. Python SDK v0.5.0, Node.js SDK v0.4.0, .NET SDK v0.4.0.
+
+### Upgrade notes
+
+- **Update core, the web app and WLED together.** The app no longer contains
+  WLED's screens: with an older WLED, its controllers show the generic
+  screens until WLED 0.1.19 is installed (Plugins → WLED → Update). An older
+  core drops WLED's automation step form and can't take a firmware file.
+- Automations, presets and controllers are untouched.
+
+---
+
 ## v0.1.86 — 2026-10-19
 
 **Theme:** plugins can bring their own screens. Ecowitt is the first.
