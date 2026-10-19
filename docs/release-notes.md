@@ -128,6 +128,24 @@ its own screens, and a faster, steadier plugin under them:
 were set (`publish_grouped_lights_for`); turn others on from its page.
 Automations keep working; a room's device now also takes colour and white.
 
+**hc-hue 0.2.1 (2026-10-19)** follows, again with no core change:
+
+- **Smart scenes** — Hue's ones that change through the day, like *Natural
+  light* — are scenes in homeCore now, to apply like any other.
+- **Your own scenes from a room's panel:** save how its lights are now as a
+  new scene, rename a scene, or delete one from the bridge.
+- **Changes in the Hue app follow.** A light renamed or moved to another
+  room, and a scene added, renamed or deleted, reach homeCore within seconds;
+  before, a rename never did and a deletion could take a minute.
+- **A bridge's address can be changed** on the plugin's page. homeCore first
+  checks the new address answers as that same bridge, so a typo cannot point
+  it at another one.
+- **A room's panel lists the zones** its lights are also in.
+
+**Upgrade:** update the plugin; nothing to change. Entertainment areas are
+deliberately unchanged — starting one needs an app streaming colours over
+Hue's own protocol, which homeCore does not speak.
+
 ---
 
 ## v0.1.87 — 2026-10-19
