@@ -25,6 +25,81 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.85 — 2026-10-18
+
+**Theme:** WLED controllers in full, plugins that raise alerts, and
+automations that act on alerts.
+
+### WLED
+
+- **Changes made outside homeCore now show up.** Since newer WLED firmware,
+  the plugin couldn't read the controller's description at start, took it for
+  unreachable and polled every 30 seconds; and the live connection it should
+  have used was never read anyway. Both are fixed: a change made in WLED's
+  app, on a button or by another WLED reaches homeCore at once.
+- **Everything WLED does, from its device page:** every segment (split, join,
+  add, delete, their LEDs, grouping, direction, white temperature), each
+  effect with only the controls it uses — named as WLED names them — colours
+  and palettes drawn in their colours, presets and playlists by name (save,
+  rename, delete, the preset at power-on), nightlight, sync with other WLEDs,
+  live data, sound, the controller's own timers and LED outputs, backups,
+  restoring them, and copying presets between controllers.
+- **Firmware updates.** homeCore looks for new firmware for each controller's
+  own board (daily, from WLED's GitHub releases, on the channel you choose),
+  shows it on the System page, and installs it — from GitHub or a file you
+  choose — backing the controller up first and checking it came back on the
+  new version. "Update all" goes one controller at a time.
+- **Several controllers:** the plugin page lists them with the address each
+  is reached at (which can now be changed there), finds new ones on the
+  network, adds one by address, and removes one.
+- **Rules name presets and playlists** — "when the eaves start preset
+  Halloween 1", "only if the garage is running Halloween Solid" — and a WLED
+  step sets a preset, a playlist, a look, the nightlight, power or sync, on
+  one controller or several (a preset is matched by name on each).
+- **Reboot from the plugin page reaches one controller** when you say which;
+  it used to restart every one.
+
+### Alerts
+
+- **Plugins raise alerts about their devices** — WLED's: a firmware update
+  is out, one is being installed, one failed, a controller restarted by
+  itself. Each kind is listed in Settings › Alerts, to turn off or send to a
+  notification channel. An alert can carry a button ("Update…"), and a single
+  one can be skipped ("skip 17.0.0") without silencing its kind. A plugin's
+  alert is never critical.
+- **Automations can start on, check and act on alerts:** when one is raised,
+  clears, is seen or has lasted a while; only if one is (or none is) active;
+  and press its button, wait for it to clear, mark it seen, skip it, or
+  ignore alerts like it for a while — for each such alert, one at a time.
+  `{alert.device}`, `{alert.key}` and friends fill in a message.
+
+### Plugins
+
+- **A plugin's action no longer stalls the plugin** while it runs. A long one
+  (a firmware install waiting for its controller) used to stop the plugin
+  hearing anything, keep-alives included.
+- **Read-only plugin information is open to anyone who can see devices**
+  (`POST /plugins/{id}/query`), so a household member's screen shows a WLED's
+  effect names as an admin's does.
+
+### Release matrix
+
+**Tagged at v0.1.85:** `homeCore` (core), `hc-wled` 0.1.16. The Rust plugin
+SDK is 0.4.2 (alerts). The web app, `ghcr.io/homecore-io/hc-web-svelte`,
+is released separately as v0.1.14, which uses all of the above.
+
+### Upgrade notes
+
+- **Update WLED to 0.1.16 with core**, from the registry as usual. Older
+  plugins work with this core unchanged.
+- **WLED's "firmware update available" alert is off until you turn it on**
+  (Settings › Alerts); the System page lists updates either way.
+- Rules that set a WLED's preset, effect or palette by number keep working.
+- If you put the web app behind your own proxy, let requests of a few
+  megabytes through to it, for installing firmware from a file.
+
+---
+
 ## v0.1.84 — 2026-10-18
 
 **Theme:** Keys and sign-outs that mean what they say, rules that can ask
