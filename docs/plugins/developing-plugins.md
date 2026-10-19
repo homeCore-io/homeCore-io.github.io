@@ -9,6 +9,15 @@ sidebar_position: 2
 
 Plugins can be written in any language that has an MQTT client library. HomeCore provides first-class SDKs for Rust, Python, Node.js, and .NET Core.
 
+:::tip The whole process, end to end
+[`docs/plugin-development.md`](https://github.com/homeCore-io/homeCore/blob/main/docs/plugin-development.md)
+in the homeCore repository walks through building a plugin from start to
+release — devices, actions, settings, alerts, its own screens and cards,
+testing and releasing — with pointers to working examples. This page is the
+reference for each part; [Screens and Cards](./plugin-screens) and
+[Alerts from Plugins](./plugin-alerts) cover those two in full.
+:::
+
 **The Rust SDK and every Rust plugin live inside the homeCore repository**, at
 `sdk/rust` and `plugins/<name>`. The Python, Node.js and .NET SDKs are separate
 repositories, cloned into `sdks/` alongside `core/`.
@@ -760,6 +769,41 @@ covering all the patterns; the `hc-captest` plugin in
 `plugins/hc-captest/` has six minimal-but-complete demos exercising
 every convention.
 
+### Files sent to an action
+
+`POST /api/v1/plugins/{id}/upload/{action}` sends a file (up to 32 MiB) to one
+of your manifest actions — a firmware image, a backup to restore. homeCore
+checks the action's role, sends the file to the plugin in pieces over the
+management channel, then runs the action as usual: the SDK hands it a
+`file_path` param — a local file, removed once the action has replied (copy it
+first if a streaming action keeps working). Query parameters arrive as params,
+as strings. From a plugin's own screen: `host.upload(action, file, params)`.
+Rust SDK only, today.
+
+```rust
+"install_firmware_file" => {
+    let path = cmd["file_path"].as_str().unwrap_or_default();
+    let image = std::fs::read(path)?;
+    // ...check it is what you expect before acting on it
+}
+```
+
+## Alerts
+
+Alerts about your devices — a firmware update, a device that restarted by
+itself — join the house's alert list, can be sent to a notification channel and
+can drive automations. Declare the kinds with `with_alert_kinds`, then say
+which are true now with `set_alerts(device_id, [...])`: the whole list each
+time, so one you stop sending has cleared. See
+[Alerts from Plugins](./plugin-alerts).
+
+## Its own screens and cards
+
+A plugin can carry web components for its page, its devices' panel, the
+automation editor's form for a step on its devices, its devices' cards on Home
+and the rooms, and cards of its own a household adds to a page — serving them
+itself with `with_ui_dir`. See [Screens and Cards](./plugin-screens).
+
 ## SDK feature matrix
 
 | Feature | Rust | Python | Node.js | .NET |
@@ -781,6 +825,9 @@ every convention.
 | Cross-device state subscription | ✅ | ✅ | ✅ | ✅ |
 | Log forwarding (MQTT) | ✅ | ✅ | ✅ | ✅ |
 | Device persistence + reconcile | ✅ | ✅ | ✅ | ✅ |
+| Alerts (alert kinds, `set_alerts`) | ✅ | ✅ | ✅ | ✅ |
+| Own screens and cards (`with_ui_dir`) | ✅ | ✅ | ✅ | ✅ |
+| Files sent to actions | ✅ | — | — | — |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
 
@@ -900,6 +947,11 @@ its `[registry]` config, unpacks it to
 `$HOMECORE_HOME/plugins/<id>/<version>/`, seeds a config with generated MQTT
 credentials, and runs the binary as a child process it supervises and
 restarts. Users install with Plugins → Add in the web UI.
+
+A plugin with its own screens has them in the same package: when your plugin
+has `ui/package.json`, the release builds it and packs `ui/dist` as `ui/`
+beside the binary (`ui = "ui"` in `plugin.toml`), and homeCore installs it
+there for the plugin to serve. Commit `ui/package-lock.json`.
 
 Releasing is one tag on the homeCore repo. Bump your plugin's `Cargo.toml` on
 `develop`, merge to `main`, and push `hc-my-plugin-v0.1.0`. The shared workflow
@@ -1137,6 +1189,21 @@ If your plugin is a receiver rather than a poller, the honest version is a
 flag your next inbound report reads, and an action description that says so:
 there is nothing to describe until the hardware speaks.
 
+### Name your numbers
+
+A number that is a choice — a preset, an effect, a scene slot — is said by name
+everywhere when its attribute has `options`:
+
+```json
+"preset_id": { "kind": "integer", "writable": true, "display_name": "Preset",
+  "options": [{ "value": "14", "label": "Halloween 1" }, { "value": "16", "label": "Halloween Solid" }] }
+```
+
+Pickers offer "Halloween 1", triggers read "preset becomes “Halloween 1”", and
+no screen of yours is needed. Options may differ per device and change: build
+each device's schema with its own names and republish it when they change (and
+only then). hc-wled's `schema_named` does exactly this.
+
 ### Read and write the same name
 
 The command path and the schema must agree, attribute by attribute:
@@ -1248,6 +1315,17 @@ can know.
 - [ ] Commands are subscribed as well as registered — forgetting
       `subscribe_commands` gives a device whose state updates and whose
       commands go nowhere.
+
+**Its screens**, if it has any
+
+- [ ] They use `host` for everything — not the app's own modules or its API
+      paths — and fall back cleanly (the app shows its generic screens when a
+      plugin's won't load).
+- [ ] Cards list the `forms` they can be, use `hc-tile`, and look right at a
+      phone's half width.
+- [ ] Checked in light and dark, on a test homeCore — never the real house.
+- [ ] `ui/` builds from a clean checkout (`npm ci && npm run build`) and writes
+      `dist/manifest.json`.
 
 **The check that catches most of it**
 
