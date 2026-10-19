@@ -25,6 +25,777 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.88 — 2026-10-19
+
+**Theme:** plugins' own cards on Home and the rooms.
+
+### Cards
+
+- **Devices get their plugin's own card.** Wherever a WLED controller or an
+  Ecowitt weather station appears — a room, Home's Pinned, your favourites —
+  it now has a card made for it:
+  - a WLED controller: on and off, its look as a strip of its colours, what
+    it runs and how bright; at the large size, its presets to tap;
+  - a weather station: the temperature, humidity, wind and today's rain; at
+    the large size, the wind on a compass, UV and pressure.
+- **Cards of a plugin's own, added to a page.** Edit → "Add a card" now
+  offers plugins' cards beside the house's devices and scenes:
+  - **Weather now** (Ecowitt) — the weather at a glance, with the pressure
+    trend; large, also UV, lightning and sensors with low batteries;
+  - **Quick presets** (WLED) — the presets you choose, on the controllers you
+    choose, each found by name on every controller; set up from the card's
+    Settings in Edit.
+  Each one added is its own card, with its own settings on that page, kept
+  by the web app — not by homeCore.
+
+### For plugin authors
+
+- Two new places for a plugin's screens: `device.card` (its devices' card)
+  and `dashboard.card` (a card of its own, with a name for "Add a card", the
+  sizes it can be and an optional settings element). The `hc-tile` class
+  gives a card the app's own frame. See `@homecore/plugin-ui` (`core/sdk/ui`).
+- The SDKs (Rust 0.6.1, Python 0.5.1, Node.js 0.4.1, .NET 0.4.1) now pass a
+  plugin's slots through as declared — homeCore decides which exist — so a
+  plugin is no longer held back from a newer slot by an older SDK. The
+  slot-filtering helpers the non-Rust SDKs had (`validated()` and their slot
+  lists) are gone.
+
+### Release matrix
+
+**Tagged at v0.1.88:** `homeCore` (core), `hc-wled` 0.1.20, `hc-ecowitt`
+0.1.19. The Rust plugin SDK is 0.6.1. The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately as v0.1.19.
+Python SDK v0.5.1, Node.js SDK v0.4.1, .NET SDK v0.4.1.
+
+### Upgrade notes
+
+- **Update core, the web app, WLED and Ecowitt** to see the cards. In any
+  other order nothing breaks: a device keeps its generic card until its
+  plugin carries one.
+- Nothing about pages changes on its own: plugins' cards appear only where
+  someone adds them, and devices' own cards replace the generic ones in place.
+
+---
+
+## v0.1.87 — 2026-10-19
+
+**Theme:** WLED's screens now come with WLED, and plugins' screens can do more.
+
+### WLED
+
+- **Nothing to relearn.** WLED's plugin page, a controller's panel and the
+  automation editor's WLED step look and work as they did — they now come
+  with the WLED plugin itself, so they update with it, not with the app.
+- **Names everywhere.** Each controller now tells homeCore the names of its
+  presets, playlists, effects and palettes, so automations say “Halloween 1”
+  — in the moments ("Eaves lights' preset becomes “Halloween 1”"), the checks
+  and the steps — everywhere they are shown.
+- **Firmware from a file** goes to the plugin through homeCore now; the
+  plugin backs the controller up, sends the file and waits for it to come
+  back, as before. A file that isn't a firmware image is turned away before
+  anything happens to the controller.
+
+### For plugin authors
+
+- A plugin's screens can now also be the automation editor's form for steps
+  on its devices (`rule.step`), and word those steps in automation sentences.
+- `host` gained `upload` (send a file to one of the plugin's actions —
+  `POST /plugins/{id}/upload/{action}`, up to 32 MiB), `store` (documents
+  the app keeps for the plugin's screens), `fetch` (homeCore's API as the
+  viewer) and each device's firmware version.
+- A plugin that names a device's numbers in its schema (`options` on an
+  integer attribute) gets those names in every picker and sentence with no
+  screen of its own.
+- The Python (0.5.0), Node.js (0.4.0) and .NET (0.4.0) SDKs can serve a
+  plugin's own screens, like the Rust SDK (now 0.6.0, which also receives
+  files sent to actions).
+
+### Release matrix
+
+**Tagged at v0.1.87:** `homeCore` (core), `hc-wled` 0.1.19. The Rust plugin
+SDK is 0.6.0. The web app, `ghcr.io/homecore-io/hc-web-svelte`, is released
+separately as v0.1.18. Python SDK v0.5.0, Node.js SDK v0.4.0, .NET SDK v0.4.0.
+
+### Upgrade notes
+
+- **Update core, the web app and WLED together.** The app no longer contains
+  WLED's screens: with an older WLED, its controllers show the generic
+  screens until WLED 0.1.19 is installed (Plugins → WLED → Update). An older
+  core drops WLED's automation step form and can't take a firmware file.
+- Automations, presets and controllers are untouched.
+
+---
+
+## v0.1.86 — 2026-10-19
+
+**Theme:** plugins can bring their own screens. Ecowitt is the first.
+
+### Ecowitt has its own page
+
+- **The Ecowitt plugin's page** now shows:
+  - whether the gateway is reporting, and where its uploads go — it says so
+    when they go to a port the plugin isn't listening on, and offers to point
+    them here;
+  - the weather now: outside, the wind on a compass, rain, and sky and air;
+  - every sensor with its reading, its battery in the right terms for its
+    kind (OK/low, volts or level), and when it was last heard;
+  - "What the gateway hears": each paired sensor's signal, on demand;
+  - the plugin's settings.
+- **The weather station's panel** (open the station from any page) shows the
+  weather now, the last day of temperature, wind and pressure, and the other
+  sensors on the same gateway.
+
+### For plugin authors
+
+- A plugin can carry web components — a page for itself, a panel for its
+  devices — beside its program, and serve them itself. homeCore passes the
+  files to the web app and keeps none, so the screens are always the ones the
+  running plugin carries, however it was installed (registry, file, source
+  build, plugin runtime). Rust SDK 0.5.0: `with_ui_dir`. The `host` interface
+  the app hands each component is described by `@homecore/plugin-ui`
+  (`core/sdk/ui`); `plugins/hc-ecowitt/ui` is a complete example.
+- A plugin's release packs its `ui/` folder into its package when it has one.
+
+### Release matrix
+
+**Tagged at v0.1.86:** `homeCore` (core), `hc-ecowitt` 0.1.18. The Rust
+plugin SDK is 0.5.0. The web app, `ghcr.io/homecore-io/hc-web-svelte`, is
+released separately as v0.1.17, which shows plugins' own screens.
+
+### Upgrade notes
+
+- **Update core, the web app and Ecowitt together** for the new screens.
+  Any one alone changes nothing you can see: an older app or an older core
+  shows the screens as before, and an older Ecowitt carries none.
+- Nothing about Ecowitt's readings, devices or automations changes.
+
+---
+
+## v0.1.85 — 2026-10-18
+
+**Theme:** WLED controllers in full, plugins that raise alerts, and
+automations that act on alerts.
+
+### WLED
+
+- **Changes made outside homeCore now show up.** Since newer WLED firmware,
+  the plugin couldn't read the controller's description at start, took it for
+  unreachable and polled every 30 seconds; and the live connection it should
+  have used was never read anyway. Both are fixed: a change made in WLED's
+  app, on a button or by another WLED reaches homeCore at once.
+- **Everything WLED does, from its device page:** every segment (split, join,
+  add, delete, their LEDs, grouping, direction, white temperature), each
+  effect with only the controls it uses — named as WLED names them — colours
+  and palettes drawn in their colours, presets and playlists by name (save,
+  rename, delete, the preset at power-on), nightlight, sync with other WLEDs,
+  live data, sound, the controller's own timers and LED outputs, backups,
+  restoring them, and copying presets between controllers.
+- **Firmware updates.** homeCore looks for new firmware for each controller's
+  own board (daily, from WLED's GitHub releases, on the channel you choose),
+  shows it on the System page, and installs it — from GitHub or a file you
+  choose — backing the controller up first and checking it came back on the
+  new version. "Update all" goes one controller at a time.
+- **Several controllers:** the plugin page lists them with the address each
+  is reached at (which can now be changed there), finds new ones on the
+  network, adds one by address, and removes one.
+- **Rules name presets and playlists** — "when the eaves start preset
+  Halloween 1", "only if the garage is running Halloween Solid" — and a WLED
+  step sets a preset, a playlist, a look, the nightlight, power or sync, on
+  one controller or several (a preset is matched by name on each).
+- **Reboot from the plugin page reaches one controller** when you say which;
+  it used to restart every one.
+
+### Alerts
+
+- **Plugins raise alerts about their devices** — WLED's: a firmware update
+  is out, one is being installed, one failed, a controller restarted by
+  itself. Each kind is listed in Settings › Alerts, to turn off or send to a
+  notification channel. An alert can carry a button ("Update…"), and a single
+  one can be skipped ("skip 17.0.0") without silencing its kind. A plugin's
+  alert is never critical.
+- **Automations can start on, check and act on alerts:** when one is raised,
+  clears, is seen or has lasted a while; only if one is (or none is) active;
+  and press its button, wait for it to clear, mark it seen, skip it, or
+  ignore alerts like it for a while — for each such alert, one at a time.
+  `{alert.device}`, `{alert.key}` and friends fill in a message.
+
+### Plugins
+
+- **A plugin's action no longer stalls the plugin** while it runs. A long one
+  (a firmware install waiting for its controller) used to stop the plugin
+  hearing anything, keep-alives included.
+- **Read-only plugin information is open to anyone who can see devices**
+  (`POST /plugins/{id}/query`), so a household member's screen shows a WLED's
+  effect names as an admin's does.
+
+### Release matrix
+
+**Tagged at v0.1.85:** `homeCore` (core), `hc-wled` 0.1.16. The Rust plugin
+SDK is 0.4.2 (alerts). The web app, `ghcr.io/homecore-io/hc-web-svelte`,
+is released separately as v0.1.14, which uses all of the above.
+
+**App v0.1.15 (2026-10-19)** follows with no core change: the WLED plugin's
+page now leads with its controllers instead of a list of the plugin's raw
+actions, lists the backups the plugin keeps (put a controller's presets or
+settings back, or download one), and has the plugin's few settings —
+where the effect catalogue lives, polling, which firmware to offer, and
+controllers on other networks — on the page itself.
+
+**hc-wled 0.1.17 and app v0.1.16 (2026-10-19)** follow, again with no core
+change. Update WLED from the registry, then the app:
+
+- **Install WLED updates by itself, at night** — a choice on the WLED plugin
+  page and in Settings › Alerts. It writes an ordinary automation, *Install
+  WLED updates at night*, which you can open and change: at 03:00 it installs
+  each waiting update in turn, and stops and tells you if a controller doesn't
+  come back within ten minutes. It turns on the "Firmware update available"
+  alert, which it acts on. Off unless you turn it on.
+- **A controller's own setup, in full:** sound (gain, ignore-below, automatic
+  gain, smoothing, sound sync, the microphone); timers at a time or at
+  sunrise/sunset with an offset, on chosen days and dates; buttons (what a
+  press, long press and double press do), the IR remote; its name and
+  address on the network, moving it to another Wi-Fi network, its own access
+  point; and its clock. Hardware and network changes restart the controller
+  and ask first — a wrong address or Wi-Fi password takes it off the network
+  until it is fixed from its own access point.
+- **Segments:** drag a boundary on the strip, or move it with the arrow keys.
+- **Presets:** copy one preset to another controller, or duplicate it.
+- The IR receiver's and microphone's pins were shown hidden, as if secret;
+  they are now shown and can be changed.
+
+The plugin SDKs for Python (0.4.0), Node.js (0.3.0) and .NET (0.3.0) can now
+raise alerts, as the Rust SDK has since 0.4.2.
+
+### Upgrade notes
+
+- **Update WLED to 0.1.16 with core**, from the registry as usual. Older
+  plugins work with this core unchanged.
+- **WLED's "firmware update available" alert is off until you turn it on**
+  (Settings › Alerts); the System page lists updates either way.
+- Rules that set a WLED's preset, effect or palette by number keep working.
+- If you put the web app behind your own proxy, let requests of a few
+  megabytes through to it, for installing firmware from a file.
+
+---
+
+## v0.1.84 — 2026-10-18
+
+**Theme:** Keys and sign-outs that mean what they say, rules that can ask
+more, and plugins that say what's dangerous.
+
+### Security
+
+- **An API key can't make or change keys any more** unless it was given
+  `api_keys:admin`. Before, any key — a wall tablet's display key included —
+  could make itself a new key with everything its owner's role allows, widen
+  itself, or drop its address fence. A key made by anyone also never gets
+  more than the person or key making it holds.
+- **Logs are for admins** (`GET /logs`, `/logs/stream`). Before, any
+  signed-in person or key, a display included, could read them.
+
+### Signing in
+
+- **Signing out ends the session in homeCore, at once** (new
+  `POST /auth/logout`, used by the app). Before, signing out only forgot the
+  browser's cookies, and the session kept working.
+- **Ending a session from another device takes effect at once**, not when its
+  access token ran out (up to a day). This holds across a restart.
+- **The sessions list marks the one you're using** (`current`).
+
+### Automations
+
+- **An if/otherwise can ask anything a rule's own checks can**: a calendar, a
+  house value, a private boolean, time since a change, who changed it last.
+- **Testing a rule answers house-value and calendar checks** instead of
+  saying no; a private boolean says it can't be told in a test.
+- **Rules paused by another rule can be seen and resumed**
+  (`GET /automations/paused`, `DELETE /automations/{id}/pause`).
+- **"Use the value that started it" works.** A step sent the bare reading
+  (`true`) as the whole command, which a device couldn't use; it now sends it
+  under the step's setting (`{"on": true}`), so one device can follow another.
+- **Starting a timer keeps its own length and its "start again"** unless the
+  start says otherwise. A rule's longer start no longer replaces the timer's
+  own length.
+- **Every calendar moment of a rule counts**, not only the first.
+- **A threshold helper is re-checked when its line changes**, not at the next
+  reading.
+
+### Notifications, backups, the broker
+
+- **Pushover "Emergency" works.** It needs how often to repeat and when to
+  stop, which homeCore never sent, so every emergency message failed. New
+  `retry` (default 60 s) and `expire` (default 1 h) on a Pushover channel.
+- **A kept backup can be put back where it is**
+  (`POST /system/backups/{name}/restore`; Data & backups › Put back…),
+  without downloading and uploading it.
+- **The MQTT v5 listener can be turned off**: `[broker] v5_port = 0`. The
+  form said "empty = off", but empty meant 1884.
+- The "Serve the bundled UI" switch is gone from the form: it did nothing
+  without a folder the form doesn't offer. `homecore.toml` still takes both.
+
+### Live updates
+
+- **A screen that falls behind is brought up to date.** One too slow to keep
+  up used to miss changes silently until it reconnected; it is now sent the
+  house as it stands.
+
+### Plugins
+
+- **A plugin can mark an action dangerous**, and a screen asks first. Marked:
+  WLED's reboot (every strip), Ecowitt's gateway reboot, Z-Wave's exclude,
+  Hue's unpair and clean-up, Roku's forgetting stale devices.
+- **WLED effects and palettes by name** — WLED publishes their names and
+  offers "Choose an effect" / "Choose a palette".
+- **The thermostat's actions start from its current setpoint and mode.**
+
+### Release matrix
+
+**Tagged at v0.1.84:** `homeCore` (core), `hc-wled` 0.1.15,
+`hc-thermostat` 0.1.14, `hc-ecowitt` 0.1.17, `hc-hue` 0.1.18, `hc-roku`
+0.1.11, `hc-zwave` 0.1.14. The web app, `ghcr.io/homecore-io/hc-web-svelte`,
+is released separately (v0.1.13 uses the above, and also: a password reset
+for someone else works again, readers of the audit and plugins can open
+them, calendars for anyone who makes rules, house values on the automations
+list, and plugin fields keep their names and help).
+
+### Upgrade notes
+
+- **Anything that read logs without being an admin** gets 403 now. Use an
+  admin's key for it.
+- **A script whose key makes or changes keys** needs `api_keys:admin` on it.
+- **Sessions signed in before the upgrade** can't be ended at once: they
+  carry no session id. They still end when their access token runs out;
+  signing in again gives a session that can.
+- Plugins update from the registry as usual; core works with the old ones.
+
+---
+
+## v0.1.83 — 2026-10-18
+
+**Theme:** Backups homeCore makes by itself, a list of where you're signed
+in, and a newer Rust toolchain.
+
+### Backups
+
+- **homeCore backs itself up once a day.** Each backup is the same file
+  **Back up now** gives you, kept in `backups/` in homeCore's home
+  (`/homecore/backups` in the container, so on the `homecore-data` volume).
+  The newest 7 are kept, and older ones are deleted. How often, how many
+  and the folder are under Configuration › Backups (`[backup] every_hours`,
+  `keep`, `dir`). `every_hours = 0` turns the schedule off.
+- **A restart doesn't add a backup.** The next one is due a full interval
+  after the newest one already in the folder.
+- **Each one counts as a backup**: it's in the audit like one you take, so
+  "Last backup" on Data & backups includes it.
+- **The kept backups can be listed and downloaded** (`GET /system/backups`,
+  `GET /system/backups/{name}`; Settings › Data & backups). Admins only.
+- They sit on the same disk as homeCore. Keep a copy somewhere else as well.
+
+### Signing in
+
+- **See where you're signed in** (`GET /auth/sessions`; Me › Signed in):
+  each browser or app, since when, and when it was last used.
+- **Sign one out** (`DELETE /auth/sessions/{id}`), or **sign out
+  everywhere** (`POST /auth/sessions/end-all`). Signing out everywhere ends
+  every session of yours at once, including the one you're using. Both are
+  recorded in the audit.
+- Sessions started before this release don't know their browser or start
+  time. They show what they can until they next sign in.
+
+### Under the hood
+
+- **Rust 1.99.** CI, the container and the release binaries (core and
+  plugins) are all built with Rust 1.99 now. Before, CI and the container
+  used 1.95, and release binaries used whatever was newest that day. The
+  container's base is Alpine 3.24 (was 3.23).
+- No other change you'd see.
+
+### Release matrix
+
+**Tagged at v0.1.83:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately. App v0.1.12
+uses the above: the backup schedule and list on Data & backups, and Signed
+in on Me. It also, by itself:
+
+- tells an admin on the System page when a newer homeCore or app is out.
+  The app's server asks GitHub at most every six hours; homeCore never
+  does. `HC_UPDATE_CHECK=off` on the app's container turns this off.
+- offers every option a device action takes.
+- adds number and colour controls (WLED).
+- lists a plugin's own devices in its settings.
+- keeps screens up to date as they change.
+- shows each person only what their role lets them use.
+
+### Upgrade notes
+
+- **Backups start by themselves.** The first is made when homeCore starts
+  after the upgrade, then one a day. Each is about the size of the state and
+  history files together, times the 7 kept. Set `[backup] every_hours = 0`
+  if you don't want them.
+- Nothing else to do.
+
+---
+
+## v0.1.82 — 2026-10-18
+
+**Theme:** Removed devices stay removed, helpers and modes that can be
+changed fully, and the old ways of making timers and switches gone.
+
+### Devices
+
+- **A plugin device you delete stays deleted.** It used to come back the
+  next time its plugin reported it. homeCore now remembers it: its plugin
+  reporting it again — registering it, its state, its availability — doesn't
+  bring it back. A new list (`GET /devices/removed`; Settings › Devices ›
+  Removed) has **Bring back**, after which it returns on its plugin's next
+  report, with its recorded history. Helpers and modes aren't remembered —
+  nothing reports them.
+- **Replace a device in every rule at once** (`POST /automations/repoint`):
+  for a sensor swapped for a new one, or one deleted. Rules turned off only
+  because the old device was deleted are turned on again.
+
+### Helpers and modes
+
+- **A schedule's blocks can be changed** after it's made. They're checked
+  (days, and two times) and the schedule is worked out again at once.
+- **Changing a helper is announced** like any device change, so every open
+  screen shows it as it now is.
+- **Deleting a helper** (`DELETE /glue/{id}`) turns off the rules that name
+  it and says which, as deleting a device does. It now refuses anything
+  that isn't a helper; before, it would delete any device and leave its
+  rules as they were.
+- **Helpers and modes have their name for rules as soon as they're made**,
+  not after the next restart.
+- **A sun-following mode's events can be changed** (`PATCH /modes/{id}`:
+  `on_event`, `off_event`, offsets), and new ones made without editing
+  `modes.toml`. Moving an offset now updates the mode's on and off times at
+  once, rather than at the next sunrise or sunset.
+
+### Automations
+
+- **Hub variables can be listed** (`GET /automations/variables`).
+- **The audit can pick out a kind**: `event_type=auth.*` is every sign-in
+  kind and `!auth.*` everything else.
+
+### Plugins
+
+- **Turning on a plugin that has stopped running starts it.** Before, a
+  plugin that crashed while on stayed down unless restarted.
+- **A plugin version needing a newer homeCore isn't installed** — homeCore
+  says which it needs — and installing with no version picks the newest
+  that runs here.
+
+### Settings file
+
+- A new notification channel is written with its name and type first,
+  rather than its fields in alphabetical order, and homeCore no longer
+  writes an empty `[notify]` section of its own.
+
+### Removed
+
+- **The `core.timer` and `core.switch` kinds, and the `/timers` and
+  `/switches` endpoints.** Timers and switches are helpers, made and listed
+  with `/glue` (`{"type": "timer", …}`), as they have been since helpers
+  were added; the startup step that converted old switches is gone with
+  them. `hc-tui`'s timer and switch screens used those endpoints and no
+  longer work; it is being rewritten.
+
+### Release matrix
+
+**Tagged at v0.1.82:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately (v0.1.11 uses
+the above: removed devices, schedule editing, mode sun events, repointing,
+the audit's kinds, hub variable suggestions, starting a stopped plugin).
+
+### Upgrade notes
+
+- **Anything that made timers or switches with `/timers` or `/switches`**
+  must use `/glue`. Nothing in the house's apps but `hc-tui` did.
+- **A device deleted before this release** isn't remembered — if its plugin
+  still reports it, it's back already; delete it again to keep it out.
+- Nothing else to do.
+
+---
+
+## v0.1.81 — 2026-10-18
+
+**Theme:** Alerts you can answer, rules you can run, and displays that only
+use the house.
+
+### Alerts
+
+- **Seen.** Anyone who may use the house — a display included — can mark an
+  alert as seen. It stays, marked with who and when, until its condition
+  ends; if it comes back, it's new again. homeCore keeps this in memory, so
+  after a restart an alert that is still true shows as unseen.
+- **Ignore.** An admin can stop showing some alerts: one kind on one device
+  (low battery on the hall sensor), every one of a kind (every low battery),
+  everything about a device, or one rule's — for good, or until a time. What
+  an ignore covers clears at once, isn't raised while it lasts, and isn't
+  sent anywhere; a low battery it covers isn't sent by `[battery]
+  notify_channel` either. Ignores are kept, and listed until removed.
+- **Notifications.** A time rule can name a channel (or `all`) to tell when
+  one of its alerts is raised. Something wet, smoky, jammed or offline is
+  sent to the new **`[alerts] notify_channel`** (in Configuration › Alerts);
+  a low battery still goes to `[battery] notify_channel`. Nothing is sent on
+  homeCore's first look after it starts, so a restart doesn't resend every
+  alert that is already true.
+- **Readings over or under a line.** A time rule can watch a number — a
+  freezer above −10 °C, humidity above 80 % — as well as a state, and can say
+  "isn't". "For at least" counts from when the reading first crossed the line.
+
+### Automations
+
+- **Run a rule now**, as if its moment came — even while it's off, paused or
+  resting. Its checks still decide unless you ask to skip them. The run is in
+  its history as a manual run, with who asked.
+- **Test a rule at another time.** A dry run can judge the checks as if it
+  were, say, 22:30 tomorrow: time windows and "how long" checks move to then,
+  devices and modes stay as they are now, and a script still reads the real
+  clock (the result says so).
+
+### Modes, displays, timers
+
+- **A mode can be renamed.** Its id — and so every rule that uses it — stays.
+- **A display can be renamed.** Its key, and the tablet using it, carry on.
+- **A timer can be given more time** while it runs or is paused
+  (`{"command": "extend", "duration_secs": 300}`); a repeating timer's next
+  cycle is its usual length.
+
+### Plugins
+
+- **A plugin's log level stays changed.** Setting it is now written to
+  `[logging] level` in the plugin's own settings, so it starts at that level
+  next time. (A plugin running on another runtime keeps its file there; for
+  it, the change still lasts until it restarts.)
+- homeCore now sends **`plugin_offline`** when a plugin goes offline. The
+  event existed but was never sent.
+
+### Fixed
+
+- **A timer that was paused and resumed** worked out how much time it had
+  left from its full length, so it read wrong — and came back wrong after a
+  restart — until it finished.
+
+### Security
+
+- **Displays can no longer rename, move or delete devices**, or restart
+  homeCore. They were given more than they needed (`devices:write`); they now
+  hold `devices:command` — they still control devices and run scenes. This
+  applies to displays made before this release too, without remaking them.
+
+### Release matrix
+
+**Tagged at v0.1.81:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately (v0.1.10 uses the
+above: seen and ignored alerts, readings and channels in alert rules, run
+now, test at a time, renaming modes and displays, more time on a timer).
+
+### Upgrade notes
+
+- **A display that renamed, moved or deleted devices** (none of the house's
+  apps do) is refused now (403).
+- To have wet, smoke, jammed and offline alerts sent somewhere, set
+  **Configuration › Alerts › Notify channel**. Until then they're shown, not
+  sent, as before.
+- Nothing else to do.
+
+---
+
+## v0.1.80 — 2026-10-17
+
+**Theme:** API keys kept to where they're used, and the last settings the
+form couldn't reach.
+
+### API keys limited by address
+
+A key could always be given a list of addresses it may be used from, but
+homeCore never checked it. It does now: a key with a list is refused (403)
+from anywhere else — on the API and on the live event and log streams. A
+list homeCore can't read refuses the key rather than letting it through, and
+an entry that isn't an address or a network (`10.0.10.0/24`, `192.168.1.7`)
+is turned down when the key is made or changed.
+
+The address is the one homeCore sees. A program that reaches homeCore through
+the web app is seen at the web app's address.
+
+### Settings
+
+- **Per-module log levels** (`[logging.targets]`, e.g. `hc_core = "debug"`)
+  are in the settings form, under Logging → Per module. Before, they could
+  only be changed in the file.
+- **A setting can be taken out** through the API: a patch that sends `null`
+  for a key removes it from the file (homeCore's settings and plugins'
+  alike). It's how the form removes a per-module level.
+
+### Calendars
+
+- The calendar list says **how often a fetched calendar is fetched again**.
+- **Deleting a calendar names every rule that uses it** — rules that only
+  check "is there an event now?" as well as those it starts. Before, only the
+  second kind were listed.
+
+### Fixed
+
+- A calendar fetched through the API said it was never fetched again until
+  homeCore restarted, though it was.
+
+### Documentation
+
+- The API reference now says webhooks need no sign-in (the address is the
+  secret) and answer 200, which is what they have always done.
+
+### Release matrix
+
+**Tagged at v0.1.80:** `homeCore` (core). The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately (v0.1.8 uses the
+above: address limits on keys, per-module log levels, calendar refresh).
+
+### Upgrade notes
+
+- **Check any API key that has an address list.** It was ignored before and
+  is enforced now; a key used from an address not on its list stops working.
+  A key without a list is unaffected. `hc-cli` shows a key's list.
+- Nothing else to do.
+
+---
+
+## v0.1.79 — 2026-10-17
+
+**Theme:** Calendars that repeat the way they're written.
+
+### Repeating calendar events
+
+homeCore used to repeat only **yearly** events (holidays). A weekly bin day, a
+school day or a fortnightly recycling collection was kept only at its first
+date, so rules asking "is there a calendar event now?" or waiting for one
+missed every later occurrence.
+
+Now every repeat in an `.ics` file is followed:
+
+- Daily, weekly, every other week, monthly — by date or "the second Tuesday" —
+  and yearly, with counts and end dates.
+- Dates the calendar skips, extra dates it adds, and single occurrences moved
+  or cancelled.
+- Times in their own time zone; a time with none, and all-day dates, in the
+  house's. A weekly 07:00 stays 07:00 when the clocks change.
+
+### Fixed
+
+- **An all-day event is active all day.** A calendar reloaded after midnight
+  dropped that day's all-day event, so "bin day today" stopped being true at
+  00:01. Events already under way are now kept.
+- **All-day events start at the house's midnight**, not midnight UTC (8 p.m.
+  the evening before, in New York).
+
+### Release matrix
+
+**Tagged at v0.1.79:** `homeCore` (core).
+
+### Upgrade notes
+
+- **A calendar trigger on an all-day event fires at the house's midnight**
+  (plus any offset), where before it fired at midnight UTC. Check any rule
+  that runs "N minutes before" an all-day event.
+- Calendars with repeating events now have many more events; nothing to do —
+  they are read again when homeCore starts or the file changes.
+
+---
+
+## v0.1.78 — 2026-10-17
+
+**Theme:** What the new web app needs to run the house — and a record of who
+changed what.
+
+### Automations
+
+- **A rule can start at several moments.** Besides `trigger`, a rule may list
+  more in `triggers`; any of them starts it. Its history says which one did.
+- **"If / otherwise" steps can check the house directly** — a device's state,
+  a mode, a time window, and And/Or/Not of those — as well as with a Rhai
+  expression as before. Together these let a pair of rules ("turn on when…",
+  "turn off when…") become one.
+- **Changes to rules are announced** on the event stream (`rule_changed`,
+  `rule_removed`), so every open screen updates when a rule is edited
+  elsewhere.
+- **A draft can be tested before it's saved** (`POST /automations/test`).
+
+### Plugins
+
+- **Turning off a plugin installed from the registry now stays off** — across
+  a restart of homeCore, and through an update. Before, both turned it back on.
+- homeCore now says when a plugin **comes back online**, not only when it goes
+  away.
+- Saving a plugin's settings from the web app changes only what changed: the
+  file keeps its comments and layout, and a masked password sent back unchanged
+  is left alone. Lists in a settings file (the thermostats, say) are edited in
+  place.
+
+### People and access
+
+- **A household-member role.** Family members can use every device and run
+  every scene, see alerts and set up their own Home — and change nothing
+  shared: no renaming or deleting devices, no rules, rooms, settings, plugins
+  or people. It comes with a new permission, `devices:command`, for using a
+  device without being able to rename or delete it.
+- **Changing someone's role signs them out everywhere**, so the new role
+  applies at once. Their own API keys lose anything the new role doesn't allow.
+- **Removing someone revokes their API keys.** Before, a removed person's keys
+  kept working. Display keys they made are the house's and stay.
+- **The house always keeps an admin**: the only admin can't be demoted or
+  removed.
+- **An admin can clear a forgotten PIN** (`DELETE /auth/users/{id}/pin`); the
+  person then chooses a new one.
+
+### The audit records changes
+
+The audit used to hold sign-ins, accounts and API keys. **It now records every
+change made through the API to how the house works** — rules, devices,
+helpers, modes, rooms, scenes, alert rules, plugins and the log level — with
+who made it and what it was called at the time, so a removed rule or room can
+still be told apart. Setting values are never recorded, only which settings
+changed (and on/off).
+
+### Backup and restore
+
+- **Restore no longer writes over homeCore's databases while it runs.** That
+  could leave the house half restored if anything failed partway. Now a backup
+  can be checked first (`POST /system/restore?check=true` says what it would
+  put back), and restoring stages it: **homeCore puts it in place at its next
+  start**, before it opens anything. Restart homeCore to finish a restore.
+- Backups now include **calendars**, and record when they were taken.
+
+### Fixed
+
+- After a calendar was added or uploaded, homeCore **reloaded the calendar
+  folder five times a second for as long as it ran**, filling the log. Its
+  own reading of the files set off the next reload.
+
+### Release matrix
+
+**Tagged at v0.1.78:** `homeCore` (core). The new web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately.
+
+### Upgrade notes
+
+- **Finish a restore with a restart.** `POST /system/restore` now stages the
+  backup; nothing changes until homeCore restarts. Anything that restored and
+  expected the house to change at once must now restart homeCore (the Flutter
+  console already says to).
+- **Changing someone's role now signs them out**, on every device.
+- **Removing someone revokes their API keys.** If a script runs on a key made
+  by someone you remove, make it a new key first.
+- Existing roles gain `devices:command` and `scenes:run` alongside what they
+  had; existing API keys are unchanged.
+- **Rules that use several moments or checks in if/otherwise can't be read by
+  an older homeCore** — keep a backup before downgrading.
+- **Update hc-tui** if anyone has the household-member role: older versions
+  can't list people once one exists.
+- The audit grows faster now that it records changes; `[auth]
+  audit_retention_days` (default 365) still governs how long it keeps them.
+
+---
+
 ## v0.1.77 — 2026-10-16
 
 **Theme:** A tablet on the wall that isn't anybody.

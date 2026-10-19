@@ -7,159 +7,100 @@ sidebar_position: 8
 
 # WLED (`hc-wled`)
 
-The hc-wled plugin bridges [WLED](https://kno.wled.ge) LED controllers to HomeCore. It discovers WLED devices on your network via mDNS/SSDP and registers them as addressable LED devices.
+The WLED plugin brings [WLED](https://kno.wled.ge) LED controllers into
+homeCore — all of what a controller can do, with screens of its own: every
+segment and its look, presets and playlists, nightlight, sync with other WLEDs,
+live data, sound, the controller's own setup, backups and firmware.
 
-## Prerequisites
+Changes arrive over each controller's WebSocket as they happen — made in
+homeCore or anywhere else (WLED's app, a button, another WLED). A controller
+without one is polled.
 
-- One or more WLED controllers on your LAN (any ESP8266/ESP32 running WLED firmware)
-- WLED devices accessible by IP
+## Adding controllers
 
-## Configuration
+Install it from **Settings › Plugins › Add**, then open its page:
 
-```toml
-[homecore]
-broker_host = "127.0.0.1"
-broker_port = 1883
-plugin_id   = "plugin.wled"
-password    = ""
+- **Look for controllers** finds WLEDs on the network (mDNS); add the ones you
+  want.
+- **Add one by address** for a controller on another network or VLAN.
+- Each controller's address can be changed on that page; the plugin restarts
+  to take it.
 
-[wled]
-# Optional: specify device IPs explicitly (in addition to auto-discovery)
-devices = [
-  "192.168.1.150",  # deck WLED
-  "192.168.1.151",  # garage WLED
-]
+## Its screens
 
-# Optional: discovery timeout in seconds (default: 10)
-discovery_timeout_secs = 10
-```
+All of these come with the plugin itself — update the plugin, and they update.
 
-## Running
+- **Its page** (Settings › Plugins › WLED): the controllers — live or polling,
+  LEDs, signal and firmware — with identify, restart and remove; copying presets
+  between controllers; backing them all up and the backups the plugin keeps;
+  updating firmware on all of them; installing updates by itself at night; and
+  the plugin's settings.
+- **A controller's panel** (tap it anywhere):
+  - **Look** — effects by name with their own sliders and options, palettes
+    with their colours, colours, white temperature;
+  - **Segments** — the strip to scale, boundaries you drag, each segment's
+    LEDs, look, brightness and options; split, merge, add, delete;
+  - **Presets** — save what's running, rename, delete, the preset at
+    power-on, back up, restore, copy one to another controller or duplicate it;
+  - **Playlists** — build and edit them, start, next;
+  - **Controller** — nightlight, sync, live data, sound, the effect catalogue,
+    its own timers, its setup (LED outputs, buttons and remote, network, clock),
+    firmware, backups and restart.
+- **Its card** on Home and the rooms: on and off, its look as a strip of its
+  colours, what it runs and how bright; at the large size, its presets to tap.
+- **Quick presets**, a card you add yourself (Edit → Add a card): the presets
+  you choose, on the controllers you choose — each found by name on every
+  controller. Set it up from the card's settings in Edit.
 
-```bash
-cd /path/to/hc-wled
-./hc-wled config/config.toml
-```
+## In automations
 
-The plugin discovers WLED devices via mDNS/SSDP and subscribes to their state via WebSocket for real-time updates.
+The automation editor has a WLED form for a step: apply a preset, start a
+playlist, set a look (effect, palette, colours, speed, intensity, on one
+segment or all), nightlight, power, sync and live data — on one controller or
+several at once. Presets, playlists, effects and palettes are named everywhere:
+"when Eaves lights' preset becomes “Halloween 1”", "apply Halloween 1 on Eaves
+lights, fading over 2 s".
 
-## Device IDs
+## Firmware
 
-WLED device IDs use the device's configured name:
+Each controller says which build it runs and where its firmware comes from.
+The plugin checks that project's releases (daily by default) for that build's
+own file, on the channel you choose (stable, beta or nightly). Installing an
+update backs the controller up first, sends the file, waits for it to come back
+and checks what it runs. A controller on a build nobody publishes is never
+offered one. You can also install a firmware file of your own from its panel;
+anything that isn't an ESP firmware image is turned away.
 
-```
-wled_deck         ← WLED named "deck"
-wled_garage       ← WLED named "garage"
-wled_kitchen_strip
-```
+**Install updates by itself, at night** (on its page) adds an ordinary
+automation you can open and change: at 03:00 it installs each waiting update in
+turn, and stops and tells you if a controller doesn't come back.
 
-The name comes from WLED's configured device name (Settings → WiFi Setup → mDNS address).
+## Alerts
 
-## Device attributes
-
-| Attribute | Type | Description |
+| Alert | Severity | On unless turned off |
 |---|---|---|
-| `on` | boolean | Power state |
-| `brightness` | integer 0-255 | Brightness |
-| `effect` | string | Active effect name |
-| `effect_speed` | integer 0-255 | Effect animation speed |
-| `effect_intensity` | integer 0-255 | Effect intensity parameter |
-| `palette` | string | Active color palette |
-| `color` | object `{r,g,b}` | Primary color (RGB) |
-| `color2` | object `{r,g,b}` | Secondary color |
-| `preset` | integer | Active preset ID |
+| Firmware update available | information | no — the System page lists updates either way |
+| Firmware update in progress | information | yes — for automations to hold off |
+| Firmware update failed | error | yes |
+| Restarted by itself | warning | yes |
 
-## Commanding WLED
+Turn them on or off, and send them somewhere, in **Settings › Alerts**.
 
-```bash
-# Turn on
-curl -s -X PATCH http://localhost:8080/api/v1/devices/wled_deck/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true}'
+## Settings
 
-# Set to red at 50% brightness
-curl -s -X PATCH http://localhost:8080/api/v1/devices/wled_deck/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true, "brightness": 127, "color": {"r": 255, "g": 0, "b": 0}}'
+On its page, or **Settings › Plugins › WLED › Settings**:
 
-# Activate an effect
-curl -s -X PATCH http://localhost:8080/api/v1/devices/wled_deck/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true, "effect": "Fireworks", "effect_speed": 128, "palette": "Random Colors"}'
+- where the effect and palette catalogue is kept — read from each controller
+  when needed, or a copy kept in the app (so the pickers work while a
+  controller is offline);
+- how often to read a controller that can't push its changes;
+- which firmware to offer;
+- addresses on other networks to ask for more WLEDs.
 
-# Load a saved preset
-curl -s -X PATCH http://localhost:8080/api/v1/devices/wled_deck/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"preset": 3}'
+## For developers
 
-# Turn off
-curl -s -X PATCH http://localhost:8080/api/v1/devices/wled_deck/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": false}'
-```
-
-## Rule example — sunset deck lights
-
-```toml
-name = "Deck WLED — on at sunset"
-enabled = true
-
-[trigger]
-type           = "sun_event"
-event          = "sunset"
-offset_minutes = -15
-
-[[actions]]
-type      = "set_device_state"
-device_id = "wled_deck"
-state     = { on = true, brightness = 200, effect = "Breath", palette = "Sunset" }
-
----
-
-name = "Deck WLED — off at sunrise"
-enabled = true
-
-[trigger]
-type  = "sun_event"
-event = "sunrise"
-
-[[actions]]
-type      = "set_device_state"
-device_id = "wled_deck"
-state     = { on = false }
-```
-
-## Architecture note
-
-hc-wled is a fully managed plugin built on the official HomeCore plugin SDK. It supports the management protocol including heartbeat monitoring, remote configuration, and dynamic log level changes.
-
-The plugin uses WebSocket connections to each WLED device for real-time state updates (preferred), with HTTP polling as a fallback when WebSocket is unavailable. If a WLED device goes offline and comes back, the plugin automatically reconnects.
-
-### Management protocol support
-
-- Heartbeat published every 30 seconds
-- Log level can be changed at runtime via `POST /api/v1/plugins/plugin.wled/config` or the `set_log_level` management command
-- Plugin can be started, stopped, and restarted via the management API
-
-## Log rotation
-
-hc-wled writes logs to `logs/hc-wled.log`. Rotation and compression are configured in `config/config.toml`:
-
-```toml
-[logging]
-level       = "info"   # stderr log level; RUST_LOG overrides this
-rotation    = "daily"  # daily | hourly | weekly | never
-max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
-compress    = true     # gzip rotated files in a background thread
-```
-
-| File | Description |
-|---|---|
-| `logs/hc-wled.log` | Active log (always uncompressed) |
-| `logs/hc-wled.2026-03-27.log.gz` | Rotated daily file (compressed) |
-| `logs/hc-wled.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |
+The plugin's source, with its screens in `ui/`, is `plugins/hc-wled` in the
+homeCore repository — the fullest example of a plugin: named numbers, alerts,
+files sent to actions, and its own page, panel, automation step and cards. See
+[Developing Plugins](./developing-plugins) and
+[Screens and Cards](./plugin-screens).

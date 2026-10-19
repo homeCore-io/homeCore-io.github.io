@@ -55,9 +55,17 @@ plugin-specific code. See [Plugin Capabilities & Actions](./capabilities).
 | [hc-thermostat](./thermostat) | Rust | Virtual thermostats (aggregated sensors → actuator) |
 | [http-poller](./http-poller) | Rust | Generic HTTP endpoint polling |
 
-Every one of these is its own repository, releases its own signed
-artifact, and is installed from the registry rather than being built into
-homeCore.
+The Rust plugins live in the homeCore repository, each releasing its own
+signed artifact, installed from the registry rather than built into homeCore.
+
+## A plugin's own screens
+
+A plugin can bring its own screens to the web app — its page, its devices'
+panel and cards, a form in the automation editor, and cards you add to a page
+yourself (Edit → Add a card). WLED and Ecowitt do. They come in the plugin's
+own package and update with it; a plugin without them gets the app's generic
+screens. See [Screens and Cards](./plugin-screens) for how a plugin provides
+them.
 
 ## Installing a plugin
 

@@ -78,6 +78,8 @@ const sidebars = {
         'plugins/overview',
         'plugins/developing-plugins',
         'plugins/capabilities',
+        'plugins/plugin-screens',
+        'plugins/plugin-alerts',
         'plugins/http-poller',
         'plugins/hue',
         'plugins/yolink',

@@ -92,6 +92,25 @@ each registered as a separate device.
    enabled = true
    ```
 
+## Its screens
+
+These come with the plugin itself:
+
+- **Its page** (Settings › Plugins › Ecowitt): whether the gateway is
+  reporting and where its uploads go — it says when they go to a port the
+  plugin isn't listening on, and **Point its uploads here** fixes it; the
+  weather now; every sensor with its reading, its battery in the right terms
+  for its kind and when it was last heard; **What the gateway hears** (each
+  paired sensor's signal); and the plugin's settings.
+- **The weather station's panel** (tap it anywhere): the weather now —
+  outside, the wind on a compass, rain, sky and air — the last day of
+  temperature, wind and pressure, and the other sensors on the gateway.
+- **The weather station's card** on Home and the rooms: temperature, humidity,
+  wind and today's rain; at the large size, a wind compass, UV and pressure.
+- **Weather now**, a card you add yourself (Edit → Add a card): the weather at
+  a glance with the pressure trend; at the large size, also UV, lightning and
+  sensors with low batteries.
+
 ## Plugin actions
 
 `hc-ecowitt` ships a capabilities manifest exposing several
