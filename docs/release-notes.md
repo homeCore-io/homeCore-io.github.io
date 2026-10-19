@@ -95,6 +95,31 @@ settings back, or download one), and has the plugin's few settings —
 where the effect catalogue lives, polling, which firmware to offer, and
 controllers on other networks — on the page itself.
 
+**hc-wled 0.1.17 and app v0.1.16 (2026-10-19)** follow, again with no core
+change. Update WLED from the registry, then the app:
+
+- **Install WLED updates by itself, at night** — a choice on the WLED plugin
+  page and in Settings › Alerts. It writes an ordinary automation, *Install
+  WLED updates at night*, which you can open and change: at 03:00 it installs
+  each waiting update in turn, and stops and tells you if a controller doesn't
+  come back within ten minutes. It turns on the "Firmware update available"
+  alert, which it acts on. Off unless you turn it on.
+- **A controller's own setup, in full:** sound (gain, ignore-below, automatic
+  gain, smoothing, sound sync, the microphone); timers at a time or at
+  sunrise/sunset with an offset, on chosen days and dates; buttons (what a
+  press, long press and double press do), the IR remote; its name and
+  address on the network, moving it to another Wi-Fi network, its own access
+  point; and its clock. Hardware and network changes restart the controller
+  and ask first — a wrong address or Wi-Fi password takes it off the network
+  until it is fixed from its own access point.
+- **Segments:** drag a boundary on the strip, or move it with the arrow keys.
+- **Presets:** copy one preset to another controller, or duplicate it.
+- The IR receiver's and microphone's pins were shown hidden, as if secret;
+  they are now shown and can be changed.
+
+The plugin SDKs for Python (0.4.0), Node.js (0.3.0) and .NET (0.3.0) can now
+raise alerts, as the Rust SDK has since 0.4.2.
+
 ### Upgrade notes
 
 - **Update WLED to 0.1.16 with core**, from the registry as usual. Older
