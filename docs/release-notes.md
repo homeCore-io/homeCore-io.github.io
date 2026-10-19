@@ -25,6 +25,51 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.86 — 2026-10-19
+
+**Theme:** plugins can bring their own screens. Ecowitt is the first.
+
+### Ecowitt has its own page
+
+- **The Ecowitt plugin's page** now shows:
+  - whether the gateway is reporting, and where its uploads go — it says so
+    when they go to a port the plugin isn't listening on, and offers to point
+    them here;
+  - the weather now: outside, the wind on a compass, rain, and sky and air;
+  - every sensor with its reading, its battery in the right terms for its
+    kind (OK/low, volts or level), and when it was last heard;
+  - "What the gateway hears": each paired sensor's signal, on demand;
+  - the plugin's settings.
+- **The weather station's panel** (open the station from any page) shows the
+  weather now, the last day of temperature, wind and pressure, and the other
+  sensors on the same gateway.
+
+### For plugin authors
+
+- A plugin can carry web components — a page for itself, a panel for its
+  devices — beside its program, and serve them itself. homeCore passes the
+  files to the web app and keeps none, so the screens are always the ones the
+  running plugin carries, however it was installed (registry, file, source
+  build, plugin runtime). Rust SDK 0.5.0: `with_ui_dir`. The `host` interface
+  the app hands each component is described by `@homecore/plugin-ui`
+  (`core/sdk/ui`); `plugins/hc-ecowitt/ui` is a complete example.
+- A plugin's release packs its `ui/` folder into its package when it has one.
+
+### Release matrix
+
+**Tagged at v0.1.86:** `homeCore` (core), `hc-ecowitt` 0.1.18. The Rust
+plugin SDK is 0.5.0. The web app, `ghcr.io/homecore-io/hc-web-svelte`, is
+released separately as v0.1.17, which shows plugins' own screens.
+
+### Upgrade notes
+
+- **Update core, the web app and Ecowitt together** for the new screens.
+  Any one alone changes nothing you can see: an older app or an older core
+  shows the screens as before, and an older Ecowitt carries none.
+- Nothing about Ecowitt's readings, devices or automations changes.
+
+---
+
 ## v0.1.85 — 2026-10-18
 
 **Theme:** WLED controllers in full, plugins that raise alerts, and
