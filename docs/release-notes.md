@@ -93,6 +93,41 @@ Python SDK v0.5.1, Node.js SDK v0.4.1, .NET SDK v0.4.1.
 - Fixed: Edit mode on a phone was wider than the screen and scrolled
   sideways.
 
+**hc-hue 0.2.0 (2026-10-19)** follows with no core change — Philips Hue gets
+its own screens, and a faster, steadier plugin under them:
+
+- **Its screens.** Its page lists each bridge (live, or checked every
+  minute), adds a bridge — homeCore looks for it, you press its button — and
+  shows every room and zone, which ones are devices of their own (switch it
+  there), and what needs a look. A light's panel has white across the lamp's
+  own range, a colour wheel, a gradient lamp's colour points, Hue's effects
+  with their speed, and its room's scenes as swatches of their colours. A
+  room's panel applies its scenes (colours moving or still, with a fade) and
+  sets all its lights at once. A motion sensor shows the day's motion; a
+  switch shows each button and how it was last pressed.
+- **Cards.** Hue lights glow in their own colour on Home and the rooms; a
+  room's card shows each of its lights; large cards carry the room's scenes.
+  **Hue scenes** is a card to add yourself: the scenes of the rooms you
+  choose, and All off.
+- **Automations.** A Hue step applies a scene, sets a look (white, colour,
+  effect, brightness or a step brighter or dimmer), flashes the lights and
+  puts them back (for a doorbell or a leak), or turns them on or off — each
+  with a fade. A Hue switch's buttons are told apart: start on "Brighter
+  held", not on any press.
+- **Faster and steadier.** Reading a bridge takes one request instead of
+  about twenty, and a command is no longer followed by a full read; changes
+  made close together are no longer lost; button and dial presses now reach
+  homeCore. **With two bridges, every device of one was dropped and added
+  back about once a minute — fixed.** Pairing from the bridge's device no
+  longer stalls every light while it waits for the button.
+- **Alerts:** a bridge or a light not answering, and a software update
+  waiting in the Hue app (off unless wanted). A light the bridge cannot
+  reach now shows as unavailable.
+
+**Upgrade:** update the plugin. Rooms and zones stay devices or not as they
+were set (`publish_grouped_lights_for`); turn others on from its page.
+Automations keep working; a room's device now also takes colour and white.
+
 ---
 
 ## v0.1.87 — 2026-10-19

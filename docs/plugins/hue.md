@@ -7,293 +7,134 @@ sidebar_position: 4
 
 # Philips Hue (`hc-hue`)
 
-The hc-hue plugin bridges a Philips Hue bridge to HomeCore. It registers all lights, groups, and scenes as devices and subscribes to their command topics.
+The Hue plugin brings Philips Hue into homeCore through the Hue bridge: every
+light, room and zone, scene, motion sensor and switch, with screens of its own.
 
-## Prerequisites
+Changes arrive the moment they happen — made in homeCore, the Hue app, a Hue
+switch or anywhere else — over the bridge's event stream. If the stream drops,
+the plugin reads the bridge every minute until it is back. More than one bridge
+works.
 
-- A Philips Hue bridge on your LAN
-- The bridge IP address (find it at `https://discovery.meethue.com` or your router's DHCP list)
-- An app key (obtained on first run — see below)
+## Adding a bridge
 
-## Configuration
+Install it from **Settings › Plugins › Add**, then open its page and choose
+**Add a bridge**:
 
-```toml
-# config/config.toml
+1. homeCore looks for bridges on the network (or give it an address, for a
+   bridge on another network);
+2. choose one;
+3. press the round button on top of the bridge within 90 seconds;
+4. its lights, rooms and scenes arrive.
 
-[homecore]
-broker_host = "127.0.0.1"
-broker_port = 1883
-plugin_id   = "plugin.hue"
-password    = ""
+The key the bridge hands back is kept by homeCore, not in a settings file. A
+bridge you remove can be added again the same way.
 
-[hue]
-bridge_ip = "192.168.1.100"
-app_key   = ""              # filled in automatically after first pairing
-```
+## Its screens
 
-## Pairing a bridge
+All of these come with the plugin itself — update the plugin, and they update.
 
-The recommended path is the **`pair_bridge` streaming action** —
-plugin runs continuously, no need to time the bridge button press
-against plugin start.
+- **Its page** (Settings › Plugins › Philips Hue): each bridge — live or
+  checked every minute, its address, how many lights, sensors and scenes it
+  has, and a software update waiting — with refresh and remove; adding a
+  bridge; every room and zone, and whether each is a device of its own;
+  lights that aren't answering and batteries running low; and the main
+  settings.
+- **A light's panel**: white across the lamp's own range, a colour wheel, a
+  gradient lamp's colour points, Hue's effects (candle, fire, sparkle, prism,
+  opal and the rest) with their speed, its room's scenes as swatches of their
+  colours, and what it is — model, signal, software. *Identify* flashes it.
+- **A room's or zone's panel**: its scenes (with *keep their colours moving*
+  and a fade time), all its lights at once — off, warm, cool, one colour — and
+  each light with its own switch.
+- **A motion sensor's panel**: motion, temperature and light level, the
+  motions of the day, sensitivity, and pausing it.
+- **A switch's panel**: each of its buttons and how it was last pressed —
+  "Brighter, held, 3 min ago".
+- **Their cards** on Home and the rooms: a light glows in its own colour; a
+  room shows each of its lights; at the large size, both carry the room's
+  scenes to tap. A motion sensor says when it last saw someone.
+- **Hue scenes**, a card you add yourself (Edit → Add a card): the scenes of
+  the rooms you choose, to tap, and an All off. Set it up from the card's
+  settings in Edit.
 
-1. Open the Hue plugin detail page in the admin UI and click
-   **Pair Hue bridge** under Actions.
-2. The drawer prompts you to press the link button on the bridge.
-3. Press the physical button on top of the bridge within ~30 seconds.
-4. The flow polls the Hue API until the button registers, persists
-   `(bridge_id, host, app_key)` to `config/config.toml`, and pushes
-   the new bridge into the live runtime — no plugin restart needed.
+## Rooms and zones
 
-You can also pass an explicit `host` parameter if the bridge isn't
-discoverable on your network. See the [Actions](#plugin-actions)
-section below.
+Each Hue room or zone can be a device of its own in homeCore — one switch,
+one dimmer, one colour for all its lights, a card, and its scenes in
+automations. Turn that on per room on the plugin's page. A light belongs to
+its Hue room in homeCore too, and moves when you move it in the Hue app.
 
-If you'd rather configure manually, drop a fully-formed
-`[[bridges]]` entry into `config/config.toml` (with `bridge_id`,
-`host`, and a pre-generated `app_key`) and the plugin uses it
-directly on next start.
+## In automations
 
-## Device IDs
+The automation editor has a Hue form for a step on a light, room or scene:
 
-| Device type | ID pattern | Example |
+- **apply a scene** — from the room's scenes, as swatches — with a fade, a
+  brightness, and its colours moving or still;
+- **set a look** — a white, a colour or an effect, a brightness (or brighter
+  or dimmer by a step), and a fade;
+- **flash them, then put them back** — blink, blink in a colour, or alternate
+  two colours, for a few seconds (the doorbell, a leak, the washer finishing);
+  or pulse once;
+- **on or off**, with a fade.
+
+A Hue switch's buttons are told apart, so an automation can start on
+"Bedroom dimmer's last press becomes *Brighter held*" rather than on any
+press. Scenes are named with their room everywhere.
+
+## Alerts
+
+| Alert | Severity | On unless turned off |
 |---|---|---|
-| Individual light | `hue_{bridge_id}_{light_id}` | `hue_001788fffe6841b3_1` |
-| Light group/room | `hue_{bridge_id}_group_{group_id}` | `hue_001788fffe6841b3_group_1` |
-| Hue scene | `hue_{bridge_id}_scene_{scene_uuid}` | `hue_001788fffe6841b3_scene_abc123_def456` |
-| Zigbee sensor | `hue_{bridge_id}_sensor_{sensor_id}` | `hue_001788fffe6841b3_sensor_1` |
-| Zigbee connectivity | `hue_{bridge_id}_zigbee_connectivity_{id}` | Read-only diagnostic — not commandable |
+| Bridge not answering | error | yes |
+| Light not answering (often switched off at the wall) | warning | yes |
+| Software update waiting in the Hue app | information | no |
 
-### Sensor `device_type` mapping
+A low battery is homeCore's own alert, for every device that reports one.
+Turn them on or off, and send them somewhere, in **Settings › Alerts**.
 
-Hue's accessory sensors (motion sensors, dimmer switches, contact
-sensors, etc.) register with a canonical `device_type` so the UI can
-match them to schemas under `core/config/profiles/examples/device-types.toml`:
+## Settings
 
-| Hue sensor kind | Registered `device_type` |
-|---|---|
-| `motion` | `motion_sensor` |
-| `temperature` | `temperature_sensor` |
-| `light_level` | `illuminance_sensor` |
-| `contact` | `contact_sensor` |
-| `button`, `relative_rotary` | `button` |
-| `tamper` | `binary_sensor` |
-| anything else | `sensor` (fallback — visible, not hidden) |
+On its page, or **Settings › Plugins › Philips Hue › Settings**:
 
-:::caution Scene vs. light
-Devices with `device_type = "scene"` are Hue scenes — they have no brightness/color attributes and activate by setting `{"action": "activate_scene"}`. Do not try to control them as lights.
+- temperature in °C or °F;
+- whether entertainment areas appear as devices;
+- live updates from the bridge (on by default), and how often to read it
+  when they are off;
+- which rooms and zones are devices;
+- whether a motion sensor's motion, temperature and light level are one
+  device (the default) or three;
+- looking for bridges on the network, and asking Philips' discovery service
+  when that finds nothing (it returns only your bridge's address).
 
-Devices with `device_type = "light"` are individual bulbs or groups that you can dim, color, etc.
-:::
+## Commanding Hue devices directly
 
-## Commanding lights
+What the screens send, for anyone writing their own:
 
-```bash
-# Turn on
-curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true}'
-
-# Dim to 50%
-curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true, "brightness": 127}'
-
-# Set color temperature (Kelvin)
-curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true, "brightness": 200, "color_temp": 2700}'
-
-# Set color (XY)
-curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true, "color_xy": {"x": 0.675, "y": 0.322}}'
-```
-
-## Activating Hue scenes
-
-```bash
-curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_scene_abc123/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "activate_scene"}'
-```
-
-## Light attributes
-
-| Attribute | Type | Description |
+| Device | Command | Does |
 |---|---|---|
-| `on` | boolean | Power state |
-| `brightness` | integer 0-254 | Brightness level |
-| `color_temp` | integer (Kelvin) | Color temperature (warm white to cool white) |
-| `color_xy` | object `{x, y}` | CIE XY color coordinates |
-| `reachable` | boolean | Bridge can communicate with the bulb |
+| light, room | `{"on": true, "brightness_pct": 40}` | on, at 40 % |
+| light, room | `{"color_temp": 2700}` | a white, in kelvin |
+| light, room | `{"color_xy": {"x": 0.6, "y": 0.38}}` | a colour |
+| light, room | `{"brightness_step": -10}` | 10 % dimmer |
+| light, room | `"transition_ms": 2000` beside any of these | fade over 2 s |
+| light | `{"effect": "candle"}`, `{"dynamic_speed": 0.6}` | an effect, its speed |
+| light | `{"gradient_points": [{"x":…,"y":…}, …]}` | a gradient lamp's colours |
+| light | `{"action": "identify"}` | flash it to find it |
+| light, room | `{"action": "breathe"}` | pulse once |
+| light, room | `{"action": "signal", "kind": "on_off", "duration_ms": 5000}` | blink, then put it back (`on_off_color` and `alternating` take `colors`) |
+| scene | `{"action": "activate", "dynamic": true, "duration_ms": 2000}` | apply it, colours moving, fading in |
+| light, room | `{"action": "activate", "scene_id": "<the scene's resource_id>"}` | apply a scene through it |
+| motion sensor | `{"motion_sensitivity": 2}`, `{"enabled": false}` | sensitivity 0–2; pause it |
 
-## Grouped lights
+Send them with `PATCH /api/v1/devices/{id}/state`. Device ids are
+`hue_{bridge}_light_{id}`, `hue_{bridge}_group_{id}` (rooms and zones),
+`hue_{bridge}_scene_{id}`, and `hue_{bridge}_motion_{id}` and the like for
+sensors and switches.
 
-Light groups (rooms and zones from the Hue app) appear as single devices. Commanding the group controls all lights in it simultaneously — more efficient than commanding each bulb separately.
+## For developers
 
-```bash
-# Turn off the living room group
-curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_group_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": false}'
-```
-
-## Rule example — turn on Hue scene at sunset
-
-```toml
-name = "Living room — sunset scene"
-enabled = true
-
-[trigger]
-type           = "sun_event"
-event          = "sunset"
-offset_minutes = 0
-
-[[actions]]
-type      = "set_device_state"
-device_id = "hue_001788fffe6841b3_scene_evening_relaxing"
-state     = { action = "activate_scene" }
-```
-
-## Plugin actions
-
-hc-hue declares three [capability actions](./capabilities) the admin
-UI exposes as buttons on the plugin detail page (and hc-mcp surfaces
-via `list_plugin_actions`).
-
-### `pair_bridge` (streaming, admin)
-
-Pairs a new Hue bridge by polling its link button.
-
-**Params (both optional):**
-- `host` — bridge IP / hostname. Auto-discovers if omitted.
-- `name` — friendly name for the new bridge entry.
-
-**Flow:**
-1. Resolves the target — uses `host` if given (probes
-   `/api/0/config` for the `bridgeid`); otherwise runs SSDP / mDNS
-   and picks the first un-configured bridge.
-2. Emits a `progress` message asking you to press the link button.
-3. Polls Hue's `POST /api` every 2 seconds. The bridge returns
-   `error: "link button not pressed"` until you press it; once
-   pressed, returns the app key.
-4. Persists `(bridge_id, host, app_key)` to `config/config.toml`
-   (the file is reloaded from disk first to avoid clobbering external
-   edits, then re-written).
-5. Pushes the new `BridgeTarget` into the runtime — the bridge starts
-   publishing immediately, no plugin restart.
-
-The action is `cancelable: true` and `concurrency: single`; the
-manifest timeout is 90 s. The `complete` payload returns
-`{bridge_id, host, name}` but **omits the raw `app_key`** — it's a
-long-lived credential, already saved to `config.toml`.
-
-### `refresh_devices` (sync, user)
-
-Re-walks every configured bridge and republishes lights / groups /
-scenes / sensors. Also reconciles the published-device snapshot —
-anything tracked from a prior session that's no longer present on
-its bridge gets unregistered. Use after renaming devices or moving
-rooms in the Hue app to make the changes visible in homeCore.
-
-### `cleanup_stale_devices` (sync, admin)
-
-Same code path as `refresh_devices` but framed for cleanup —
-forces a fresh sync from every configured bridge and unregisters
-any homeCore devices that no longer exist on the bridge. Use this
-to clear zombies left over from config edits, bridge replacements,
-or development churn.
-
-For a wipe-and-rebuild (re-register everything from scratch), use
-the core API: `DELETE /api/v1/plugins/plugin.hue/devices`. The
-homeCore admin UI exposes this as a **Wipe all devices** button on
-the plugin's detail page.
-
-### `discover_bridges` (streaming, user)
-
-Re-runs SSDP / mDNS / cloud discovery and emits each bridge as a
-stream item as it's found. Streaming because slow networks can take
-longer than the 5-second sync RPC budget; results are deduped
-across SSDP and N-UPnP responses, and bridge_id case differences
-between protocols are normalized.
-
-```json
-{
-  "discovered": [
-    { "bridge_id": "001788fffe6841b3", "host": "10.0.10.23", "name": "Hue Bridge" }
-  ],
-  "count": 1
-}
-```
-
-Useful for sanity-checking your network before clicking
-`pair_bridge`, or for picking a `host` value to pass when discovery
-isn't picking up a bridge automatically.
-
-When `pair_bridge` is invoked but every discovered bridge is
-already in `config.toml`, the action completes cleanly with
-`status: "already_paired"` and lists each bridge — no error.
-
-## Management protocol
-
-hc-hue is a fully managed plugin built on the official HomeCore plugin SDK. It supports:
-
-- **Heartbeat monitoring** — published every 30 seconds; HomeCore marks the plugin offline after 90 seconds without a heartbeat
-- **Remote configuration** — `SyncConfig` struct consolidates refresh parameters and can be updated via the management API
-- **Dynamic log level** — change verbosity at runtime without restarting the plugin
-- **Eventstream metrics** — `EventstreamMetrics` consolidates 26 metric fields for monitoring SSE event processing
-
-### Management API
-
-```bash
-# Get current plugin config
-curl -s http://localhost:8080/api/v1/plugins/plugin.hue/config \
-  -H "Authorization: Bearer $TOKEN" | jq
-
-# Update plugin config
-curl -s -X PUT http://localhost:8080/api/v1/plugins/plugin.hue/config \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_interval_secs": 30}'
-
-# Restart the plugin
-curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.hue/restart \
-  -H "Authorization: Bearer $TOKEN"
-```
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|---|---|
-| `Pairing failed` | Press the bridge button within 30 seconds of starting the plugin |
-| `app_key` not being saved | Check that the config file is writable |
-| Lights not responding | Check `reachable` attribute — Zigbee mesh issues can cause individual bulbs to go unreachable |
-| Scenes not activating | Verify `available = true` on the scene device (`GET /devices/{id}`) |
-| `zigbee_connectivity` devices cluttering device list | Filter with `device_type != "zigbee_connectivity"` in your UI |
-
-## Log rotation
-
-hc-hue writes logs to `logs/hc-hue.log`. Rotation and compression are configured in `config/config.toml`:
-
-```toml
-[logging]
-level       = "info"   # stderr log level; RUST_LOG overrides this
-rotation    = "daily"  # daily | hourly | weekly | never
-max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
-compress    = true     # gzip rotated files in a background thread
-```
-
-| File | Description |
-|---|---|
-| `logs/hc-hue.log` | Active log (always uncompressed) |
-| `logs/hc-hue.2026-03-27.log.gz` | Rotated daily file (compressed) |
-| `logs/hc-hue.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |
+The plugin's source, with its screens in `ui/`, is `plugins/hc-hue` in the
+homeCore repository. It reads a bridge in one request (`GET
+/clip/v2/resource`) and follows its event stream, so a command is not followed
+by a read. See [Developing Plugins](./developing-plugins) and
+[Screens and Cards](./plugin-screens).
