@@ -146,6 +146,19 @@ Automations keep working; a room's device now also takes colour and white.
 deliberately unchanged — starting one needs an app streaming colours over
 Hue's own protocol, which homeCore does not speak.
 
+**hc-wled 0.1.21 (2026-10-19)**, no core change: an automation step written
+before WLED had its own step form — a preset, playlist or look with
+`"on": true` beside it — now opens in that form instead of as JSON, and
+keeps the `"on"` when saved. These automations always ran; only the editor
+could not show them. **Upgrade:** update the plugin; nothing to change.
+
+**hc-wled 0.1.22 (2026-10-19)**, no core change: a WLED step that applies a
+preset now has a **Power** choice — *as the preset has it* or *turn it on* —
+and says under it whether the chosen preset turns the strip on by itself.
+A WLED preset turns the strip on only when it was saved with *Include
+brightness*; one saved without leaves a strip that is off, off. Check your
+"on at sunset" automations. **Upgrade:** update the plugin.
+
 ---
 
 ## v0.1.87 — 2026-10-19
