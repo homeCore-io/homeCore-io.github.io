@@ -25,6 +25,58 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.88 — 2026-10-19
+
+**Theme:** plugins' own cards on Home and the rooms.
+
+### Cards
+
+- **Devices get their plugin's own card.** Wherever a WLED controller or an
+  Ecowitt weather station appears — a room, Home's Pinned, your favourites —
+  it now has a card made for it:
+  - a WLED controller: on and off, its look as a strip of its colours, what
+    it runs and how bright; at the large size, its presets to tap;
+  - a weather station: the temperature, humidity, wind and today's rain; at
+    the large size, the wind on a compass, UV and pressure.
+- **Cards of a plugin's own, added to a page.** Edit → "Add a card" now
+  offers plugins' cards beside the house's devices and scenes:
+  - **Weather now** (Ecowitt) — the weather at a glance, with the pressure
+    trend; large, also UV, lightning and sensors with low batteries;
+  - **Quick presets** (WLED) — the presets you choose, on the controllers you
+    choose, each found by name on every controller; set up from the card's
+    Settings in Edit.
+  Each one added is its own card, with its own settings on that page, kept
+  by the web app — not by homeCore.
+
+### For plugin authors
+
+- Two new places for a plugin's screens: `device.card` (its devices' card)
+  and `dashboard.card` (a card of its own, with a name for "Add a card", the
+  sizes it can be and an optional settings element). The `hc-tile` class
+  gives a card the app's own frame. See `@homecore/plugin-ui` (`core/sdk/ui`).
+- The SDKs (Rust 0.6.1, Python 0.5.1, Node.js 0.4.1, .NET 0.4.1) now pass a
+  plugin's slots through as declared — homeCore decides which exist — so a
+  plugin is no longer held back from a newer slot by an older SDK. The
+  slot-filtering helpers the non-Rust SDKs had (`validated()` and their slot
+  lists) are gone.
+
+### Release matrix
+
+**Tagged at v0.1.88:** `homeCore` (core), `hc-wled` 0.1.20, `hc-ecowitt`
+0.1.19. The Rust plugin SDK is 0.6.1. The web app,
+`ghcr.io/homecore-io/hc-web-svelte`, is released separately as v0.1.19.
+Python SDK v0.5.1, Node.js SDK v0.4.1, .NET SDK v0.4.1.
+
+### Upgrade notes
+
+- **Update core, the web app, WLED and Ecowitt** to see the cards. In any
+  other order nothing breaks: a device keeps its generic card until its
+  plugin carries one.
+- Nothing about pages changes on its own: plugins' cards appear only where
+  someone adds them, and devices' own cards replace the generic ones in place.
+
+---
+
 ## v0.1.87 — 2026-10-19
 
 **Theme:** WLED's screens now come with WLED, and plugins' screens can do more.
