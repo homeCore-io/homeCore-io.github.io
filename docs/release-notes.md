@@ -75,6 +75,24 @@ Python SDK v0.5.1, Node.js SDK v0.4.1, .NET SDK v0.4.1.
 - Nothing about pages changes on its own: plugins' cards appear only where
   someone adds them, and devices' own cards replace the generic ones in place.
 
+**App v0.1.20 (2026-10-19)** follows with no core change:
+
+- **Add a card is sorted.** Chips along the top narrow it to a kind of thing —
+  lights and switches, sensors, scenes, media, locks and doors, modes and
+  timers, hubs and remotes, plugins' cards — each with a count that follows
+  the search. Everything is grouped under its room, so a hub's scenes that
+  share a name in every room ("Bright", "Bright", "Bright") are told apart,
+  and each says what it is ("Scene · Hue", "Temperature sensor"). Plugins'
+  cards come first, with what they show.
+- **The sidebar folds** to its icons for more room — its button at the top,
+  or Ctrl+\ (⌘\ on a Mac). Each screen remembers its own choice.
+- **homeCore has its mark:** the roofline over a dot from the old web app, in
+  the app's colours — brown in light, amber in dark, and a household's own
+  palette when it has one. It is the browser tab's icon, the sidebar's and
+  the sign-in page's, and the icon on a phone's home screen.
+- Fixed: Edit mode on a phone was wider than the screen and scrolled
+  sideways.
+
 ---
 
 ## v0.1.87 — 2026-10-19
