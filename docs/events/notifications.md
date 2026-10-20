@@ -255,7 +255,7 @@ type      = "device_state"
 device_id = "sensor_basement_temp"
 attribute = "temperature"
 op        = "Gt"
-value     = 85
+value     = 29          # °C — every plugin publishes temperatures in °C
 
 [[actions]]
 type = "parallel"
@@ -263,12 +263,12 @@ type = "parallel"
 [[actions.actions]]
 type    = "notify"
 channel = "telegram"
-message = "Basement temperature is {{device.temperature}}°F — check the HVAC!"
+message = "Basement temperature is {{device.temperature}} °C — check the HVAC!"
 title   = "Temperature Alert"
 
 [[actions.actions]]
 type    = "notify"
 channel = "email-alerts"
-message = "Basement temperature alert: {{device.temperature}}°F"
+message = "Basement temperature alert: {{device.temperature}} °C"
 title   = "HomeCore Temperature Alert"
 ```

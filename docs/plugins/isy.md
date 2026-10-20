@@ -55,44 +55,59 @@ Scenes are registered as:
 isy_scene_{address}
 ```
 
-## Device type detection
+## Devices and attributes
 
-The plugin infers `device_type` from the ISY node type flags:
+Names and units follow homeCore's shared device vocabulary. The plugin
+converts from the ISY's own scales; which scale a value is in comes from the
+unit of measure (UOM) and precision the ISY sends with it.
 
-| ISY node type | `device_type` |
-|---|---|
-| Dimmer | `light` |
-| Switch (on/off only) | `switch` |
-| Thermostat | `thermostat` |
-| Door/window sensor | `door_sensor` |
-| Motion sensor | `motion_sensor` |
-| Everything else | `sensor` |
+| device_type | Attribute | Writable | Unit / values |
+|---|---|---|---|
+| `light` | `on` | yes | `true` with no level goes back to the last level seen |
+| | `brightness_pct` | yes | 0–100 %, decimals allowed; 0 turns off; on is never 0 % |
+| `switch`, `scene` | `on` | yes | |
+| `contact_sensor` | `open` | | |
+| `motion_sensor` | `motion` | | |
+| `water_sensor` | `water_detected` | | Insteon leak sensors report ON when dry; inverted here |
+| `binary_sensor` | `on`, `device_class` | | |
+| `sensor` | one reading, see below | | |
+| `lock` | `locked` | yes | |
+| `cover` | `position` | yes | 0–100 % open. A barrier (garage door) only opens (> 0) or closes (0) |
+| `fan` | `on`, `speed`, `speed_pct` | yes | `speed` is `off`/`low`/`medium`/`high`; `speed_pct` 0–100 % |
+| `thermostat` | `temperature` | | °C |
+| | `humidity` | | % |
+| | `hvac_action` | | `idle`, `heating`, `cooling`, `fan` |
+| | `hvac_mode` | yes | `off`, `heat`, `cool`, `auto`, `fan_only` |
+| | `heat_setpoint`, `cool_setpoint` | yes | °C |
+| | `fan_mode` | yes | `auto`, `on` |
 
-## State attributes
+**Levels.** UOM 51 is already a percentage; UOM 100 (Insteon) is 0–255, and
+`pct = round(raw × 100 / 255)`, at least 1 % when above zero.
 
-| Attribute | Type | Description |
-|---|---|---|
-| `on` | boolean | Power state (computed from `value`) |
-| `value` | integer 0-255 | Raw ISY node value (0=off, 255=fully on, intermediate=dim level) |
-| `brightness` | integer 0-100 | Percentage (for dimmers) |
-| `connected` | boolean | Node reachable on the ISY mesh |
+**Temperatures** are always °C. A setpoint is written back in the thermostat's
+own degrees and precision, so 20 °C becomes `68` on a whole-degree °F
+thermostat. Showing °F is the app's job, from each person's setting.
 
-For thermostats, additional attributes are exposed based on the ISY UOM (unit of measure) values.
+**Generic sensors** publish one reading under the shared name its UOM gives
+it, in the shared unit: `temperature` (°C), `humidity` (%), `illuminance`
+(lux), `power_w`, `energy_kwh`, `voltage`, `current_a`, `co2` (ppm),
+`pressure` (hPa), `wind_speed` (m/s), `uv_index` — or `value` in the ISY's own
+unit for anything else.
 
 ## Commanding devices
 
 ```bash
-# Turn on at full brightness
+# Turn on (at the last level seen)
 curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_1_2_3_1/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"on": true}'
 
-# Set brightness (0-100%)
+# Set brightness (brightness_pct, 0–100)
 curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_1_2_3_1/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"on": true, "brightness": 75}'
+  -d '{"brightness_pct": 75}'
 
 # Turn off
 curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_1_2_3_1/state \
@@ -104,7 +119,7 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_1_2_3_1/state \
 curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_scene_12345/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"activate": true}'
+  -d '{"on": true}'
 ```
 
 ## Rule example — ISY light at sunset
@@ -121,7 +136,7 @@ offset_minutes = 0
 [[actions]]
 type      = "set_device_state"
 device_id = "isy_1_5_2_1"
-state     = { on = true, brightness = 100 }
+state     = { on = true, brightness_pct = 100 }
 ```
 
 ## Communication details

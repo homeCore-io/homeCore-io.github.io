@@ -166,7 +166,7 @@ async fn main() -> anyhow::Result<()> {
     publisher.subscribe_commands("my_device_001").await?;
 
     publisher
-        .publish_state("my_device_001", &json!({ "temperature": 72.5, "humidity": 45.0 }))
+        .publish_state("my_device_001", &json!({ "temperature": 22.5, "humidity": 45.0 }))
         .await?;
     publisher.publish_availability("my_device_001", true).await?;
 
@@ -206,15 +206,15 @@ exist until you make it.
 // Full state (retained — replaces the previous state).
 publisher
     .publish_state("my_device_001", &json!({
-        "temperature": 73.0,
+        "temperature": 22.8,     // °C, always — the app shows °F
         "humidity": 44.5,
-        "battery": 87
+        "battery_pct": 87
     }))
     .await?;
 
 // Partial (JSON merge-patch — only the fields given).
 publisher
-    .publish_state_partial("my_device_001", &json!({ "temperature": 73.0 }))
+    .publish_state_partial("my_device_001", &json!({ "temperature": 22.8 }))
     .await?;
 
 // After a command, attach provenance so the UI and the audit log can say
@@ -425,8 +425,8 @@ from homecore_plugin_sdk import PluginBase
 
 DEVICE_ID = "light.virtual_py_01"
 CAPABILITIES = {
-    "on":         {"type": "boolean"},
-    "brightness": {"type": "integer", "minimum": 0, "maximum": 255},
+    "on":             {"type": "boolean"},
+    "brightness_pct": {"type": "number", "minimum": 0, "maximum": 100},
 }
 
 
@@ -435,21 +435,35 @@ class MyPlugin(PluginBase):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._state = {"on": False, "brightness": 128}
+        self._on = False
+        self._level = 50.0  # kept while off, so {"on": true} restores it
+
+    def _state(self) -> dict:
+        # A light that is on never reports 0 %; one that is off reports 0 %.
+        return {"on": self._on, "brightness_pct": self._level if self._on else 0}
 
     def on_connect(self) -> None:
         # Called once the broker connection is up — register here, not in
         # __init__, so a reconnect re-registers too.
         self.register_device(DEVICE_ID, "Virtual Light", CAPABILITIES, area="living_room")
         self.publish_availability(DEVICE_ID, True)
-        self.publish_state(DEVICE_ID, dict(self._state))
+        self.publish_state(DEVICE_ID, self._state())
         self.publish_plugin_status("active")
 
     def on_command(self, device_id: str, payload: dict) -> None:
-        self._state.update({k: v for k, v in payload.items() if k in CAPABILITIES})
+        # Two shapes only: an attribute write, or {"action": ...}.
+        if payload.get("action") == "toggle":
+            self._on = not self._on
+        if "on" in payload:
+            self._on = bool(payload["on"])
+        if "brightness_pct" in payload:
+            pct = max(0.0, min(100.0, float(payload["brightness_pct"])))
+            self._on = pct > 0           # 0 % is off
+            if pct > 0:
+                self._level = pct
         # Publish what you actually applied, with provenance attached.
         self.publish_state_for_command(
-            device_id, dict(self._state), payload, fallback_source="my-plugin"
+            device_id, self._state(), payload, fallback_source="my-plugin"
         )
 
 
@@ -473,26 +487,39 @@ const { PluginBase } = require('homecore-plugin-sdk');
 
 const DEVICE_ID = 'light.virtual_js_01';
 const CAPABILITIES = {
-  on:         { type: 'boolean' },
-  brightness: { type: 'integer', minimum: 0, maximum: 255 },
+  on:             { type: 'boolean' },
+  brightness_pct: { type: 'number', minimum: 0, maximum: 100 },
 };
 
 class MyPlugin extends PluginBase {
   constructor(options = {}) {
     super({ pluginId: 'plugin.my-device', ...options });
-    this._state = { on: false, brightness: 128 };
+    this._on = false;
+    this._level = 50; // kept while off, so {"on": true} restores it
+  }
+
+  _state() {
+    // A light that is on never reports 0 %; one that is off reports 0 %.
+    return { on: this._on, brightness_pct: this._on ? this._level : 0 };
   }
 
   onConnect() {
     this.registerDevice(DEVICE_ID, 'Virtual Light', CAPABILITIES, 'living_room');
     this.publishAvailability(DEVICE_ID, true);
-    this.publishState(DEVICE_ID, { ...this._state });
+    this.publishState(DEVICE_ID, this._state());
     this.publishPluginStatus('active');
   }
 
   onCommand(deviceId, payload) {
-    Object.assign(this._state, payload);
-    this.publishStateForCommand(deviceId, { ...this._state }, payload, 'my-plugin');
+    // Two shapes only: an attribute write, or {"action": ...}.
+    if (payload.action === 'toggle') this._on = !this._on;
+    if ('on' in payload) this._on = !!payload.on;
+    if ('brightness_pct' in payload) {
+      const pct = Math.max(0, Math.min(100, Number(payload.brightness_pct)));
+      this._on = pct > 0; // 0 % is off
+      if (pct > 0) this._level = pct;
+    }
+    this.publishStateForCommand(deviceId, this._state(), payload, 'my-plugin');
   }
 }
 
@@ -523,7 +550,7 @@ await client.RegisterDeviceFullAsync("my_device_001", "My Device", deviceType: "
 // silently ignores every command.
 await client.SubscribeCommandsAsync("my_device_001");
 
-await client.PublishStateAsync("my_device_001", new { temperature = 72.5 });
+await client.PublishStateAsync("my_device_001", new { temperature = 22.5 }); // °C
 await client.PublishAvailabilityAsync("my_device_001", true);
 await client.RunAsync();
 ```
@@ -860,7 +887,7 @@ Publish to `homecore/plugins/plugin.my-device/register`:
   "device_type": "sensor",
   "capabilities": {
     "temperature": {"type": "number"},
-    "battery":     {"type": "integer", "minimum": 0, "maximum": 100}
+    "battery_pct": {"type": "number", "minimum": 0, "maximum": 100}
   }
 }
 ```
@@ -870,7 +897,7 @@ Publish to `homecore/plugins/plugin.my-device/register`:
 Publish to `homecore/devices/my_device_001/state` with `retain=true`:
 
 ```json
-{"temperature": 72.5, "battery": 87}
+{"temperature": 22.5, "battery_pct": 87}
 ```
 
 ### 4. Publish availability (retained)
@@ -891,7 +918,10 @@ offline
 
 Subscribe to `homecore/devices/my_device_001/cmd`.
 
-Incoming payload is a JSON object with device-specific fields. Apply them to the physical device, then publish the new state back.
+An incoming payload is one of two shapes: a write to a writable attribute,
+`{"on": true}`, or a declared action, `{"action": "toggle"}` — never
+`{"command": …}`. Apply it to the physical device, then publish the new state
+back.
 
 ## Plugin file structure conventions
 
@@ -1217,6 +1247,40 @@ The command path and the schema must agree, attribute by attribute:
 All three of those shipped. If you must keep an old spelling for existing
 rules, accept both and declare the one you publish.
 
+### Names and units
+
+**One name, one meaning, one unit**, for everything a device reports or takes.
+The table is `hc_types::device_vocabulary::TERMS` in the homeCore repository;
+read it before naming an attribute.
+
+- **Use a name from the table when the idea matches**, in its unit and range:
+  `on`, `brightness_pct` (0–100, decimals allowed), `color_temp` (kelvin),
+  `color_xy`, `color_rgb`, `transition_ms`, `position` (100 = open), `locked`,
+  `open` (`true` = open), `motion`, `occupied`, `temperature`, `humidity`,
+  `illuminance` (lux), `setpoint` / `heat_setpoint` / `cool_setpoint`,
+  `hvac_mode`, `hvac_action`, `fan_mode`, `power_w`, `energy_kwh`,
+  `battery_pct`, `volume`, `muted`, `media_title`, `media_position`, and the
+  rest of the table.
+- **Your own idea gets your own name**, never one of these with another
+  meaning. A WLED preset is `preset_id`; a raw 0–255 level is not
+  `brightness`.
+- **Convert at the edge.** Publish in the table's unit and convert back when
+  commanding. Temperatures are **°C**, rain **mm**, pressure **hPa**, wind
+  **m/s** — whatever the device reports or the person prefers. Showing °F is
+  the app's job, from each person's setting; a plugin has no unit setting.
+  Write the conversion as a function with a test at each end of the scale: a
+  dimmer's lowest step must not read as 0 % (off), and 100 % must reach the
+  device's maximum (99 on Z-Wave, 254 on Zigbee and Matter, 255 on WLED).
+  The Rust template's `pct_from_level` / `level_from_pct` show how.
+- **Units in names.** A number names its unit as a suffix — `_pct`, `_ms`,
+  `_secs`, `_w`, `_kwh` — unless it is a term whose unit the table sets
+  (`temperature`, `humidity`, `volume`, `position`, …). Fades are `_ms`.
+- **Two command shapes, no others.** A write to a writable attribute,
+  `{"on": true}`, or a declared action, `{"action": "start", …}`. Read
+  `action`; never `command`.
+- **`{"on": true}` restores the last level** where the device can. `0` %
+  means off; a light that is on never reports `0` %.
+
 ## Let the build check it for you
 
 Most of the checklist below is not a thing to remember. It is
@@ -1290,6 +1354,11 @@ can know.
 - [ ] ✓ Every boolean has `states`, both sides named.
 - [ ] Every `unit` is true of the value. A 0-5 battery level declared `%`
       rendered a healthy sensor as "2%".
+- [ ] Shared ideas use the [shared names and units](#names-and-units),
+      converted inside the plugin (temperatures °C, `brightness_pct` 0–100,
+      `color_temp` kelvin), with a test at each end of every conversion.
+- [ ] Commands are read as an attribute write or `{"action": …}`, never
+      `{"command": …}`.
 - [ ] ✓ Every `min`/`max` is a range, and matches what the command path clamps to.
 - [ ] ✓ Housekeeping carries `category`; ask `AttributeCategory::for_name`
       before writing your own list.

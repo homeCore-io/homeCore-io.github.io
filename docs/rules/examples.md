@@ -98,12 +98,12 @@ type = "parallel"
 [[actions.actions]]
 type      = "set_device_state"
 device_id = "light_porch"
-state     = { on = true, brightness = 200 }
+state     = { on = true, brightness_pct = 80 }
 
 [[actions.actions]]
 type      = "set_device_state"
 device_id = "light_deck"
-state     = { on = true, brightness = 150 }
+state     = { on = true, brightness_pct = 60 }
 ```
 
 ---
@@ -230,7 +230,7 @@ event_type = "morning_routine_started"
 [[actions]]
 type      = "set_device_state"
 device_id = "thermostat_main"
-state     = { target_temp = 70 }
+state     = { setpoint = 21 }   # °C
 ```
 
 **Rule 4 — raise blinds:**
@@ -281,12 +281,12 @@ type = "parallel"
 [[actions.actions]]
 type      = "set_device_state"
 device_id = "light_entryway"
-state     = { on = true, brightness = 200 }
+state     = { on = true, brightness_pct = 80 }
 
 [[actions.actions]]
 type      = "set_device_state"
 device_id = "thermostat_main"
-state     = { mode = "heat", target_temp = 70 }
+state     = { hvac_mode = "heat", setpoint = 21 }   # °C
 
 [[actions]]
 type  = "set_mode"
@@ -528,7 +528,7 @@ message = "Exterior motion detected"
 [[actions.actions]]
 type      = "set_device_state"
 device_id = "light_exterior"
-state     = { on = true, brightness = 255 }
+state     = { on = true, brightness_pct = 100 }
 ```
 
 ---

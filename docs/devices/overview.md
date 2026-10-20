@@ -18,12 +18,12 @@ A **device** in HomeCore is any physical or virtual entity that has a state you 
   "name": "Front Door",
   "plugin_id": "plugin.yolink",
   "area": "entryway",
-  "device_type": "door_sensor",
+  "device_type": "contact_sensor",
   "available": true,
   "last_seen": "2026-03-28T14:22:00Z",
   "attributes": {
     "open": false,
-    "battery": 85,
+    "battery_pct": 85,
     "signal": -65
   }
 }
@@ -143,7 +143,7 @@ without knowing what brand it is talking to.
   "attributes": {
     "temperature": { "kind": "float", "writable": false, "unit": "°C" },
     "humidity":    { "kind": "float", "writable": false, "unit": "%" },
-    "battery":     { "kind": "integer", "writable": false, "unit": "%",
+    "battery_pct": { "kind": "float", "writable": false, "unit": "%",
                      "category": "diagnostic" }
   }
 }
@@ -164,7 +164,7 @@ read, and says so.
 curl -s -X PATCH http://localhost:8080/api/v1/devices/hue_001788fffe6841b3_1/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"on": true, "brightness": 200}'
+  -d '{"on": true, "brightness_pct": 80}'
 
 # Unlock a door
 curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_lock_front/state \

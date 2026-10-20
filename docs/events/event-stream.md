@@ -84,8 +84,8 @@ All events follow the same JSON envelope:
   "type": "device_state_changed",
   "timestamp": "2026-03-28T14:22:00Z",
   "device_id": "yolink_front_door",
-  "previous": {"open": false, "battery": 85},
-  "current":  {"open": true,  "battery": 85},
+  "previous": {"open": false, "battery_pct": 85},
+  "current":  {"open": true,  "battery_pct": 85},
   "changed":  ["open"]
 }
 ```

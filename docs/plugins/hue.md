@@ -108,7 +108,6 @@ Turn them on or off, and send them somewhere, in **Settings › Alerts**.
 
 On its page, or **Settings › Plugins › Philips Hue › Settings**:
 
-- temperature in °C or °F;
 - whether entertainment areas appear as devices;
 - live updates from the bridge (on by default), and how often to read it
   when they are off;
@@ -117,6 +116,10 @@ On its page, or **Settings › Plugins › Philips Hue › Settings**:
   device (the default) or three;
 - looking for bridges on the network, and asking Philips' discovery service
   when that finds nothing (it returns only your bridge's address).
+
+There is no unit setting: temperatures are published in °C and light levels
+in lux, always, and the app shows °F to anyone who prefers it. An old
+`[hue.display]` table (`temperature_unit`, `illuminance_display`) is ignored.
 
 ## Commanding Hue devices directly
 
@@ -133,8 +136,8 @@ What the screens send, for anyone writing their own:
 | light | `{"gradient_points": [{"x":…,"y":…}, …]}` | a gradient lamp's colours |
 | light | `{"action": "identify"}` | flash it to find it |
 | light, room | `{"action": "breathe"}` | pulse once |
-| light, room | `{"action": "signal", "kind": "on_off", "duration_ms": 5000}` | blink, then put it back (`on_off_color` and `alternating` take `colors`) |
-| scene | `{"action": "activate", "dynamic": true, "duration_ms": 2000}` | apply it, colours moving, fading in |
+| light, room | `{"action": "signal", "kind": "on_off", "duration_secs": 5}` | blink, then put it back (`on_off_color` and `alternating` take `colors`) |
+| scene | `{"action": "activate", "dynamic": true, "transition_ms": 2000}` | apply it, colours moving, fading in |
 | scene | `{"action": "rename", "name": "Movie"}`, `{"action": "delete"}` | rename it, delete it from the bridge |
 | room | `{"action": "save_scene", "name": "Movie"}` | save its lights as they are as a new scene |
 | light, room | `{"action": "activate", "scene_id": "<the scene's resource_id>"}` | apply a scene through it |

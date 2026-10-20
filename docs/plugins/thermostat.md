@@ -30,8 +30,9 @@ plug, or Shelly switch that powers HVAC equipment.
 - **Pending-call surfacing:** when a lockout defers a transition, the
   thermostat reports the pending state + remaining lockout time for UI display
 - **Runtime command persistence:** setpoint / mode / hysteresis / sensors /
-  actuator changes made via MQTT are written back to `config.toml` so
-  restarts are idempotent
+  actuator changes made at runtime are kept in homeCore's learned state for
+  the plugin and applied over the config file on start (unless the file's
+  entry was edited since), so restarts are idempotent
 - **Restart reconciliation:** on startup, the plugin reads its own retained
   state topic to restore `actuator_last_change`, so short-cycle lockouts
   survive plugin restarts
@@ -111,14 +112,14 @@ name               = "Living Room Thermostat"
 sensor_device_ids  = ["yolink_lr_temp_a", "yolink_lr_temp_b"]
 sensor_attribute   = "temperature"  # default
 aggregation        = "average"      # "average" | "min" | "max"
-setpoint           = 70.0
-hysteresis         = 1.0            # ±0.5° deadband
+setpoint           = 21.0           # °C (−40–45; convert °F with (F − 32) × 5/9)
+hysteresis         = 1.0            # ±0.5 °C deadband
 mode               = "heat"         # "heat" | "cool" | "off"
 actuator_device_id = "switch_furnace_relay"
 min_on_secs        = 300            # short-cycle protection
 min_off_secs       = 180
-# actuator_on_cmd  = { command = "on" }    # optional override
-# actuator_off_cmd = { command = "off" }
+# actuator_on_cmd  = { on = true }        # optional override (this is the default)
+# actuator_off_cmd = { on = false }
 ```
 
 Each thermostat entry becomes a device at `thermostat_<id>` under `plugin.thermostat`
@@ -130,16 +131,17 @@ Each thermostat continuously publishes to `homecore/devices/thermostat_<id>/stat
 
 ```json
 {
-  "current_temperature": 71.2,
-  "call_for": "heat",
+  "temperature": 21.8,
+  "hvac_action": "heating",
+  "sensors_stale": false,
   "actuator_state": true,
   "actuator_last_change": "2026-04-19T12:34:56Z",
   "pending_call": null,
   "lockout_until": null,
   "actuator_last_error": null,
-  "setpoint": 70.0,
+  "setpoint": 21.0,
   "hysteresis": 1.0,
-  "mode": "heat",
+  "hvac_mode": "heat",
   "aggregation": "average",
   "sensor_ids": ["yolink_lr_temp_a", "yolink_lr_temp_b"],
   "sensor_attribute": "temperature",
@@ -150,27 +152,41 @@ Each thermostat continuously publishes to `homecore/devices/thermostat_<id>/stat
 }
 ```
 
-`call_for` values: `"heat"`, `"cool"`, `"idle"`, `"stale"` (all sensors offline).
+Names follow homeCore's shared device vocabulary: `temperature` and
+`setpoint` are °C (the app shows °F to anyone who prefers it), `hvac_mode` is
+what it is set to do, and `hvac_action` is what its actuator is doing now —
+`off` in mode off, `heating`/`cooling` while the actuator is on, `idle`
+otherwise. `pending_call` is what it will do once a short-cycle lockout ends,
+in the same words. `sensors_stale` is `true` while no sensor has a reading.
 
 ## Runtime commands
 
 Publish to `homecore/devices/thermostat_<id>/cmd` (or use the device-command
-REST endpoint):
+REST endpoint). The setpoint and the mode are writable attributes:
 
 ```json
-{ "command": "set_setpoint",    "value": 72.0 }
-{ "command": "set_mode",        "value": "heat" }      // "heat" | "cool" | "off"
-{ "command": "set_hysteresis",  "value": 1.0 }
-{ "command": "set_sensors",     "sensor_ids": ["sensor_a", "sensor_b"],
-                                 "attribute": "temperature" }
-{ "command": "set_actuator",    "device_id": "switch_x" }
-{ "command": "set_aggregation", "value": "min" }       // "average" | "min" | "max"
-{ "command": "set_short_cycle", "min_on_secs": 300, "min_off_secs": 180 }
-{ "command": "recalculate" }
+{ "setpoint": 21.5 }
+{ "hvac_mode": "heat" }                                 // "heat" | "cool" | "off"
 ```
 
-Runtime changes are written back to `config.toml` atomically, so the next
-restart picks them up.
+Everything else is a declared action:
+
+```json
+{ "action": "set_setpoint",    "value": 21.5 }
+{ "action": "set_mode",        "value": "heat" }      // "heat" | "cool" | "off"
+{ "action": "set_hysteresis",  "value": 0.5 }
+{ "action": "set_sensors",     "sensor_ids": ["sensor_a", "sensor_b"],
+                                "attribute": "temperature" }
+{ "action": "set_actuator",    "device_id": "switch_x" }
+{ "action": "set_aggregation", "value": "min" }       // "average" | "min" | "max"
+{ "action": "set_short_cycle", "min_on_secs": 300, "min_off_secs": 180 }
+{ "action": "recalculate" }
+```
+
+Runtime changes are kept in homeCore's learned state for the plugin, not
+written to the config file; on start they are applied over the file, unless
+the file's entry for that thermostat has been edited since the change was
+made — then the file wins.
 
 ## Plugin actions
 
@@ -216,7 +232,7 @@ curl -X POST http://localhost:8080/api/v1/plugins/plugin.thermostat/command \
       "id": "bedroom",
       "name": "Bedroom Thermostat",
       "sensor_device_ids": ["yolink_bed_temp"],
-      "setpoint": 68.0,
+      "setpoint": 20.0,
       "hysteresis": 1.0,
       "mode": "heat",
       "actuator_device_id": "zwave_bedroom_heater"
@@ -268,8 +284,8 @@ that lowers the setpoint when an outdoor sensor rises above a threshold.
 
 ### Fail-safe
 
-If all configured sensors drop offline, `call_for` becomes `"stale"` and the
+If all configured sensors drop offline, `sensors_stale` becomes `true` and the
 plugin holds the last actuator command (it neither turns on nor off
-spontaneously). Pair with a rule that notifies when `call_for == "stale"`
+spontaneously). Pair with a rule that notifies when `sensors_stale` is `true`
 for longer than 15 minutes — the create-thermostat wizard will soon offer
 this as an opt-in template.

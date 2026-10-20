@@ -59,23 +59,31 @@ The integration ID matches the ID shown in Lutron Designer software.
 
 ## Device attributes
 
-### Dimmers and switches
+Names and units follow homeCore's shared device vocabulary, converted from
+Lutron's own scales inside the plugin.
 
-| Attribute | Type | Description |
+| Device | Reports | Takes |
 |---|---|---|
-| `on` | boolean | Power state |
-| `brightness` | integer 0-100 | Level percentage (0 = off, 100 = full) |
+| dimmer | `on`, `brightness_pct` (0–100, decimals) | `on`, `brightness_pct`, with optional `transition_ms` |
+| switch | `on` | `on` |
+| fan | `on`, `speed` (`off`/`low`/`medium`/`medium-high`/`high`), `speed_pct` | `on`, `speed`, `speed_pct`, optional `transition_ms` |
+| shade | `position` (0–100, 100 = open) | `position`; actions `raise`, `lower`, `stop` |
+| occupancy group | `occupied` | — |
+| keypad / VCRX | `button_N`, `last_button`, `last_button_name`, `led_N` (0 off, 1 on, 2 slow flash, 3 rapid) | actions `press_button {button}`, `set_led {button, state}` |
+| VCRX contact inputs | `cci_N_open` (`true` = contact open) | — |
+| scene | `active` | action `activate` |
+| timeclock event | `enabled` | `enabled`; action `execute` |
 
-### Pico remotes
-
-Pico remotes are registered with `DeviceKind::Pico`. They are read-only button devices — they report button press events but cannot be commanded.
-
-| Attribute | Type | Description |
-|---|---|---|
-| `button` | integer | Last pressed button number |
-| `action` | string | `"press"` or `"release"` |
-
-Pico remotes are distinct from keypads. They do not have LED feedback and cannot be used as scene controllers from HomeCore.
+- **`{"on": true}` with no level** turns a dimmer or fan back on at the last
+  level the repeater reported (full, if none has been seen since the plugin
+  started). `brightness_pct: 0` is off, and a lit dimmer never reports 0 %.
+- **Fades:** `transition_ms` beside a level, sent to the repeater to the
+  hundredth of a second under a minute.
+- **Actions** are sent as `{"action": "set_led", "button": 3, "state": 1}`,
+  `{"action": "press_button", "button": 2}`, `{"action": "activate"}`.
+- **No longer published:** `brightness` (a 0–255 copy of the level),
+  `occupancy` (same as `occupied`), `cci_N` `"open"`/`"closed"` strings (now
+  `cci_N_open`), and a scene's `on` (now `active`).
 
 ### VCRX
 
@@ -95,32 +103,18 @@ ccis           = [31, 32, 33, 34]
 
 **Device ID:** `lutron_36`
 
-| Attribute | Type | Description |
-|---|---|---|
-| `button_N` | string | Button press/release/hold event (`"press"`, `"release"`, `"hold"`) |
-| `led_N` | boolean | LED on/off state for each button |
-| `cci_N` | string | Contact closure state: `"open"` or `"closed"` |
-
-**Commands:** `press_button` and `set_led` (same as Keypad).
+It reports `button_N`, `last_button`, `led_N` and `cci_N_open` (`true` when
+the contact is open), and takes the `press_button` and `set_led` actions, as a
+keypad does.
 
 **Typical use case:** HomeLink visor control for garage doors, with CCIs wired to contact closure sensors for door open/closed state.
 
-### Scenes
-
-| Attribute | Type | Description |
-|---|---|---|
-| `available` | boolean | Whether the scene can be activated |
-| `on` | boolean | Scene active state (phantom scenes with LED feedback) |
-
 ### Phantom scene LED feedback
 
-Phantom scene buttons now report on/off state via LED feedback. The plugin queries LED state at connect and handles LED change events in real time. When a phantom scene's LED turns on, the scene device's `on` attribute becomes `true`, allowing rules to react to scene activation from physical keypads.
+Phantom scene buttons now report on/off state via LED feedback. The plugin queries LED state at connect and handles LED change events in real time. When a phantom scene's LED turns on, the scene device's `active` attribute becomes `true`, allowing rules to react to scene activation from physical keypads.
 
-Main repeater phantom buttons use LED component = button number + 100 (not +80 like physical keypads). The plugin handles this offset automatically. Scene state is published whenever an LED event arrives from the repeater. Activating a scene also performs an optimistic state update, immediately publishing `on=true` so downstream rules can react without waiting for the LED round-trip. For paired on/off scenes, the state tracks the actual Lutron LED state so both the "on" and "off" scene devices stay in sync.
+Main repeater phantom buttons use LED component = button number + 100 (not +80 like physical keypads). The plugin handles this offset automatically. Scene state is published whenever an LED event arrives from the repeater. Activating a scene also performs an optimistic state update, immediately publishing `active: true` so downstream rules can react without waiting for the LED round-trip. For paired on/off scenes, the state tracks the actual Lutron LED state so both the "on" and "off" scene devices stay in sync.
 
-:::note Scene availability
-Always check `available = true` before activating a Lutron scene. Some phantom button scenes may be unavailable at certain times depending on your Lutron configuration.
-:::
 
 ## Commanding devices
 
@@ -129,7 +123,7 @@ Always check `available = true` before activating a Lutron scene. Some phantom b
 curl -s -X PATCH http://localhost:8080/api/v1/devices/lutron_21/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"on": true, "brightness": 75}'
+  -d '{"on": true, "brightness_pct": 75}'
 
 # Turn off
 curl -s -X PATCH http://localhost:8080/api/v1/devices/lutron_21/state \
@@ -141,7 +135,7 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/lutron_21/state \
 curl -s -X PATCH http://localhost:8080/api/v1/devices/lutron_scene_42/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"activate": true}'
+  -d '{"action": "activate"}'
 ```
 
 ## Rule example — Lutron scene at sunset
@@ -158,7 +152,7 @@ offset_minutes = -15
 [[actions]]
 type      = "set_device_state"
 device_id = "lutron_scene_42"
-state     = { activate = true }
+state     = { action = "activate" }
 ```
 
 ## Rule example — dimmer at different levels by mode
@@ -179,15 +173,15 @@ device_id = "lutron_21"
 
 [[actions.modes]]
 mode_name = "mode_night"
-state     = { on = true, brightness = 20 }
+state     = { on = true, brightness_pct = 20 }
 
 [[actions.modes]]
 mode_name = "mode_away"
 state     = { on = false }
 
 [actions.default_state]
-on         = true
-brightness = 80
+on             = true
+brightness_pct = 80
 ```
 
 ## Troubleshooting
@@ -196,9 +190,8 @@ brightness = 80
 |---|---|
 | `Connection refused` | Verify telnet is enabled in Lutron Designer and the IP/port is correct |
 | `Authentication failed` | Default credentials: username `lutron`, password `integration` |
-| Scene not activating | Check `available` attribute — phantom buttons may not always be available |
 | Devices not appearing | Ensure all devices are programmed in Lutron Designer and the repeater is online |
-| Dim level off by 1% | Lutron uses integer 0-100; minor rounding in conversion is expected |
+| Dim level off by 1% | Lutron levels are 0–100 with two decimals; minor rounding is expected |
 
 ## Log rotation
 

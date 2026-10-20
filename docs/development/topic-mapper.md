@@ -89,12 +89,12 @@ The `{device}` capture becomes the second part of the HomeCore device ID: `{pref
 
 ## Field map
 
-`field_map` renames JSON keys from the device's schema to HomeCore canonical attribute names.
+`field_map` renames JSON keys from the device's schema to HomeCore canonical attribute names — the shared device vocabulary (`on`, `brightness_pct` 0–100, `color_temp` in kelvin, `open`, `occupied`, `battery_pct`, temperatures in °C, …). Convert the device's scale with `coerce` (below) so the published value is in the shared unit.
 
 ```toml
 [ecosystem.state_topics.field_map]
 state        = "on"           # Z2M "state" → HomeCore "on"
-brightness   = "brightness"   # same name — can omit, listed for clarity
+brightness   = "brightness_pct"  # renamed; scale converted by coerce below
 temperature  = "temperature"  # pass-through
 POWER        = "on"           # Tasmota "POWER" → HomeCore "on"
 "ENERGY.Power" = "power_w"    # nested path using dot notation
@@ -120,9 +120,9 @@ Use dot notation to extract nested JSON values:
 ```toml
 [ecosystem.state_topics.coerce]
 on           = "onoff_to_bool"    # "ON"/"OFF" → true/false
-brightness   = "pct255_to_100"    # 0–255 integer → 0–100 percentage
+brightness_pct = "pct255_to_100"  # 0–255 integer → 0–100 percentage
 color_temp   = "mired_to_kelvin"  # mired → Kelvin
-battery      = "scalar_int"       # ensure integer type
+battery_pct  = "scalar_int"       # ensure integer type
 ```
 
 | Coerce name | Input | Output |
@@ -134,7 +134,20 @@ battery      = "scalar_int"       # ensure integer type
 | `scalar_float` | Number | Float |
 | `pct255_to_100` | 0–255 | 0–100 percentage |
 | `pct100_to_255` | 0–100 | 0–255 |
+| `pct254_to_100` | Zigbee's 0–254 level | 0–100 percentage (on at the lowest level never reads 0) |
+| `pct100_to_254` | 0–100 | 0–254 (above 0 never sends 0) |
 | `mired_to_kelvin` | Mired (integer) | Kelvin |
+| `kelvin_to_mired` | Kelvin | Mired |
+| `invert_bool` | `true` / `false` | `false` / `true` (a contact that reports `true` when closed → `open`) |
+| `lock_to_bool` | `"LOCK"` / `"locked"` | `true`, anything else `false` |
+| `bool_to_lock` | `true` / `false` | `"LOCK"` / `"UNLOCK"` |
+| `hvac_action_words` | `"heat"` / `"cool"` / `"fan_only"` | `"heating"` / `"cooling"` / `"fan"` |
+| `uppercase` | `"toggle"` | `"TOGGLE"` |
+| `ms_to_secs` / `secs_to_ms` | Milliseconds / seconds | Seconds / milliseconds |
+
+Map to homeCore's shared names and units — `brightness_pct` 0–100, `color_temp` in kelvin, `open`, `occupied`, `battery_pct`, temperatures in °C — and convert the device's own scale here, so automations and the app treat a mapped device like any plugin's.
+
+In `cmd_topics`, a coercion is looked up by homeCore's attribute name first, then by the device's key. That lets two attributes that go to the same key convert differently — Zigbee2MQTT's `state` takes both `on` (`bool_to_onoff`) and `locked` (`bool_to_lock`).
 
 ---
 
@@ -202,7 +215,7 @@ fn parse_my_sensor(payload) {
     #{
         "temperature": p.SHT30.Temperature,
         "humidity":    p.SHT30.Humidity,
-        "battery":     (p.battery / 255.0 * 100.0).to_int(),
+        "battery_pct": (p.battery / 255.0 * 100.0).to_int(),
     }
 }
 ```
@@ -243,7 +256,7 @@ Device IDs: `shelly2_{device_id}`
 
 ### `zigbee2mqtt.toml`
 
-Full attribute mapping for Zigbee2MQTT: lights (on/brightness/color_temp/color_xy), sensors (temperature/humidity/pressure/occupancy/contact/smoke/water_leak), power monitoring, covers, locks, thermostats, signal quality. Availability via `{device}/availability` JSON payload.
+Full attribute mapping for Zigbee2MQTT in homeCore's shared names: lights (`on`, `brightness_pct` from Zigbee's 0–254, `color_temp` in kelvin, `color_xy`; commands also take `color_rgb`, `transition_ms` and `{"action": "toggle"}`), sensors (`temperature`, `humidity`, `pressure`, `illuminance`, `occupied`, `open`, `water_detected`, `battery_pct`, `tampered`, `co2`), power monitoring, covers (`position`, `tilt_pct`), locks (`locked`), thermostats (`temperature`, `heat_setpoint`, `cool_setpoint`, `hvac_mode`, `hvac_action`, `fan_mode`), signal quality. Availability via `{device}/availability` JSON payload.
 
 Device IDs: `zigbee_{z2m_friendly_name}` (use underscored names in Z2M for clean IDs)
 

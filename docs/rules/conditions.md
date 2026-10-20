@@ -56,13 +56,13 @@ attribute = "on"
 op        = "Eq"
 value     = false
 
-# Temperature above 80°F
+# Temperature above 27 °C (temperatures are always °C; the app shows °F)
 [[conditions]]
 type      = "device_state"
 device    = "hallway.thermostat"
 attribute = "temperature"
 op        = "Gt"
-value     = 80
+value     = 27
 
 # Motion was detected (any truthy state)
 [[conditions]]
@@ -76,7 +76,7 @@ value     = true
 [[conditions]]
 type      = "device_state"
 device    = "entryway.door_sensor"
-attribute = "battery"
+attribute = "battery_pct"
 op        = "Lt"
 value     = 20
 ```

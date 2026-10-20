@@ -16,7 +16,7 @@ indicator, push notification, scripted action.
 
 ## How it works
 
-Plugins normalize battery levels to a `battery` attribute on the
+Plugins normalize battery levels to a `battery_pct` attribute on the
 device's state, expressed as a percentage (0–100). Every time a
 `DeviceStateChanged` event touches that attribute, the watcher consults
 a persisted per-device latch and decides whether the change crosses the
@@ -95,7 +95,7 @@ Rule(
             let id = trigger_device();
             let dev = device_state(id);
             notify("all", "Battery low",
-                "Battery low: " + dev["name"] + " at " + dev["attributes"]["battery"] + "%");
+                "Battery low: " + dev["name"] + " at " + dev["attributes"]["battery_pct"] + "%");
         "#)),
     ],
 )
@@ -156,8 +156,9 @@ and (for `device_battery_low`) the threshold value that was crossed.
 
 ## Implementation notes
 
-- The watcher reads the `battery`, `battery_pct`, or `battery_level`
-  attribute (in that order). YoLink's 0–4 scale is converted to 0–100
+- The watcher reads `battery_pct`, the shared name every plugin publishes
+  (the retired `battery` and `battery_level` are still read, in that order,
+  after it). YoLink's 0–4 scale is converted to 0–100
   in the plugin layer; Z-Wave reports continuous values. Either format
   works without per-plugin tuning.
 - Hysteresis state lives in the `battery_state` redb table inside

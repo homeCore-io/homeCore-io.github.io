@@ -198,9 +198,9 @@ Plugins can also publish an explicit schema when they need a custom device shape
   "area": "living_room",
   "device_type": "light",
   "capabilities": {
-    "on":         {"type": "boolean"},
-    "brightness": {"type": "integer", "minimum": 0, "maximum": 254},
-    "color_temp": {"type": "integer", "minimum": 2000, "maximum": 6500}
+    "on":             {"type": "boolean"},
+    "brightness_pct": {"type": "number", "minimum": 0, "maximum": 100},
+    "color_temp":     {"type": "integer", "minimum": 2000, "maximum": 6500}
   }
 }
 ```

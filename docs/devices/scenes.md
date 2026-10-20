@@ -32,9 +32,9 @@ SCENE_ID=$(curl -s -X POST http://localhost:8080/api/v1/scenes \
     "name": "Movie night",
     "area": "living_room",
     "devices": [
-      {"device_id": "light_living_room_main", "state": {"on": true, "brightness": 30, "color_temp": 2700}},
+      {"device_id": "light_living_room_main", "state": {"on": true, "brightness_pct": 12, "color_temp": 2700}},
       {"device_id": "light_kitchen", "state": {"on": false}},
-      {"device_id": "light_hallway", "state": {"on": true, "brightness": 10}}
+      {"device_id": "light_hallway", "state": {"on": true, "brightness_pct": 4}}
     ]
   }' | jq -r .id)
 ```

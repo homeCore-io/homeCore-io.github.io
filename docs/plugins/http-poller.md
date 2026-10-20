@@ -45,10 +45,15 @@ timeout_ms   = 5000
 
 # Response mapping — three modes (see below)
 [devices.field_map]
-temperature = "temp_f"
+temperature = "temp_c"
 humidity    = "relative_humidity"
-wind_speed  = "wind_mph"
+wind_speed  = "wind_ms"
 ```
+
+Publish homeCore's shared names in their shared units — `temperature` in °C,
+`humidity` in %, `pressure` in hPa, `wind_speed` in m/s, rain in mm (`…_mm`).
+The app shows °F, inches or mph to anyone who prefers them. When the source
+reports another unit, convert it in a transform script (Mode 3).
 
 ## Response mapping modes
 
@@ -57,17 +62,17 @@ wind_speed  = "wind_mph"
 Maps JSON response fields directly to device attributes.
 
 ```toml
-# Response: {"temp_f": 72.1, "relative_humidity": 45, "wind_mph": 8.3}
+# Response: {"temp_c": 22.3, "relative_humidity": 45, "wind_ms": 3.7}
 [devices.field_map]
-temperature = "temp_f"           # device attr = json key
+temperature = "temp_c"           # device attr = json key
 humidity    = "relative_humidity"
-wind_speed  = "wind_mph"
+wind_speed  = "wind_ms"
 ```
 
 Nested JSON paths use dot notation:
 
 ```toml
-# Response: {"data": {"current": {"temp": 72.1}}}
+# Response: {"data": {"current": {"temp": 22.3}}}
 [devices.field_map]
 temperature = "data.current.temp"
 ```
@@ -108,7 +113,7 @@ device_id          = "weather_openweathermap"
 name               = "Outside Weather"
 area               = "outdoor"
 device_type        = "sensor"
-url                = "https://api.openweathermap.org/data/2.5/weather?q=Washington,DC&appid=YOUR_API_KEY&units=imperial"
+url                = "https://api.openweathermap.org/data/2.5/weather?q=Washington,DC&appid=YOUR_API_KEY&units=metric"   # °C, m/s, hPa
 poll_interval_secs = 300   # 5 minutes (respect API rate limits)
 
 [devices.field_map]
@@ -166,7 +171,7 @@ offline_after_failures = 3   # optional: mark offline after this many consecutiv
 ## React to polled data in rules
 
 ```toml
-# Alert when outside temp drops below 32°F
+# Alert when outside temp drops below freezing (0 °C)
 name = "Freeze alert"
 enabled = true
 
@@ -180,12 +185,12 @@ type      = "device_state"
 device_id = "weather_openweathermap"
 attribute = "temperature"
 op        = "Lt"
-value     = 32
+value     = 0
 
 [[actions]]
 type    = "notify"
 channel = "telegram"
-message = "Freezing temperature: {{device.temperature}}°F — check pipes!"
+message = "Freezing temperature: {{device.temperature}} °C — check pipes!"
 ```
 
 ## Full config reference
