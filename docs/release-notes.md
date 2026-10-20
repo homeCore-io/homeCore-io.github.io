@@ -25,6 +25,47 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.89 — 2026-10-20
+
+**Theme:** one name, one meaning, one unit — the core half of the plugins'
+move to one set of names (the plugin releases are listed under v0.1.88).
+
+### What you'll notice
+
+- **Timers, modes and homeCore's other own devices take actions** the way
+  every plugin's devices do: an automation step is `{"action": "start",
+  "duration_secs": 600}`. They now say which actions they take — *Start*,
+  *Pause*, *Cancel*, *Add time* on a timer; *Count up* on a counter; *Turn on*
+  on a mode — so the automation editor offers them instead of raw JSON. The
+  old `{"command": "start"}` still works.
+- **A vocabulary check**, `GET /api/v1/system/vocabulary-check`: every
+  automation step and every device compared with what the device takes and
+  with the shared names. It lists steps that call something the device doesn't
+  have, old names, and units that differ from the standard — with what to
+  write instead. It only reports; nothing is blocked.
+
+### For plugin authors
+
+- The shared names and units live in `hc-types` (`device_vocabulary`) and
+  in the plugin guide's *Names and units*: `brightness_pct` 0–100,
+  `color_temp` kelvin, `transition_ms`, `open`, `battery_pct`, temperatures
+  in °C, and the two command shapes — write an attribute, or call a declared
+  action. Convert from the device's own scale inside the plugin.
+
+### Release matrix
+
+**Tagged at v0.1.89:** `homeCore` (core). The plugins moved in the same round
+were tagged separately (see v0.1.88).
+
+### Upgrade notes
+
+- **Update core**, then rewrite the timer steps to the new form:
+  `core/scripts/vocabulary-rewrite.py --url http://HOST:8080 --user admin
+  --phase core` shows them; add `--apply` to write. Nothing breaks if you
+  don't — the old form still works.
+
+---
+
 ## v0.1.88 — 2026-10-19
 
 **Theme:** plugins' own cards on Home and the rooms.
