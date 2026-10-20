@@ -159,6 +159,32 @@ A WLED preset turns the strip on only when it was saved with *Include
 brightness*; one saved without leaves a strip that is off, off. Check your
 "on at sunset" automations. **Upgrade:** update the plugin.
 
+**hc-zwave 0.1.15, hc-thermostat 0.1.15, hc-caseta 0.1.13 and hc-sonos 0.1.15
+(2026-10-19)**, no core change. Fixes for things that did nothing or said too
+much, found by an audit of how every plugin names what devices report:
+
+- **Z-Wave locks no longer publish their door codes.** A lock's User Code
+  slots were published as device attributes in the clear, readable by anyone
+  who could read devices, and kept in history. They are never published now,
+  and updating the plugin clears them from current state on its first start.
+  **They stay in history and in any backup taken before** — delete them from
+  `history.db` with
+  `DELETE FROM state_history WHERE attribute LIKE 'cc99_usercode%' OR attribute LIKE 'cc99_admincode%' OR attribute LIKE 'cc99_mastercode%';`
+  and, since they were exposed, consider changing the codes.
+- **Z-Wave** no longer reports what a switch, dimmer or lock was *told* as
+  what it *did*; only the device's own report counts. A thermostat's heating
+  setpoint is read and written where zwave-js keeps it, and colour lights are
+  polled on the right command class.
+- **Virtual thermostat:** setting the target temperature or mode from the app
+  or an automation did nothing; it works now. A change also no longer
+  restarts the plugin (and re-sends its switch command): changes are kept by
+  homeCore, and a later edit to the config file still wins.
+- **Caséta:** scene and shade buttons did nothing from the app or an
+  automation; they work now.
+- **Sonos:** *Group with…* always failed; it works now.
+
+**Upgrade:** update the plugins. Nothing to change.
+
 ---
 
 ## v0.1.87 — 2026-10-19
