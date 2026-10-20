@@ -41,6 +41,42 @@ cd /path/to/hc-lutron
 
 The plugin connects via telnet, queries the full device list, registers all devices, and subscribes to real-time state updates.
 
+## Its screens
+
+All of these come with the plugin itself — update the plugin, and they update.
+
+- **Its page** (Settings › Plugins › Lutron): whether the main repeater is
+  connected and at what address; keypad buttons nobody has named yet, with a
+  way to name them; every scene, grouped by the room it is in (scenes in no
+  room under *House*), lit when the repeater's light says it is on — tap one to
+  run it; the keypads drawn with their lights and what was pressed last; the
+  Picos and visor receivers; and a count of switches, dimmers, fans and
+  occupancy groups with what is on now.
+- **A keypad's panel**: the keypad as it is on the wall, its lights live.
+  Pick a button to press it, or to set its light off, on, slow flash or fast
+  flash — the repeater may change it back when its scene changes. Below, what
+  was pressed lately ("OH1 Toggle, held, 2 min ago") and the automations that
+  start on the picked button.
+- **A Pico's panel**: drawn from the buttons it reports — the 2-button On/Off
+  or the 5-button On/Raise/Favorite/Lower/Off — with the one pressed last lit,
+  what each button starts, and its last press. A Pico takes no commands, so
+  there is nothing to press here.
+- **A visor receiver's panel** (VCRX): its buttons and their lights, to
+  press; its contact inputs, Open or Closed and since when; its last press.
+- **A keypad's card** on Home and the rooms: its named buttons with their
+  lights, to tap (unnamed ones are left off); compact, how many are lit.
+- **Lutron scenes**, a card you add yourself (Edit → Add a card): the scenes
+  you choose, in the order you drag them into, in a grid or a single row.
+- **In automations**, a step on a keypad is *Press a button* or *Set a light*,
+  picked on the keypad drawn, and says so in words: "press Outside on Kitchen 6
+  Button".
+
+Buttons are named by their engravings. A keypad's raise/lower rocker is named
+*Lower* and *Raise*, a Pico's buttons *On*, *Favorite*, *Off*, *Raise* and
+*Lower*, where nothing was engraved; any other unengraved button reads
+"Button 5" until it is named in the plugin's settings. A VCRX's contact inputs
+are *Input 1* and *Input 2*.
+
 ## SDK adoption
 
 hc-lutron is built on the official Rust plugin SDK (`plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
@@ -115,6 +151,17 @@ Phantom scene buttons now report on/off state via LED feedback. The plugin queri
 
 Main repeater phantom buttons use LED component = button number + 100 (not +80 like physical keypads). The plugin handles this offset automatically. Scene state is published whenever an LED event arrives from the repeater. Activating a scene also performs an optimistic state update, immediately publishing `active: true` so downstream rules can react without waiting for the LED round-trip. For paired on/off scenes, the state tracks the actual Lutron LED state so both the "on" and "off" scene devices stay in sync.
 
+
+### What the screens send
+
+| Device | Command | Does |
+|---|---|---|
+| keypad, VCRX | `{"action": "press_button", "button": 3}` | presses and releases button 3, as a person would |
+| keypad, VCRX | `{"action": "set_led", "button": 3, "state": 2}` | sets button 3's light: 0 off, 1 on, 2 slow flash, 3 fast flash |
+| scene | `{"action": "activate"}` | presses its phantom button |
+
+The plugin's page also asks the plugin's read-only `status` action whether the
+repeater is connected (`connected`, `since`, `error`, `host`, `port`).
 
 ## Commanding devices
 
