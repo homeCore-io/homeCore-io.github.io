@@ -90,6 +90,34 @@ profiles in the shared names — step six of the device vocabulary.
 - Update the app and the three plugins together with core; nothing else to
   change.
 
+**Lutron gets its own screens (2026-10-20)**: `hc-lutron` 0.1.21 and app
+`hc-web-svelte` 0.1.22. No core change needed.
+
+- **The Lutron page** shows the repeater connection, your scenes (phantom
+  buttons) grouped by room with the light that shows which is on — tap one
+  to run it — the keypads with their lit buttons and last press, the Picos
+  and visor receivers, and how many switches, dimmers, fans and occupancy
+  groups there are. Keypad buttons that still read "Button 5" are pointed
+  out.
+- **A keypad opens as the keypad on the wall**: pick a button to press it or
+  set its light (off, on, slow or fast flash), with its last presses and the
+  automations that start on it. **A Pico** is drawn from the buttons it has
+  (2-button or 5-button); **a visor receiver** shows its buttons and its
+  contact inputs.
+- **Cards**: a keypad card in three sizes, and a "Lutron scenes" card for a
+  dashboard — choose which scenes and in what order.
+- **In automations**, "Press a button" or "Set a light" is picked on the
+  drawn keypad.
+- Buttons with no engraving are named for what they are: a keypad's raise
+  and lower buttons read Raise and Lower, a Pico's On, Favorite, Off, Raise
+  and Lower.
+- The app (0.1.22) keeps a plugin's panel open while the device's readings
+  change — a keypad no longer forgets the button you picked after a press —
+  and gives a plugin's automation step a full row. Hue's screens benefit
+  too.
+
+**Upgrade:** update the app to 0.1.22 with or before `hc-lutron` 0.1.21.
+
 ---
 
 ## v0.1.89 — 2026-10-20
