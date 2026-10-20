@@ -185,6 +185,87 @@ much, found by an audit of how every plugin names what devices report:
 
 **Upgrade:** update the plugins. Nothing to change.
 
+**The plugins move to one set of names (2026-10-20)**: `hc-hue` 0.2.2,
+`hc-wled` 0.1.23, `hc-zwave` 0.1.16, `hc-isy` 0.1.12, `hc-lutron` 0.1.20,
+`hc-caseta` 0.1.14, `hc-yolink` 0.1.16, `hc-ecowitt` 0.1.20,
+`hc-thermostat` 0.1.16, `hc-sonos` 0.1.16, `hc-roku` 0.1.12. No core change
+needed. Every plugin now reports and takes the same idea under the same name,
+in the same unit: light level is `brightness_pct` (0–100) everywhere, white
+warmth is `color_temp` in kelvin, fades are `transition_ms`, a door is `open`,
+a battery is `battery_pct`, and **temperatures are °C** whatever the device
+or its own setting says. The list is in the plugin guide, *Names and units*.
+**This renames what devices report, so automations that use an old name stop
+matching** — see the upgrade steps.
+
+- **Hue:** `color_temp` in kelvin only (`color_temp_mirek` is gone);
+  temperature always °C and light level always lux, as `illuminance`; a
+  contact sensor reports `open`; fades are `transition_ms`. The *Temperature
+  in* and raw-light settings are gone. Rooms and zones declare *Activate a
+  scene*, and stop offering colour and white they never reported. A
+  brightness above 0 turns a light on.
+- **WLED:** `brightness_pct` only (the 0–255 `brightness` is gone);
+  `color_temp` in kelvin replaces `cct`; the main colour is `color_rgb`
+  `{r, g, b}`; fades are `transition_ms`; `led_power_mw` was really
+  milliamps and is now `led_current_ma`. A preset, effect and palette are
+  `preset_id`, `effect_id`, `palette_id`; *Restart* is the one restart.
+- **Z-Wave:** dimmers report `brightness_pct` (from Z-Wave's 0–99) and `on`;
+  `on: true` brings back the last level. `contact_open` → `open`, `tamper` →
+  `tampered`, `battery` → `battery_pct`. Sensors are read in the unit the
+  device reports and converted (°C, hPa, lux, W). Thermostats report
+  `heat_setpoint` / `cool_setpoint`, `hvac_mode`, `hvac_action` in words and
+  `fan_mode`. Covers report `position` (100 = open) from the right command
+  class; a garage door opener is a cover with `open`, no longer a lock.
+- **ISY:** `brightness_pct` only, read in the scale each device reports;
+  `on: true` brings back the last level. Thermostats in °C with
+  `heat_setpoint` / `cool_setpoint`; writing a setpoint no longer sends ten
+  times the value. Sensors report `temperature`, `humidity` … by their unit.
+  Barrier doors read 0 or 100; leak sensors read the same from events as from
+  a full read.
+- **Lutron and Caséta:** `brightness_pct` only; `occupied` only (`occupancy`
+  is gone); fades are `transition_ms`, sent in fractions of a second. `on:
+  true` brings back the last level rather than 100 % (and Caséta fans no
+  longer go to 50 %). A Lutron scene reports `active` instead of `on`; a
+  contact input reports `cci_N_open` true/false instead of `cci_N`
+  "open"/"closed". Caséta no longer reports unknown occupancy as vacant.
+- **YoLink:** `battery` → `battery_pct`, `humidity_pct` → `humidity`, a
+  lock's `door_open` → `open`; temperatures °C (the plugin's temperature-unit
+  setting is gone). A temperature-only probe now reports.
+- **Ecowitt:** the same reading has one name whether polled or pushed, in
+  °C, hPa, m/s and mm (`rain_daily_mm`, `wind_gust` …); solar radiation is
+  `solar_radiation` in W/m²; soil moisture `soil_moisture_pct`; leaks
+  `water_detected`. An unreadable value is skipped instead of reported as 0.
+  Some sensors keep one device id on both paths now, so a few get a new one.
+- **Virtual thermostat:** `temperature`, `hvac_mode` and `hvac_action`
+  (*heating*, *cooling*, *idle*, *off*); `sensors_stale` says the sensors went
+  quiet. `setpoint` and `hvac_mode` can be written directly. **In °C.**
+- **Sonos:** `media_title`, `media_artist`, `media_album`, `media_position`,
+  `media_duration`; it reports *stopped*; `volume` and `muted` can be written
+  directly. **Roku:** *muted* sets mute instead of toggling it.
+
+Each plugin clears its old names from homeCore on its first start, so an
+automation reading one fails visibly instead of reading a frozen value.
+
+**Upgrade:**
+
+1. **Before updating the virtual thermostat, change its config to °C** —
+   for example `setpoint = 21.7` and `hysteresis = 0.5` for 71 °F and 1 °F.
+   It refuses a setpoint outside −40 to 45 °C and will not start with a °F
+   one.
+2. **Before or after:** `core/scripts/vocabulary-rewrite.py --url
+   http://HOST:8080 --user admin --phase now` shows the automation steps that
+   can move to the new form with today's plugins (Lutron LED and scene steps,
+   WLED's `preset`); add `--apply` to write them.
+3. **Update the plugins.**
+4. **Straight after:** run it again with `--phase plugins` for the renamed
+   attributes (`humidity_pct` → `humidity`, a Lutron scene's `on` →
+   `active`, …), then `--apply`. It never converts a temperature threshold;
+   it lists any automation comparing one, to check by hand, since those were
+   in °F.
+5. Devices whose id changed (a few Ecowitt sensors) stop updating; remove the
+   old ones.
+6. The web app shows temperatures in °C until a release that converts to the
+   unit you choose.
+
 ---
 
 ## v0.1.87 — 2026-10-19
