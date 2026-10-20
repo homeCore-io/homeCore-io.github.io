@@ -25,6 +25,73 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.90 — 2026-10-20
+
+**Theme:** readings in each person's own units, and the topic-mapper
+profiles in the shared names — step six of the device vocabulary.
+
+### What you'll notice
+
+- **Units are yours.** *Me → Units* chooses °F or °C, and inHg · mph · in or
+  hPa · m/s · mm. Until you choose, your browser's language decides (a US
+  browser gets °F and US). Cards, device details, history charts, setpoint
+  sliders, scenes, automation sentences and fields, and alert levels all show
+  your units; what you type is sent to homeCore in °C and metric (70 °F is
+  kept as 21.111 °C and shows as 70 again). Each person chooses for
+  themselves.
+- **Plugin screens follow it too**: the Ecowitt page and cards and the Hue
+  sensor panel show your units (needs hc-ecowitt 0.1.21 and hc-hue 0.2.3).
+- **The thermostat's "Set the target temperature"** is in your unit
+  (hc-thermostat 0.1.17).
+- Number fields on a device's actions no longer round to a whole number —
+  21.5 was sent as 22.
+
+### Topic mapper (Zigbee2MQTT, Shelly, Tasmota)
+
+- The example profiles report and take the shared names: `brightness_pct`
+  (Zigbee's 0–254 converted), `color_temp` in kelvin, `open`, `occupied`,
+  `battery_pct`, `tampered`, `heat_setpoint`, `hvac_mode`, `hvac_action` in
+  words, `locked`; commands take `color_rgb`, `transition_ms` and
+  `{"action": "toggle"}`. Shelly's door contact and radiator-valve
+  `window_open` read the right way round (both were inverted).
+- New coercions: `pct254_to_100`, `pct100_to_254`, `invert_bool`,
+  `lock_to_bool`, `bool_to_lock`, `hvac_action_words`, `uppercase`,
+  `ms_to_secs`, `secs_to_ms`. A failed coercion now keeps the raw reading
+  instead of the whole message.
+
+### What is deliberately unchanged
+
+- homeCore stores °C and metric, as since v0.1.89; only the display changed.
+  History recorded in °F before the plugins moved still reads as it was
+  stored, so older chart points can look too high.
+- An alert rule's label is saved in the words of whoever wrote it ("above
+  86 °F").
+
+### For plugin authors
+
+- `host.units` (optional): the person's choice, `show(value, unit)`,
+  `toCore(value, unit)` and `subscribe`. Without it (an app before 0.1.21)
+  show the schema's unit.
+- The SDK READMEs and example lights use `brightness_pct`, the last level
+  for `{"on": true}`, and `{"action": "toggle"}`.
+
+### Release matrix
+
+**Tagged at v0.1.90:** `homeCore` (core), `hc-ecowitt-v0.1.21`,
+`hc-hue-v0.2.3`, `hc-thermostat-v0.1.17`. App: `hc-web-svelte` v0.1.21.
+
+### Upgrade notes
+
+- **Using a profile copied from `config/profiles/examples/`?** Your copy keeps
+  the old names until you copy the new example over it. Mapped devices then
+  report the new names — automations reading `brightness`, `contact`,
+  `occupancy`, `battery`, `target_temp` on them need the new names (the
+  vocabulary check lists them).
+- Update the app and the three plugins together with core; nothing else to
+  change.
+
+---
+
 ## v0.1.89 — 2026-10-20
 
 **Theme:** one name, one meaning, one unit — the core half of the plugins'
