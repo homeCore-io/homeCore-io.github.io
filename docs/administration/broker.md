@@ -38,7 +38,7 @@ homecore/devices/{device_id}/state            retained=true, full state JSON
 homecore/devices/{device_id}/state/partial    JSON merge-patch (high-frequency updates)
 
 # Commands  (HomeCore → broker → plugin)
-homecore/devices/{device_id}/cmd              {"action":"set","brightness":128}
+homecore/devices/{device_id}/cmd              {"brightness_pct":50} or {"action":"toggle"}
 
 # Availability  (plugin heartbeat, retained)
 homecore/devices/{device_id}/availability     "online" | "offline"
@@ -241,7 +241,7 @@ mosquitto_sub -h localhost -p 1883 -t "homecore/devices/+/state" -v
 # Publish a command
 mosquitto_pub -h localhost -p 1883 \
   -t "homecore/devices/light.living_room/cmd" \
-  -m '{"on":true,"brightness":200}'
+  -m '{"on":true,"brightness_pct":80}'
 ```
 
 ## Retained messages

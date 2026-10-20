@@ -386,7 +386,7 @@ to        = true
 [[actions]]
 type      = "set_device_state"
 device    = "porch.light"
-state     = { on = true, brightness = 100 }
+state     = { on = true, brightness_pct = 40 }
 
 ---
 

@@ -129,7 +129,7 @@ Typical state attributes include:
 
 | Attribute | Meaning |
 |---|---|
-| `state` | `playing`, `paused`, or `stopped` |
+| `state` | `playing`, `paused`, `stopped` or `buffering` |
 | `volume` | Current volume 0-100 |
 | `muted` | Mute state |
 | `media_title` | Current track title |
@@ -159,11 +159,11 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
   -H "Content-Type: application/json" \
   -d '{"action": "pause"}'
 
-# Set volume
+# Set volume (a write to the writable `volume` attribute, 0–100)
 curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"action": "set_volume", "volume": 30}'
+  -d '{"volume": 30}'
 ```
 
 ### Named content commands

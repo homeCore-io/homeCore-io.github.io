@@ -69,26 +69,38 @@ zwave_15_ep1    ← endpoint 1 of node 15
 zwave_15_ep2    ← endpoint 2 of node 15
 ```
 
-## Supported Command Classes
+## What devices report
 
-| CC | Devices | Attributes |
+Names and units follow homeCore's shared device vocabulary, converted from
+each device's own scale inside the plugin.
+
+| Attribute | From | Notes |
 |---|---|---|
-| Binary Switch (0x25) | On/off switches, outlets | `on` |
-| Multilevel Switch (0x26) | Dimmers, fans | `on`, `level` (0-99) |
-| Binary Sensor (0x30) | Motion, door sensors | `sensor_binary` |
-| Multilevel Sensor (0x31) | Temperature, humidity | `air_temperature`, `humidity`, etc. |
-| Door Lock (0x62) | Smart locks | `current_mode` (`"unsecured"` / `"secured"`), `locked` |
-| Thermostat Mode (0x40) | Thermostats | `mode` |
-| Thermostat Setpoint (0x43) | Thermostats | `heating`, `cooling` |
-| Battery (0x80) | Any battery device | `level` |
-| Notification (0x71) | Door/window, smoke, CO | Various event values |
-| Color Switch (0x33) | RGB/RGBW lights | `red`, `green`, `blue`, `warm_white`, `cold_white` |
-| Meter (0x32) v1+ | Power monitors | `energy_kwh`, `power_w`, `voltage`, `current_a` |
-| Meter (0x32) v3 | Smart meters with advanced fields | + `apparent_energy_kvah`, `power_factor`, `reactive_power_kvar`, `reactive_energy_kvarh`, `pulse_count` |
-| Meter (0x32) — solar/PV | Bidirectional meters | `energy_kwh_exported`, `power_w_exported` |
+| `on` | Binary Switch (37), Multilevel Switch (38) | Writable. On a dimmer `{"on": true}` restores the last level. |
+| `brightness_pct` | Multilevel Switch (38) | 0–100. Z-Wave 99 is 100 %; any level above 0 is at least 1 %. Writing 100 % sends 99, 0 % turns it off. |
+| `position` | Window Covering (106), Multilevel Switch (38) on a motorised cover, Barrier Operator (102, read-only) | 0–100, 100 = open. Writable on 106 and 38. |
+| `tilt_pct` | Window Covering (106) slat angle | 100 = slats open. Writable. |
+| `open` | Binary Sensor, Notification Access Control, Barrier Operator | `true` = open. Writable only on a garage door opener (102). |
+| `barrier_state` | Barrier Operator (102) | `open`, `closed`, `opening`, `closing`, `stopped`. |
+| `locked` | Door Lock (98) | Writable. Door codes (User Code, 99) are never published. |
+| `heat_setpoint`, `cool_setpoint` | Thermostat Setpoint (67) | °C, converted from °F thermostats both ways. Writable. |
+| `hvac_mode` | Thermostat Mode (64) | `off`, `heat`, `cool`, `auto`, `fan_only`, `dry`; other modes keep their own name (`aux_heat`, `energy_heat`, `away`, …). Writable. |
+| `hvac_action` | Thermostat Operating State (66) | `idle`, `heating`, `cooling`, `fan`. |
+| `fan_mode` | Thermostat Fan Mode (68) | `auto_low`, `low`, `high`, `circulation`, …. Writable. |
+| `color_rgb` | Color Switch (51) | `{r, g, b}`. Writable; turns the white channels off. |
+| `color_temp` | Color Switch (51) warm/cold white | Kelvin, as the mix between 2700 K (warm) and 6500 K (cold). Only on bulbs with both white channels. |
+| `temperature`, `humidity`, `illuminance`, `pressure`, `co2`, `power_w`, `voltage`, `current_a` | Multilevel Sensor (49) | °C, %, lux, hPa, ppm, W, V, A — converted from the scale the sensor reports (°F, kPa, inHg, BTU/h, mV, mA). |
+| `power_w`, `energy_kwh`, `voltage`, `current_a` | Meter (50) | Plus `*_exported` for produced energy, and the v3 extras (`apparent_energy_kvah`, `power_factor`, …). |
+| `battery_pct`, `battery_low` | Battery (128) | |
+| `motion`, `tampered`, `water_detected`, `smoke`, `co` | Binary Sensor (48), Notification (113) | |
+
+**Fades.** Send `transition_ms` with a level, position or colour write
+(`{"brightness_pct": 40, "transition_ms": 3000}`). Z-Wave durations are whole
+seconds, so it rounds to the nearest second, and a device without duration
+support ignores it.
 
 :::tip Unaliased values
-Anything the alias table doesn't recognise still publishes under a
+Anything without a shared name still publishes under a
 deterministic synthetic name like `cc50_value_pk67073` so it's visible.
 Watch for these in the device's attributes — if you find one that
 should have a clean canonical name, file an issue with the propertyKey
@@ -106,11 +118,11 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_7/state \
   -H "Content-Type: application/json" \
   -d '{"on": true}'
 
-# Set level (dimmer, 0-99)
+# Set brightness (brightness_pct, 0–100)
 curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_7/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"on": true, "level": 75}'
+  -d '{"brightness_pct": 75}'
 ```
 
 ### Door locks
@@ -120,27 +132,24 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_7/state \
 curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_23/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"targetMode": "secured"}'
+  -d '{"locked": true}'
 
 # Unlock
 curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_23/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"targetMode": "unsecured"}'
+  -d '{"locked": false}'
 ```
 
-:::caution Lock command field
-For Door Lock CC 98, the command target field is `targetMode` (not `currentMode`). Using `currentMode` results in the command being silently ignored by zwave-js.
-:::
 
 ### Thermostats
 
 ```bash
-# Set heat setpoint to 68°F
+# Set the heat setpoint to 20 °C (sent as 68 to a °F thermostat)
 curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_12/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"heating": 68}'
+  -d '{"heat_setpoint": 20}'
 ```
 
 ## Plugin actions
@@ -198,8 +207,8 @@ zwave-js caches each value's last reported state. Switches/plugs that
 only emit meter reports, and dimmers/locks/thermostats/barriers that
 don't auto-report on local actuation, can leave their primary state
 stale across plugin restarts — at which point the snapshot would
-publish a wrong `on` / `level` / `setpoint` / `mode` / `locked` /
-`currentState` / `currentColor` over the live state in homeCore.
+publish a wrong `on` / `brightness_pct` / setpoint / `hvac_mode` / `locked` /
+position / colour over the live state in homeCore.
 
 To prevent that, hc-zwave issues `node.poll_value` for the primary
 state of every non-sleeping node on startup (and again after every
@@ -266,7 +275,7 @@ duration_secs = 30
 [[actions]]
 type      = "set_device_state"
 device_id = "zwave_23"
-state     = { targetMode = "secured" }
+state     = { locked = true }
 ```
 
 ### Alert on manual unlock
@@ -278,8 +287,8 @@ enabled = true
 [trigger]
 type      = "device_state_changed"
 device_id = "zwave_23"
-attribute = "current_mode"
-to        = "unsecured"
+attribute = "locked"
+to        = false
 
 [[actions]]
 type    = "notify"
@@ -293,7 +302,7 @@ message = "Front door unlocked"
 |---|---|
 | `WebSocket connection failed` | Check zwave-js-server is running and the `ws_url` in config is correct |
 | Devices not appearing | Check zwave-js UI — nodes must be included in the Z-Wave network |
-| Lock not responding | Verify `targetMode` (not `currentMode`) is used in the command |
+| Lock not responding | Send `{"locked": true}` / `{"locked": false}`; check the lock is awake and in range |
 | State stale | Restart the plugin or run `rescan_nodes` — both trigger the [primary-state refresh](#startup-primary-state-refresh) which polls every actuator's current value. Sleeping battery devices catch up on their next wake-up. |
 | Node `zwave_1` has no attributes | This is the controller node — it has no user-visible state |
 

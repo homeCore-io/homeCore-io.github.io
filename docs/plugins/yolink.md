@@ -54,12 +54,19 @@ yolink_cc8102a3000b7e45    ← smart outlet
 
 | YoLink device | `device_type` | Key attributes |
 |---|---|---|
-| Door/window sensor | `door_sensor` | `open` (bool), `battery` (int) |
-| Motion sensor | `motion_sensor` | `motion` (bool), `battery` (int) |
-| Temperature/humidity | `sensor` | `temperature` (float), `humidity` (float), `battery` (int) |
-| Smart outlet | `switch` | `on` (bool), `power_w` (float) |
-| Leak sensor | `sensor` | `wet` (bool), `battery` (int) |
-| Vibration sensor | `sensor` | `vibration` (bool), `battery` (int) |
+| Door/window sensor | `contact_sensor` | `open` (bool), `battery_pct` |
+| Motion sensor | `motion_sensor` | `motion` (bool), `battery_pct` |
+| Temperature/humidity | `temperature_sensor` | `temperature` (°C), `humidity` (%, absent on a temperature-only probe), `battery_pct` |
+| Smart outlet / plug / switch | `switch` | `on` (bool, writable), `power_w`, `energy_kwh` |
+| Leak sensor | `water_sensor` | `water_detected` (bool), `battery_pct` |
+| Vibration sensor | `vibration_sensor` | `vibration` (bool), `battery_pct` |
+| Lock | `lock` | `locked` (bool, writable), `open` (the door, separate from the bolt), `battery_pct` |
+| Siren | `switch` | `on` (bool, writable), `alarm` |
+
+Names and units follow homeCore's shared device vocabulary. `battery_pct` is
+YoLink's 0–4 battery scale × 25. Temperatures are always °C; the app shows °F
+from each person's own setting. Commands are `{"on": bool}` and
+`{"locked": bool}`.
 
 ## Common rule patterns
 
@@ -91,19 +98,19 @@ cooldown_secs = 86400   # alert once per day max
 [trigger]
 type      = "device_state_changed"
 device_id = "yolink_d88b4c01000e82eb"
-attribute = "battery"
+attribute = "battery_pct"
 
 [[conditions]]
 type      = "device_state"
 device_id = "yolink_d88b4c01000e82eb"
-attribute = "battery"
-op        = "Lt"
-value     = 20
+attribute = "battery_pct"
+op        = "Lte"
+value     = 25        # YoLink reports in steps of 25 %
 
 [[actions]]
 type    = "notify"
 channel = "telegram"
-message = "YoLink front door sensor battery is low: {{device.battery}}%"
+message = "YoLink front door sensor battery is low: {{device.battery_pct}}%"
 ```
 
 ## Plugin actions

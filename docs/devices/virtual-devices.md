@@ -32,22 +32,24 @@ Or they can be managed by the built-in `SwitchManager` — create devices with `
 curl -s -X PATCH http://localhost:8080/api/v1/devices/switch_away_mode/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "on"}'
+  -d '{"on": true}'
 
 # Turn off
 curl -s -X PATCH http://localhost:8080/api/v1/devices/switch_away_mode/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "off"}'
+  -d '{"on": false}'
 
 # Toggle
 curl -s -X PATCH http://localhost:8080/api/v1/devices/switch_away_mode/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "toggle"}'
+  -d '{"action": "toggle"}'
 ```
 
-Both `{"command":"on"}` and `{"on": true}` payloads are accepted.
+These are homeCore's two command shapes: a write to the writable `on`
+attribute, or a declared action, `{"action": "toggle"}`. (The retired
+`{"command": "on"}` form is still taken from older automations.)
 
 ### In rules
 
@@ -64,7 +66,7 @@ value     = true
 [[actions]]
 type      = "set_device_state"
 device    = "mode.away_switch"
-state     = { command = "on" }
+state     = { on = true }
 ```
 
 ---
@@ -90,31 +92,31 @@ State values: `idle`, `running`, `finished`, `paused`, `cancelled`
 curl -s -X PATCH http://localhost:8080/api/v1/devices/timer_garage_close/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "start", "duration_secs": 300}'
+  -d '{"action": "start", "duration_secs": 300}'
 
 # Restart with same duration
 curl -s -X PATCH http://localhost:8080/api/v1/devices/timer_garage_close/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "restart"}'
+  -d '{"action": "restart"}'
 
 # Pause
 curl -s -X PATCH http://localhost:8080/api/v1/devices/timer_garage_close/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "pause"}'
+  -d '{"action": "pause"}'
 
 # Resume
 curl -s -X PATCH http://localhost:8080/api/v1/devices/timer_garage_close/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "resume"}'
+  -d '{"action": "resume"}'
 
 # Cancel
 curl -s -X PATCH http://localhost:8080/api/v1/devices/timer_garage_close/state \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"command": "cancel"}'
+  -d '{"action": "cancel"}'
 ```
 
 ### Timer attributes
@@ -159,7 +161,7 @@ to        = true
 [[actions]]
 type      = "set_device_state"
 device    = "garage.close_timer"
-state     = { command = "restart", duration_secs = 600 }
+state     = { action = "restart", duration_secs = 600 }
 
 ---
 
@@ -200,7 +202,7 @@ to        = false
 [[actions]]
 type      = "set_device_state"
 device    = "garage.close_timer"
-state     = { command = "cancel" }
+state     = { action = "cancel" }
 ```
 
 ---

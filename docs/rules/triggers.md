@@ -251,7 +251,7 @@ event_type = "morning_routine_started"
 [[actions]]
 type      = "set_device_state"
 device_id = "thermostat_main"
-state     = { target_temp = 70 }
+state     = { setpoint = 21 }   # °C
 ```
 
 ---

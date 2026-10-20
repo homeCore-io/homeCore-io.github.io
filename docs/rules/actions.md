@@ -23,7 +23,7 @@ For authored rules, prefer `device = "canonical.name"` instead of `device_id = "
 [[actions]]
 type      = "set_device_state"
 device    = "living_room.floor_lamp"
-state     = { on = true, brightness = 200 }
+state     = { on = true, brightness_pct = 80 }
 
 # Turn off
 [[actions]]
@@ -35,7 +35,7 @@ state     = { on = false }
 [[actions]]
 type      = "set_device_state"
 device    = "hallway.thermostat"
-state     = { mode = "heat", target_temp = 68 }
+state     = { hvac_mode = "heat", heat_setpoint = 20 }   # °C
 ```
 
 `device_id` still works and remains supported for backward compatibility. `device` is the preferred field because it can take:
@@ -105,7 +105,7 @@ device_id = "light_desk"
 
 [[actions.modes]]
 mode_name = "mode_night"
-state     = { on = true, brightness = 30, color_temp = 2700 }
+state     = { on = true, brightness_pct = 12, color_temp = 2700 }
 
 [[actions.modes]]
 mode_name = "mode_away"
@@ -113,7 +113,7 @@ state     = { on = false }
 
 [actions.default_state]
 on         = true
-brightness = 180
+brightness_pct = 70
 color_temp = 4000
 ```
 
@@ -287,7 +287,7 @@ interval_ms    = 5000
 [[actions.actions]]
 type      = "set_device_state"
 device_id = "light.office"
-state     = { brightness = 50 }
+state     = { brightness_pct = 20 }
 ```
 
 ---
@@ -322,12 +322,12 @@ condition = 'device_state("mode_night")["on"] == true'
 [[actions.then_actions]]
 type      = "set_device_state"
 device_id = "light_porch"
-state     = { on = true, brightness = 20 }
+state     = { on = true, brightness_pct = 8 }
 
 [[actions.else_actions]]
 type      = "set_device_state"
 device_id = "light_porch"
-state     = { on = true, brightness = 180 }
+state     = { on = true, brightness_pct = 70 }
 ```
 
 Supports full `else-if` chains with additional `[[actions.elseif_branches]]`.
@@ -336,7 +336,7 @@ Supports full `else-if` chains with additional `[[actions.elseif_branches]]`.
 
 ### `FadeDevice`
 
-Gradually interpolates numeric attributes (brightness, color_temp, etc.) to a target value over a duration.
+Gradually interpolates numeric attributes (`brightness_pct`, `color_temp`, etc.) to a target value over a duration.
 
 ```toml
 [[actions]]
@@ -346,7 +346,7 @@ duration_secs = 30
 steps         = 10   # optional; defaults to duration_secs (1 step/sec)
 
 [actions.target]
-brightness = 0
+brightness_pct = 0
 color_temp = 2700
 ```
 

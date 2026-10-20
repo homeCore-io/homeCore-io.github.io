@@ -24,12 +24,37 @@ have both bridges.
 
 | Caseta kind | HomeCore `device_type` | Notes |
 |---|---|---|
-| `dimmer` | `light` | Brightness 0–100, configurable per-device fade time. |
+| `dimmer` | `light` | `brightness_pct` 0–100, configurable per-device fade time. |
 | `switch` | `switch` | On/off relay. |
 | `shade` | `cover` | Motorized shade with position control. |
 | `fan_control` | `fan` | Fan speed levels. |
 | `pico` | `button` | Button press / release / hold events (read-only). |
 | `occupancy_sensor` | `occupancy_sensor` | Occupied / vacant state. |
+
+## What devices report and take
+
+Names and units follow homeCore's shared device vocabulary, converted from
+Caséta's own scales inside the plugin.
+
+| Device | Reports | Takes |
+|---|---|---|
+| dimmer | `on`, `brightness_pct` (0–100, decimals) | `on`, `brightness_pct`, with optional `transition_ms` |
+| switch | `on` | `on` |
+| fan | `on`, `speed` (`off`/`low`/`medium`/`medium-high`/`high`), `speed_pct` | `on`, `speed`, `speed_pct` |
+| shade | `position` (0–100, 100 = open) | `position`; actions `raise`, `lower`, `stop` |
+| occupancy sensor | `occupied` (absent until the bridge first reports it) | — |
+| pico | `button_N` | — |
+| scene | nothing (Caséta has no LED reporting) | action `activate` |
+
+- **`{"on": true}` with no level** turns a dimmer or fan back on at the last
+  level the bridge reported (full, if none has been seen since the plugin
+  started). `brightness_pct: 0` is off, and a lit dimmer never reports 0 %.
+- **Fades:** send `transition_ms` beside a dimmer level, e.g.
+  `{"brightness_pct": 40, "transition_ms": 2000}`. `default_fade_secs` and a
+  device's `fade_secs` below set the fade when a command carries none.
+- **Actions** are sent as `{"action": "activate"}` / `{"action": "raise"}`.
+- **No longer published:** `brightness` (a 0–255 copy of the level),
+  `occupancy` (same as `occupied`), and a scene's unconfirmed `on`.
 
 ## Prerequisites
 
