@@ -7,323 +7,277 @@ sidebar_position: 7
 
 # Z-Wave (`hc-zwave`)
 
-The hc-zwave plugin bridges a [zwave-js](https://zwave-js.github.io/node-zwave-js/) WebSocket server to HomeCore. It supports all Z-Wave devices that zwave-js can handle — locks, dimmers, switches, sensors, thermostats, and more.
+The hc-zwave plugin brings a Z-Wave network into homeCore through a
+[zwave-js](https://zwave-js.github.io/node-zwave-js/) server: locks, plugs,
+outlets, switches, dimmers, sensors, thermostats and the rest. It adds and
+removes devices, shows each one's health, changes their own settings, and
+manages a lock's codes and history — all from homeCore.
 
 ## Prerequisites
 
-- A Z-Wave controller (USB stick: Zooz ZST39, Aeotec Z-Stick, etc.)
-- [zwave-js-server](https://github.com/zwave-js/zwave-js-server) running and accessible via WebSocket
-- Alternatively, [Z-Wave JS UI](https://github.com/zwave-js/zwave-js-ui) (includes zwave-js-server)
-
-## Setting up zwave-js-server
-
-The easiest option is Z-Wave JS UI via Docker:
+- A Z-Wave controller (USB stick: Zooz ZST39, Aeotec Z-Stick, …)
+- [zwave-js-server](https://github.com/zwave-js/zwave-js-server) running and
+  reachable over WebSocket — or [Z-Wave JS UI](https://github.com/zwave-js/zwave-js-ui),
+  which includes it (Settings → Home Assistant → WS Server, port 3000)
 
 ```bash
-docker run -d \
-  --name zwave-js-ui \
+docker run -d --name zwave-js-ui \
   --device /dev/ttyUSB0:/dev/ttyUSB0 \
-  -p 8091:8091 \
-  -p 3000:3000 \
+  -p 8091:8091 -p 3000:3000 \
   -v /path/to/store:/usr/src/app/store \
   zwavejs/zwave-js-ui:latest
 ```
 
-Open `http://localhost:8091` → Settings → Z-Wave → enable WebSocket server on port 3000.
+## Setup
 
-## Configuration
+Install it from **Settings › Plugins › Add**, then on its **Settings** tab set
+**Server URL** to the WebSocket address (`ws://host:3000`). Nodes come from
+the server; you do not list them.
 
 ```toml
-[homecore]
-broker_host = "127.0.0.1"
-broker_port = 1883
-plugin_id   = "plugin.zwave"
-password    = ""
-
-[zwave]
-ws_url = "ws://localhost:3000"  # zwave-js WebSocket server URL
+[server]
+url            = "ws://10.0.0.20:3000"
+schema_version = 32   # clamped to what the server offers
 ```
 
-## Running
+## Its screens
 
-```bash
-cd /path/to/hc-zwave
-./hc-zwave config/config.toml
-```
+All of these come with the plugin — update it, and they update.
+
+- **Its page** (Settings › Plugins › Z-Wave): whether Z-Wave JS answers and
+  how many devices do; a note for anything that needs you — a lock's battery
+  getting low, a device not answering, one no longer in the network; every
+  device with its room, what it is doing, its power (mains, or battery and
+  whether it sleeps), its **signal** and when it was last heard — tap one for
+  its health and settings; the **controller** (stick, home ID, region,
+  firmware, Z-Wave JS versions); **Rebuild routes**, with each device's
+  progress; and **Download a backup** of the stick.
+- **Add a device**: *Pairing* (put it in pairing mode; four minutes) →
+  *Security*, only for a device with S2: type the **first five digits of the
+  PIN** on its label, or untick *strongest security* for basic security with
+  no PIN, or *Add without security* → *Getting to know it* (the interview, with
+  its progress; you can close the sheet — it finishes on its own) → *Name it
+  and put it in a room*: the name and room go to Z-Wave JS too, so both show
+  the same.
+- **Remove a device**: press the device's pairing button while the sheet
+  waits. It leaves the network and homeCore; automations that used it are
+  turned off, and the sheet names them.
+- **A device's panel** — outlets, plugs and sensors keep the app's own switch,
+  readings and history, and get two tabs:
+  - **Health**: answering or not and when it was last heard, its signal (RSSI
+    and round trip), messages sent and how many didn't arrive, its route,
+    security, power, node and firmware (*check for an update*); **Ping**,
+    **Rebuild its routes**, **Ask it what it can do again**. A device that has
+    stopped answering offers **Remove it from the network** and **Replace it**
+    — a new device in its place, keeping its id, name, room and automations.
+  - **Settings**: the device's own configuration parameters, named as its
+    device file describes them, with "not the default" marked; changes go to
+    the device at once. *Read them from the device*, *Back to defaults*. A
+    device with Protection gets **Its own buttons** (child lock).
+- **A lock's panel** replaces the app's lock button with tabs:
+  - **Lock**: locked or not and how it last changed ("Unlocked with code 2 ·
+    Cleaner · 2:14 PM"), Lock / Unlock (unlocking asks first), the door, the
+    battery, the bolt (jammed or not), and **Lock again after** — the lock's own
+    auto-relock, so it works with homeCore down.
+  - **Codes**: each slot, who it is for and when it was last used; *Turn on* /
+    *Turn off* (kept on the lock), *Change*, *Clear*, *Add a code*. Admins only.
+  - **History**: what the lock reported, newest first — "Unlocked with code 2 ·
+    Cleaner — keypad", "Locked — by itself", "Locked — homeCore · Leave home",
+    "Wrong code entered", "Jammed".
+  - **Health**, and **Settings** if it has any.
+- **A lock's card** on Home and the rooms: locked or not, the door, how it last
+  changed and its battery, with Lock / Unlock — unlocking asks first. Compact:
+  one row.
+- **Z-Wave network**, a card you add yourself (Edit → Add a card): how many
+  devices answer, and only the ones that need something.
+- **In automations**, a step on a lock is **Lock**, **Unlock** (marked: nobody
+  may be there) or **Turn a code on or off** — "turn off code 2 · Cleaner on
+  Lock - Living Room", stored as
+  `{"action": "set_code_enabled", "slot": 2, "enabled": false}`. Codes
+  themselves are never set in an automation.
+
+## Lock codes are write-only
+
+A code goes from the Codes tab to the lock and nowhere else. homeCore never
+shows it, keeps it, logs it or returns it: it is not a device attribute, not in
+history or the event log, not in the plugin's log, and an error about it never
+quotes it. zwave-js reports every slot's code in the clear; the plugin drops
+those values as they arrive. Who each slot is for is kept by the plugin
+(`.zwave-code-names.json` beside its config) — names, never codes.
 
 ## Device IDs
 
-Z-Wave device IDs follow the pattern `zwave_{node_id}`:
+Each node is `zwave_{node_id}` — `zwave_1` the controller, `zwave_46` a lock.
 
-```
-zwave_1     ← controller (typically no attributes)
-zwave_23    ← a door lock
-zwave_7     ← a light switch
-```
-
-Multi-endpoint devices (e.g. a multi-outlet plug with separately controllable outlets) use:
-
-```
-zwave_{node_id}_ep{endpoint}
-zwave_15_ep1    ← endpoint 1 of node 15
-zwave_15_ep2    ← endpoint 2 of node 15
-```
+**Multi-channel devices are one device.** An outlet whose switch zwave-js
+reports only on endpoint 1 (its root values hidden) is that endpoint: it
+publishes `on`, written to endpoint 1. A device with several channels — a
+power strip — publishes each channel with an `ep{n}_` prefix: `ep1_on`,
+`ep2_on`, `ep2_power_w`; the app shows one switch per channel, and
+`{"ep2_on": false}` switches endpoint 2.
 
 ## What devices report
 
-Names and units follow homeCore's shared device vocabulary, converted from
-each device's own scale inside the plugin.
+Names and units follow homeCore's shared vocabulary, converted from each
+device's own scale.
 
 | Attribute | From | Notes |
 |---|---|---|
 | `on` | Binary Switch (37), Multilevel Switch (38) | Writable. On a dimmer `{"on": true}` restores the last level. |
-| `brightness_pct` | Multilevel Switch (38) | 0–100. Z-Wave 99 is 100 %; any level above 0 is at least 1 %. Writing 100 % sends 99, 0 % turns it off. |
-| `position` | Window Covering (106), Multilevel Switch (38) on a motorised cover, Barrier Operator (102, read-only) | 0–100, 100 = open. Writable on 106 and 38. |
-| `tilt_pct` | Window Covering (106) slat angle | 100 = slats open. Writable. |
-| `open` | Binary Sensor, Notification Access Control, Barrier Operator | `true` = open. Writable only on a garage door opener (102). |
-| `barrier_state` | Barrier Operator (102) | `open`, `closed`, `opening`, `closing`, `stopped`. |
-| `locked` | Door Lock (98) | Writable. Door codes (User Code, 99) are never published. |
-| `heat_setpoint`, `cool_setpoint` | Thermostat Setpoint (67) | °C, converted from °F thermostats both ways. Writable. |
-| `hvac_mode` | Thermostat Mode (64) | `off`, `heat`, `cool`, `auto`, `fan_only`, `dry`; other modes keep their own name (`aux_heat`, `energy_heat`, `away`, …). Writable. |
-| `hvac_action` | Thermostat Operating State (66) | `idle`, `heating`, `cooling`, `fan`. |
-| `fan_mode` | Thermostat Fan Mode (68) | `auto_low`, `low`, `high`, `circulation`, …. Writable. |
-| `color_rgb` | Color Switch (51) | `{r, g, b}`. Writable; turns the white channels off. |
-| `color_temp` | Color Switch (51) warm/cold white | Kelvin, as the mix between 2700 K (warm) and 6500 K (cold). Only on bulbs with both white channels. |
-| `temperature`, `humidity`, `illuminance`, `pressure`, `co2`, `power_w`, `voltage`, `current_a` | Multilevel Sensor (49) | °C, %, lux, hPa, ppm, W, V, A — converted from the scale the sensor reports (°F, kPa, inHg, BTU/h, mV, mA). |
-| `power_w`, `energy_kwh`, `voltage`, `current_a` | Meter (50) | Plus `*_exported` for produced energy, and the v3 extras (`apparent_energy_kvah`, `power_factor`, …). |
+| `brightness_pct` | Multilevel Switch (38) | 0–100. Z-Wave 99 is 100 %; any level above 0 is at least 1 %. |
+| `position`, `tilt_pct` | Window Covering (106), a motorised Multilevel Switch, Barrier (102, read-only) | 100 = open. |
+| `open` | Binary Sensor, Notification Access Control "Door state" (22 and 5632/5633 open, 23 closed), Door Lock `doorStatus`, Barrier Operator | `true` = open. Writable only on a garage door opener. |
+| `locked` | Door Lock (98) `currentMode` | `true` only when secured (255); every unsecured mode — including the timed, inside and outside ones — is `false`; 254 ("unknown") clears it. Writable. |
+| `jammed` | Notification Access Control "Lock state", lock events | Raises the **Lock jammed** alert. |
+| `lock_operation_type`, `lock_timeout_secs`, `lock_auto_relock_secs` | Door Lock configuration | "Stays as it is" / "Locks again by itself" and after how long. Writable. |
+| `last_lock_action`, `last_lock_method`, `last_lock_slot`, `last_lock_event` | Notification CC events, or v1 `alarmType`/`alarmLevel` | See [Lock history](#lock-history). |
+| `heat_setpoint`, `cool_setpoint`, `hvac_mode`, `hvac_action`, `fan_mode` | Thermostat (64, 66, 67, 68) | °C, converted from °F thermostats both ways. |
+| `color_rgb`, `color_temp` | Color Switch (51) | |
+| `temperature`, `humidity`, `illuminance`, `pressure`, `co2`, `power_w`, `voltage`, `current_a` | Multilevel Sensor (49) | Converted from the sensor's own scale. |
+| `power_w`, `energy_kwh`, `voltage`, `current_a` | Meter (50) | Consumed (rate type 1, and Meter v1/v2's unspecified 0); `*_exported` for produced. |
 | `battery_pct`, `battery_low` | Battery (128) | |
-| `motion`, `tampered`, `water_detected`, `smoke`, `co` | Binary Sensor (48), Notification (113) | |
+| `motion`, `tampered`, `intrusion`, `smoke`, `co`, `water_detected`, `heat_alarm` | Binary Sensor (48), Notification (113) by zwave-js's names: Home Security "Motion sensor status", "Cover status", "Sensor status"; Smoke / CO / Water Alarm "Sensor status" | |
+| `overload`, `overcurrent` | Notification Power Management | Raise the **Overloaded** alert. |
+| `child_lock` | Protection (117) local | The device's own buttons do nothing. Writable. |
+| `last_command_error` | the plugin | Why the last command to this device failed; gone once one succeeds. |
 
-**Fades.** Send `transition_ms` with a level, position or colour write
-(`{"brightness_pct": 40, "transition_ms": 3000}`). Z-Wave durations are whole
-seconds, so it rounds to the nearest second, and a device without duration
-support ignores it.
+**Not state** — kept out of devices' attributes, where they cluttered every
+picker: identity (Manufacturer Specific, Version, Z-Wave Plus Info), wake-up
+settings, security, configuration parameters (the Settings tab), a lock's code
+slots (the Codes tab), v1 alarm numbers (decoded into lock events), Basic, a
+switch's transition time, a battery's chemistry flags, a lock's bolt and latch
+(they said the same as `locked`). A node's name and room are its registration,
+not attributes. Anything else without a shared name still publishes as
+`cc{class}_{property}`.
 
-:::tip Unaliased values
-Anything without a shared name still publishes under a
-deterministic synthetic name like `cc50_value_pk67073` so it's visible.
-Watch for these in the device's attributes — if you find one that
-should have a clean canonical name, file an issue with the propertyKey
-and the value's meaning and we'll add an alias.
-:::
+**Fades.** Send `transition_ms` with a level, position or colour write; Z-Wave
+durations are whole seconds.
 
-## Commanding devices
+## Lock history
 
-### Switches and dimmers
+Every time the lock says what happened, it sets four attributes at once:
+
+| Attribute | Values |
+|---|---|
+| `last_lock_action` | `locked`, `unlocked`, `jammed`, `wrong_code`, `code_added`, `code_removed`, `codes_cleared`, `code_rejected`, `keypad_disabled` |
+| `last_lock_method` | `keypad`, `manual` (by hand), `rf` (homeCore or another controller), `auto` (by itself) |
+| `last_lock_slot` | the code's slot, named in the device's schema ("Code 2 · Cleaner") |
+| `last_lock_event` | all of it with when — it changes on every event, even a repeat |
+
+Notification CC v2+ locks report Access Control events (keypad with the user's
+slot, manual, RF, auto-lock, jammed, too many wrong codes) and Home Security
+"Tampering, invalid code". Older locks report a v1 alarm, decoded for the
+common Kwikset/Yale/Schlage numbering (9 jammed, 16/19 keypad unlock, 18 keypad
+lock, 21/22 manual, 24/25 RF, 26/27 auto, 33/112 code removed/added, 161 wrong
+codes); others are left alone rather than guessed. A lock or unlock by radio
+right after homeCore asked is credited to whoever asked — an automation or a
+person — on the History tab.
+
+**"When unlocked with code 2"**: trigger on `last_lock_event` changing, with
+the checks `last_lock_action` is `unlocked` and `last_lock_slot` is `2`.
+
+## Health and signal
+
+The plugin keeps each node's radio statistics from zwave-js. **Signal** is the
+worst of:
+
+| | Good | Fair | Poor |
+|---|---|---|---|
+| RSSI of the last working route | above −80 dBm | −80 to −90 dBm | −90 dBm or less |
+| Messages that never arrived (once 10+ were sent) | under 3 % | 3–10 % | 10 % or more |
+| Round trip | under 300 ms | 300 ms – 1 s | 1 s or more |
+| Hops | direct or one repeater | two or more | |
+
+A dead node is **poor**; with nothing to judge yet, **—**.
+
+**Not answering is not gone.** A dead node is marked offline and keeps its
+device, room and automations; it comes back online by itself. Devices leave
+homeCore only when the network says so — removed with its button, removed as
+failed — or when you remove one that has left the network from the page.
+
+## When Z-Wave JS goes away
+
+Every Z-Wave device goes offline at once, and the page says why. A command sent
+meanwhile **fails and says so** (`last_command_error` on the device, and a
+`plugin_command_result` event) — it is not kept to be sent later, so a door is
+never unlocked an hour after somebody asked. The plugin pings the server and
+notices a connection that has silently died within a minute; when it is back,
+everything is read again and comes back online.
+
+## Commands
+
+Attribute writes, or `{"action": …}`:
 
 ```bash
-# Turn on
-curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_7/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true}'
-
-# Set brightness (brightness_pct, 0–100)
-curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_7/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"brightness_pct": 75}'
-```
-
-### Door locks
-
-```bash
-# Lock
-curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_23/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
+curl -X PATCH http://homecore:8080/api/v1/devices/zwave_46/state \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"locked": true}'
 
-# Unlock
-curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_23/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"locked": false}'
+# Turn code 2 off (kept on the lock)
+  -d '{"action": "set_code_enabled", "slot": 2, "enabled": false}'
+
+# Lock again by itself after 30 s
+  -d '{"lock_operation_type": 2, "lock_timeout_secs": 30}'
 ```
 
-
-### Thermostats
-
-```bash
-# Set the heat setpoint to 20 °C (sent as 68 to a °F thermostat)
-curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_12/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"heat_setpoint": 20}'
-```
+A command that the device refuses — zwave-js answers each write with a status —
+is reported the same way as one sent while disconnected.
 
 ## Plugin actions
 
-hc-zwave declares three [capability actions](./capabilities) the admin
-UI exposes as buttons on the plugin detail page (and hc-mcp surfaces
-via `list_plugin_actions`).
-
-### `include_node` (streaming, admin)
-
-Put the controller into inclusion mode and add one or more Z-Wave
-devices.
-
-1. Click **Include Z-Wave device**. The drawer opens and tells you to
-   press the include button on each device.
-2. Press the device's include button. The flow emits `progress`
-   updates as zwave-js reports the inclusion lifecycle: *waiting for
-   controller* → *listening* → *Node 14 included; interviewing…* →
-   *Node 14 interview complete*. Each newly-added node shows up in
-   the item list, color-coded by status (`added` → `interviewing`
-   → `ready`).
-3. Repeat for any additional devices.
-4. Click **Done**. For each node whose interview completed during the
-   session, the action prompts for a **name** and **area** (both
-   optional, with a **Skip** checkbox). On submit it sends
-   `node.set_name` / `node.set_location` to zwave-js, then triggers a
-   rescan that publishes the new identity to homeCore.
-
-S2 security: requested classes are auto-granted. Devices that require
-**DSK PIN entry** are not supported in v1 — the flow emits a warning
-and the inclusion times out.
-
-### `exclude_node` (streaming, admin)
-
-Mirror image. Put the controller into exclusion mode, press the
-exclude / reset button on each device, click **Done**. Removed nodes
-are unregistered from homeCore immediately.
-
-### `rescan_nodes` (sync, user)
-
-Re-fetches every node's full state from zwave-js and republishes to
-homeCore. Useful when:
-
-- A freshly-included device hasn't appeared yet (interview is slow on
-  battery / S2 nodes).
-- You renamed nodes in Z-Wave JS UI and want the homeCore device names
-  refreshed without restarting the plugin.
-
-`include_node`'s `complete` step auto-pings rescan, so you usually
-don't need to click this manually after pairing.
-
-## Startup primary-state refresh
-
-zwave-js caches each value's last reported state. Switches/plugs that
-only emit meter reports, and dimmers/locks/thermostats/barriers that
-don't auto-report on local actuation, can leave their primary state
-stale across plugin restarts — at which point the snapshot would
-publish a wrong `on` / `brightness_pct` / setpoint / `hvac_mode` / `locked` /
-position / colour over the live state in homeCore.
-
-To prevent that, hc-zwave issues `node.poll_value` for the primary
-state of every non-sleeping node on startup (and again after every
-`rescan_nodes` completion). The reply arrives as a `value updated`
-event and corrects everything downstream.
-
-| Command class | Property | Devices |
+| Action | Who | Does |
 |---|---|---|
-| 37 (Binary Switch) | `currentValue` | Switches, smart plugs |
-| 38 (Multilevel Switch) | `currentValue` | Dimmers, motorized shades, fans |
-| 64 (Thermostat Mode) | `mode` | Thermostats |
-| 66 (Thermostat Operating State) | `state` | Thermostats |
-| 67 (Thermostat Setpoint) | `setpoint` | Thermostats (per-type via propertyKey) |
-| 68 (Thermostat Fan Mode) | `mode` | Thermostat fan |
-| 98 (Door Lock) | `currentMode` | Door locks |
-| 102 (Barrier Operator) | `currentState` | Garage doors |
-| 117 (Color Switch) | `currentColor` | RGB lights |
+| `status` | anyone | the connection, the controller and every node's health — from memory |
+| `include_node` | admin, streaming | add a device (S2 grant + PIN, interview, name and room); `replace_device_id` replaces a failed one |
+| `exclude_node` | admin, streaming | remove a device by its pairing button |
+| `rebuild_routes` | admin, streaming | every node's routes, with progress |
+| `ping_node` | user | does it answer, and how fast |
+| `rebuild_node_routes`, `reinterview_node` | admin | one device's routes; its interview again |
+| `remove_failed_node` | admin | a dead device, without its button |
+| `forget_device` | admin | a device no longer in the network, from homeCore |
+| `get_config_params` | anyone | its parameters with label, description, value, default, range, choices; `refresh` reads them first |
+| `set_config_param`, `reset_config_params` | admin | one parameter; every one back to its default |
+| `list_user_codes` | anyone | slots: in use, off or empty, and who for — never codes |
+| `set_user_code`, `clear_user_code`, `set_code_enabled` | admin | send a code (4–10 digits) and who it is for; empty a slot; turn one on or off |
+| `backup_nvm`, `backup_nvm_chunk` | admin | the stick's memory, in pieces — the page saves it as a file |
+| `check_firmware` | user | whether Z-Wave JS's firmware service has newer firmware |
+| `rescan_nodes` | user | read every node again |
 
-Endpoint is not constrained — multi-endpoint devices (e.g., dual-relay
-smart plugs exposing endpoints 1 and 2) get every endpoint refreshed.
+## Alerts
 
-**Eligibility:**
+| Alert | When |
+|---|---|
+| **Lock jammed** | the bolt did not lock or unlock fully |
+| **Overloaded** | a plug or switch is drawing more than it can take |
 
-- **Mains-powered nodes** (`isListening = true`) are always polled.
-- **FLiRS nodes** (battery-powered but wake every 250ms / 1000ms — door
-  locks are typical) are polled.
-- **Sleeping battery devices** are skipped: they can't answer until
-  they wake on their own schedule, and zwave-js would queue the
-  request and flood the air at wake-up.
+## Notices
 
-**Throttling:** a 200ms inter-poll delay keeps the controller from
-saturating — about 5 polls per second, so a 100-poll startup spreads
-over ~20 seconds of background chatter.
+| Code | Means |
+|---|---|
+| `not_configured` | No server URL set yet. |
+| `server_unreachable` | Z-Wave JS is not answering; every device is offline. Clears when it is back. |
 
-The summary is logged at info level on completion:
+## Startup refresh
 
-```
-INFO Refreshed primary-state values polled_nodes=12 polled_values=18
-     skipped_battery=4 eligible_no_targets=2
-```
-
-`eligible_no_targets` counts nodes that are mains/FLiRS but expose no
-command class hc-zwave currently refreshes (controller, repeaters,
-sensor-only devices) — a coverage-gap signal.
-
-## Rule examples
-
-### Auto-lock after door closes
-
-```toml
-name = "Front door — auto-lock"
-enabled = true
-
-[trigger]
-type      = "device_state_changed"
-device_id = "yolink_front_door"
-attribute = "open"
-to        = false
-
-[[actions]]
-type          = "delay"
-duration_secs = 30
-
-[[actions]]
-type      = "set_device_state"
-device_id = "zwave_23"
-state     = { locked = true }
-```
-
-### Alert on manual unlock
-
-```toml
-name = "Front lock — unlocked alert"
-enabled = true
-
-[trigger]
-type      = "device_state_changed"
-device_id = "zwave_23"
-attribute = "locked"
-to        = false
-
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Front door unlocked"
-```
+zwave-js caches each value; a switch that only sends meter reports can leave
+`on` stale. At startup the plugin polls the primary value of every
+**mains-powered** node (switches, dimmers, thermostats, covers, colour), one
+every 200 ms, in the background. Locks are not polled — they report their own
+changes, and each poll costs their batteries — and sleeping devices can't
+answer.
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---|---|
-| `WebSocket connection failed` | Check zwave-js-server is running and the `ws_url` in config is correct |
-| Devices not appearing | Check zwave-js UI — nodes must be included in the Z-Wave network |
-| Lock not responding | Send `{"locked": true}` / `{"locked": false}`; check the lock is awake and in range |
-| State stale | Restart the plugin or run `rescan_nodes` — both trigger the [primary-state refresh](#startup-primary-state-refresh) which polls every actuator's current value. Sleeping battery devices catch up on their next wake-up. |
-| Node `zwave_1` has no attributes | This is the controller node — it has no user-visible state |
+| Every device offline | Z-Wave JS isn't answering — check it runs and the Server URL. The page and the `server_unreachable` notice say what went wrong. |
+| A device is "Not answering" | Check its power; **Ping** it from its Health tab. Gone for good: **Remove it from the network**, or **Replace it**. |
+| Secure pairing fails | Type the first five digits of the PIN on the device's label (or box). Untick *strongest security* to add it with basic security. |
+| A device shows in homeCore but "no longer in the Z-Wave network" | It was removed with another app. Remove it from homeCore on the plugin's page. |
+| A command did nothing | Look at the device's `last_command_error`. |
+| Signal fair or poor | Move it or the controller, add a mains-powered device in between, then **Rebuild routes**. |
 
-## Node name sync
+## Logs
 
-Node names set in Z-Wave JS UI are synced to HomeCore device names automatically when state is published. Renaming a node in the UI takes effect at the next state update. Restarting hc-zwave forces immediate re-registration of all node names.
-
-## Log rotation
-
-hc-zwave writes logs to `logs/hc-zwave.log`. Rotation and compression are configured in `config/config.toml`:
-
-```toml
-[logging]
-level       = "info"   # stderr log level; RUST_LOG overrides this
-rotation    = "daily"  # daily | hourly | weekly | never
-max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
-compress    = true     # gzip rotated files in a background thread
-```
-
-| File | Description |
-|---|---|
-| `logs/hc-zwave.log` | Active log (always uncompressed) |
-| `logs/hc-zwave.2026-03-27.log.gz` | Rotated daily file (compressed) |
-| `logs/hc-zwave.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |
+`logs/hc-zwave.log` beside its config; rotation and compression are its
+`[logging]` settings. Codes never appear in it.

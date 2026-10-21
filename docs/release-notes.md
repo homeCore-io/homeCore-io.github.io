@@ -160,6 +160,57 @@ profiles in the shared names — step six of the device vocabulary.
 **Upgrade:** update the app to 0.1.23 with or before `hc-sonos` 0.1.17.
 Existing speakers keep their ids.
 
+**Z-Wave gets its own screens, and locks report correctly (2026-10-20)**:
+`hc-zwave` 0.1.17 and app `hc-web-svelte` 0.1.24. No core change needed.
+
+- **A lock that said "locked" when it wasn't is fixed.** Several of a lock's
+  states — unlocked with a timeout, the inside or outside handle free —
+  were reported as locked. Only fully locked now reads locked, and a lock
+  that doesn't know says so instead of guessing.
+- **The Z-Wave page** lists every device with what it's doing now, its
+  power or battery, how good its signal is and when it was last heard,
+  warns about a low lock battery, and shows the controller. From it you can
+  add a device (pairing, the security PIN for S2 devices, then a name and
+  room), remove one, rebuild the network's routes, and download a backup of
+  the controller.
+- **A lock opens with Lock, Codes and History tabs.** Codes: name each slot,
+  add, change, clear, or turn a code off and back on. Codes go straight to
+  the lock — homeCore never shows, stores or logs them. History: who locked
+  or unlocked it and how (keypad and which code, by hand, by itself,
+  homeCore and which automation), wrong codes and jams.
+- **Every device gains Health and Settings tabs**: whether it's answering,
+  its signal, ping, rebuild its routes, re-interview it, and for one that's
+  gone, remove it from the network or replace it keeping its name, room and
+  automations. Settings shows the device's own settings by name with their
+  ranges and choices.
+- **Cards**: a lock card (with a compact size) and a "Z-Wave network" card
+  for a dashboard listing only the devices that need something.
+- **In automations**: lock, unlock, or turn a code on or off (e.g. the
+  cleaner's code only on Tuesdays). New lock readings for triggers: who and
+  how it was last locked or unlocked, the code slot used, and jammed.
+- **Removing a device now takes it out of homeCore**; before, it stayed
+  behind. A device that stops answering, or a lost connection to Z-Wave JS,
+  shows offline and is never deleted — before, a bad reply could remove
+  every device.
+- **A command sent while Z-Wave JS is unreachable fails and says so** within
+  5 seconds. Before, it waited and ran when the connection came back — an
+  unlock could happen hours later.
+- Also fixed: S2 devices can be added (only S0 worked); door sensors that
+  report "open" in their newer form are read as open; an outlet whose switch
+  is on its first endpoint works; a device that refuses a command says so on
+  the device; a hung Z-Wave JS server is noticed within a minute; startup no
+  longer wakes battery devices and locks.
+- The app (0.1.24) leaves out its own lock button and readings when a lock's
+  plugin draws its own panel, and names power, energy and current readings
+  properly.
+
+**Upgrade:** update the app to 0.1.24 with or before `hc-zwave` 0.1.17.
+These attributes are no longer published, so check any automation that uses
+them: `name`, `location`, `bolt_status`, `latch_status`, `door_status` (now
+`open`), and the raw `cc…_` ones (user codes, alarm type/level, and the
+like). Node ids are unchanged. A device removed from Z-Wave while homeCore
+was off now stays until you remove it from the Z-Wave page.
+
 ---
 
 ## v0.1.89 — 2026-10-20
