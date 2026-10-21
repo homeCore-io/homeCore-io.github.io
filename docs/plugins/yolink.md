@@ -7,177 +7,140 @@ sidebar_position: 5
 
 # YoLink (`hc-yolink`)
 
-The hc-yolink plugin bridges the YoLink cloud MQTT service to HomeCore. YoLink devices (door sensors, motion sensors, temperature sensors, outlets, etc.) are registered as HomeCore devices.
+The hc-yolink plugin brings YoLink devices into homeCore: leak sensors, door
+sensors, temperature sensors and probes, vibration and motion sensors, locks,
+plugs and switches. It talks to a **YS1606 local hub** on your network (no
+internet needed) or to the **YoLink cloud** for other hubs, and it has its own
+screens: a YoLink page, lock, temperature and leak panels, lock and freezer
+cards, a "Water" card for any page, and a lock step for automations.
 
-## Prerequisites
+## Setup
 
-- A YoLink account and hub
-- Your YoLink MQTT credentials (UAID and secret key — available in the YoLink app under Account settings)
+Install it from **Settings › Plugins › Add**, then on its **Settings** tab:
 
-## Configuration
+- **Local hub** (YS1606, recommended): the hub's address, and the Client ID,
+  Client Secret and Network ID from the YoLink app under *Local Hub → Local
+  Network → Integrations → Local API*. Give the hub a fixed address.
+- **YoLink cloud**: a UAID and Secret Key from *Account → Advanced Settings →
+  Personal Access Credentials*. The defaults point at YoLink's US servers
+  (`api.yosmart.com`, `mqtt.api.yosmart.com:8003`).
+
+`mode` may be left out: the plugin uses whichever credentials you entered.
 
 ```toml
-[homecore]
-broker_host = "127.0.0.1"
-broker_port = 1883
-plugin_id   = "plugin.yolink"
-password    = ""
-
 [yolink]
-# MQTT credentials from YoLink app
-uaid      = "your-uaid"
-secret    = "your-secret-key"
-mqtt_host = "mqtt.yosmart.com"
-mqtt_port = 8003
+mode = "local"
+poll_interval_secs = 3600      # the hourly check of every device
+silent_after_mins  = 540       # a quiet battery sensor shows offline after 9 h
+
+[yolink.local]
+hub_ip        = "192.168.1.60"
+client_id     = "…"
+client_secret = "…"
+net_id        = "…"
 ```
 
-## Running
+## How it stays current
 
-```bash
-cd /path/to/hc-yolink
-./hc-yolink config/config.toml
-```
+- **Live events.** Devices report through the hub's event feed as things
+  happen. In local mode the feed signs in with the client secret, so renewing
+  the plugin's access token never drops it. If the feed drops, the plugin says
+  so on its page, reconnects, and then checks every device to catch up.
+- **The hourly check** reads every device a few seconds apart, in the
+  background — a leak or a lock command never waits behind it. **Check every
+  device now** on the YoLink page does the same at once.
+- **Sensors that go quiet.** Battery sensors check in every few hours. One
+  that hasn't for `silent_after_mins` is shown **offline** ("Not reporting"),
+  never as its last reading — a leak sensor with flat batteries is never shown
+  as dry. It comes back as soon as it reports.
+- A device the hub stops listing is shown offline, and removed only if the next
+  list leaves it out too.
 
-The plugin connects to the YoLink cloud MQTT broker, discovers all devices associated with your account, and registers them with HomeCore.
+## What it publishes
 
-## Device IDs
+Names and units follow homeCore's shared device vocabulary. Temperatures are
+°C; the app shows each person's own units.
 
-YoLink device IDs follow the pattern `yolink_{device_id}` where `device_id` is the YoLink-assigned device identifier (16 hex characters):
-
-```
-yolink_d88b4c01000e82eb    ← door sensor
-yolink_a3f291b200045c12    ← temperature sensor
-yolink_cc8102a3000b7e45    ← smart outlet
-```
-
-## Supported device types
-
-| YoLink device | `device_type` | Key attributes |
+| Device | `device_type` | Attributes |
 |---|---|---|
-| Door/window sensor | `contact_sensor` | `open` (bool), `battery_pct` |
-| Motion sensor | `motion_sensor` | `motion` (bool), `battery_pct` |
-| Temperature/humidity | `temperature_sensor` | `temperature` (°C), `humidity` (%, absent on a temperature-only probe), `battery_pct` |
-| Smart outlet / plug / switch | `switch` | `on` (bool, writable), `power_w`, `energy_kwh` |
-| Leak sensor | `water_sensor` | `water_detected` (bool), `battery_pct` |
-| Vibration sensor | `vibration_sensor` | `vibration` (bool), `battery_pct` |
-| Lock | `lock` | `locked` (bool, writable), `open` (the door, separate from the bolt), `battery_pct` |
-| Siren | `switch` | `on` (bool, writable), `alarm` |
+| Leak sensor | `water_sensor` | `water_detected`, `temperature` (its own, °C), `probe_fault`, `freeze_warning`, `battery_pct`, `battery_low`, `last_seen` |
+| Door sensor | `contact_sensor` | `open`, `battery_pct`, `battery_low`, `last_seen` |
+| Temperature sensor / probe | `temperature_sensor` | `temperature` (°C), `humidity` (%, not on a temperature-only probe such as the YS8004), `temp_limit_low` / `temp_limit_high` and `too_cold` / `too_warm` (the sensor's own limits and alarms, set in the YoLink app), `battery_pct`, `battery_low`, `last_seen` |
+| Vibration sensor | `vibration_sensor` | `vibration`, `battery_pct`, `battery_low`, `last_seen` |
+| Motion sensor | `motion_sensor` | `motion`, `battery_pct`, `battery_low`, `last_seen` |
+| Lock (YS7607 "LockV2") | `lock` | `locked` (writable), `open` (the door), `auto_lock_secs` (writable), `sound_level` (writable: 0 mute, 1 low, 2 medium, 3 high), `last_lock_action`, `last_lock_method`, `last_lock_event`, `last_alert`, `last_alert_at`, `last_alert_source`, `battery_pct`, `battery_low`, `last_seen`, `last_command_error` |
+| Lock (YS7606) | `lock` | `locked` (writable), the history attributes above, battery, `last_command_error` |
+| Plug / outlet / switch | `switch` | `on` (writable), `power_w` (only plugs with a meter — YS6602, YS6614, or any that reports power), `last_command_error` |
 
-Names and units follow homeCore's shared device vocabulary. `battery_pct` is
-YoLink's 0–4 battery scale × 25. Temperatures are always °C; the app shows °F
-from each person's own setting. Commands are `{"on": bool}` and
-`{"locked": bool}`.
+- **Battery.** YoLink counts in quarters (0–4); `battery_pct` is that × 25.
+  `battery_low` is true at one quarter or when the device says so — homeCore's
+  low-battery alert follows it (one quarter, "25 %", is under no percentage
+  threshold on its own).
+- **A lock's history.** Each lock and unlock sets `last_lock_action`
+  (`locked`, `unlocked`, `lock_failed`, `unlock_failed`, `jammed`),
+  `last_lock_method` (`fingerprint`, `code`, `card`, `key`, `button`, `app`,
+  `homecore`, `auto`, `remote`) and `last_lock_event` (all of it, with when).
+  Automations can start on "unlocked by fingerprint". `last_alert` keeps the
+  lock's last problem in YoLink's own word (`UnLockFailed`), with when and from
+  where.
+- **Outside changes.** Every change a device reports is marked as made outside
+  homeCore (a hand at a lock — fingerprint, button, key, code — as by hand), so
+  an automation that asks for "another app or hub" starts on it.
 
-## Common rule patterns
+Commands: `{"on": bool}`, `{"locked": bool}`, `{"auto_lock_secs": N}`,
+`{"sound_level": 0-3}`. A command that fails says why on the device
+(`last_command_error`) and as a `plugin_command_result` event.
 
-### Door open alert
+## Alerts
 
-```toml
-name = "Front door — alert"
-enabled = true
+homeCore's own alerts cover a leak (`water_detected`), a device offline and a
+low battery. The plugin adds:
 
-[trigger]
-type      = "device_state_changed"
-device_id = "yolink_d88b4c01000e82eb"
-attribute = "open"
-to        = true
+| Alert | When | Clears |
+|---|---|---|
+| Lock didn't lock or unlock | the lock reported `LockFailed` / `UnLockFailed` | on its next lock or unlock that works (or after 12 h) |
+| Door left open | a door sensor's (or lock's) "still open" reminder | when it closes |
+| Leak sensor fault | a probe fault or freezing | when the sensor reports it fixed |
+| Sensor not reporting | a battery sensor missed its check-ins (off unless turned on — homeCore's Offline alert says the same) | when it reports |
 
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Front door opened"
-```
+## Its screens
 
-### Low battery alert
+- **The YoLink page** (Settings › Plugins › YoLink): whether every device
+  reports and the live feed is up; a low battery; the water — every leak sensor,
+  dry or wet, and when it last checked in, with the automations that start on a
+  leak; temperatures with what homeCore tells you about each; doors; locks;
+  switches and the rest; batteries lowest first; sensors that have gone quiet.
+- **A lock's panel**: Lock (its state and how it last changed, Lock / Unlock —
+  unlocking asks first — door, battery, last problem, and the lock's own
+  auto-lock and beep settings) and History.
+- **A temperature sensor's panel**: **Tell me when** — warmer than, colder
+  than, for how long, and who is told. These are saved as homeCore **alert
+  rules** (Settings › Alert rules), so they ring the bell, show on the Alerts
+  page, clear by themselves and can start automations with **Do something…**.
+  Changing them needs permission to change automations.
+- **A leak sensor's panel**: dry or wet, when it was last wet, when it checked
+  in, its own temperature, whether its probe works, and what happens if it gets
+  wet.
+- **Cards**: a lock card, and a card for temperature probes (a freezer) with
+  what it tells you about. Room sensors, doors, plugs and switches keep the
+  app's own cards.
+- **"Water"**, a card for any page: all dry, or which sensors are wet and since
+  when (and which automations ran), and whether they all checked in.
+- **The automation step** on a lock: Lock, Unlock, Change auto-lock, Beep
+  volume.
 
-```toml
-name = "YoLink — low battery"
-enabled = true
-cooldown_secs = 86400   # alert once per day max
+## Upgrading from 0.1.16
 
-[trigger]
-type      = "device_state_changed"
-device_id = "yolink_d88b4c01000e82eb"
-attribute = "battery_pct"
-
-[[conditions]]
-type      = "device_state"
-device_id = "yolink_d88b4c01000e82eb"
-attribute = "battery_pct"
-op        = "Lte"
-value     = 25        # YoLink reports in steps of 25 %
-
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "YoLink front door sensor battery is low: {{device.battery_pct}}%"
-```
-
-## Plugin actions
-
-hc-yolink declares one [capability action](./capabilities) the admin
-UI exposes as a button on the plugin detail page:
-
-### `rescan_devices` (sync, user)
-
-Force an immediate inventory refresh — fetches the full device list
-from the YoLink hub and republishes registration for each. Use this
-after pairing a new YoLink device through the YoLink app: the plugin
-normally polls the inventory on `inventory_interval_secs`, but
-`rescan_devices` is the on-demand path so a freshly-paired device
-shows up in homeCore without waiting for the next poll cycle.
-
-## SDK adoption
-
-hc-yolink is built on the official Rust plugin SDK (`plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
-
-## Background initial state fetch
-
-On startup, hc-yolink fetches the current state of all devices from the YoLink cloud API. This fetch runs as a non-blocking background task (`tokio::spawn`) so it does not delay plugin startup or MQTT subscription.
-
-The fetch begins after `initial_fetch_delay_secs` (default: 10 seconds) to allow the MQTT connection to stabilize first:
-
-```toml
-[yolink]
-initial_fetch_delay_secs = 10   # seconds before background getState begins
-poll_interval            = 3600  # periodic refresh interval (seconds, default: 3600)
-```
-
-:::caution YoLink hub rate sensitivity
-The YoLink hub is sensitive to burst API traffic. The background fetch spaces getState calls to avoid overwhelming the hub. If you have many devices, the initial fetch may take a minute or more to complete.
-:::
-
-The default `poll_interval` is 3600 seconds (1 hour). Shorter intervals increase API traffic and are generally unnecessary since real-time state updates arrive via the YoLink cloud MQTT stream.
-
----
-
-## Device name sync
-
-When a device is renamed in the YoLink app, the new name is synced to HomeCore at the next state update from that device. The update only takes effect after a confirmed state message — not immediately on registration. Restarting hc-yolink forces a full re-registration that syncs all names immediately.
-
-## Troubleshooting
-
-| Problem | Solution |
-|---|---|
-| Plugin fails to connect | Check UAID and secret in config; verify YoLink account credentials |
-| Devices not appearing | Check that devices are online in the YoLink app and have been used recently |
-| State not updating | YoLink cloud MQTT may have a delay; check YoLink app for offline sensors |
-| `online`/`offline` flapping | Check device battery level and WiFi/LoRa range |
-
-## Log rotation
-
-hc-yolink writes logs to `logs/hc-yolink.log`. Rotation and compression are configured in `config/config.toml`:
-
-```toml
-[logging]
-level       = "info"   # stderr log level; RUST_LOG overrides this
-rotation    = "daily"  # daily | hourly | weekly | never
-max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
-compress    = true     # gzip rotated files in a background thread
-```
-
-| File | Description |
-|---|---|
-| `logs/hc-yolink.log` | Active log (always uncompressed) |
-| `logs/hc-yolink.2026-03-27.log.gz` | Rotated daily file (compressed) |
-| `logs/hc-yolink.2026-03-27.1.log.gz` | Second rotation in same period (size limit hit) |
+- `energy_kwh` is gone (YoLink doesn't document its source), and `power_w` is
+  now right: YoLink sends tenths of a watt, so a plug reading 3.7 W in the
+  YoLink app used to show 37 W. Plugs without a meter publish no `power_w`.
+- A temperature-only probe no longer publishes `humidity`.
+- Leak sensors read wet correctly on every check (they used to read dry on the
+  hourly check during a leak); vibration and motion sensors now fire.
+- New on every battery device: `battery_low`, `last_seen`. On locks:
+  `last_lock_*`, `last_alert_at`, `last_alert_source`. On leak sensors:
+  `temperature`, `probe_fault`, `freeze_warning`.
+- Reports are now marked as outside changes, so an automation with "changed
+  by another app or hub" on a YoLink device starts — it never did before.
+- Kept as they were: `water_detected`, `open`, `locked`, `on`, `humidity`,
+  `temperature`, `battery_pct`, `vibration`, `last_alert`.
