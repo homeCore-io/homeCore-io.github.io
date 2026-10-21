@@ -145,6 +145,54 @@ a tenth of what it was. New: `battery_low`, `last_seen`, the lock's
 `freeze_warning`, and the temperature sensors' own limits. Device ids are
 unchanged.
 
+**Caséta gets its own screens, and every Pico press counts (2026-10-21)**:
+`hc-caseta` 0.1.15, `hc-lutron` 0.1.22 and app `hc-web-svelte` 0.1.27. No
+core change needed.
+
+- **Every Pico press reaches your automations.** A press used to be lost
+  whenever the release before it was missed, so pressing the same button
+  again did nothing — likely why your Pico showed button 5 stuck "pressed".
+  Buttons now reset after each press and after a reconnect, holds are
+  reported, and the "button pushed / held / released" trigger works for
+  Caséta Picos.
+- **Picos know their buttons.** One with none set up is the usual 5-button
+  Pico (On, Favorite, Off, Raise, Lower); a 4-button scene Pico is learned
+  from its first press; a 2-button one is set in Settings, where buttons
+  and their names can now be edited. Re-importing the bridge's integration
+  report fills in what's missing without touching what you set by hand.
+- **A Pico opens exactly like a Lutron Pico**: the same drawn Pico with the
+  last press lit, what each button starts (with "+ Make one"), and the last
+  press. The app no longer adds its own button readings, chart and raw
+  presses under it — for Lutron Picos and keypads too.
+- **A silent bridge is noticed** within a couple of minutes (it took about 15),
+  a wrong password says so instead of "unreachable" every 5 seconds, and
+  reconnects back off.
+- **Commands are honest**: one the bridge rejects shows why on the device,
+  one sent while the bridge is unreachable is refused at once instead of
+  running whenever it comes back, and scenes go offline with the bridge.
+- **The Caséta page**: connection, lights and plugs with how each works
+  (from Settings) and a "dims — set it to Dimmer?" hint when a light set
+  to on/off reports a part level, the Picos and what their buttons do, the
+  bridge scenes with Run and how many automations use each, and anything
+  the bridge mentions that isn't set up.
+- **Cards**: a "Caséta scenes" card for the dashboard (choose which and
+  their order) and a small Pico card with its last press.
+- **In automations**: run a bridge scene, or press a Pico button (it does
+  whatever the button is paired to in the Lutron app).
+- A malformed line from the bridge no longer restarts the plugin; renaming
+  a scene keeps its automations.
+- `hc-lutron` 0.1.22: its Pico panel also lists automations using the
+  "button pushed" trigger.
+
+**Upgrade:** update the app to 0.1.27 with or before `hc-caseta` 0.1.15
+and `hc-lutron` 0.1.22. Device and scene ids are unchanged. Automations on
+`button_N` becoming "press" now fire on every press, not just the first.
+`available_buttons` becomes a list of `{number, name}`. New on Picos:
+`pushed`, `held`, `released`, `last_button`, `last_button_name`; new on
+devices and scenes: `last_command_error`. "Holiday Lights Remote 1"
+becomes a 5-button Pico. Devices read offline until the plugin is
+connected.
+
 ---
 
 ## v0.1.90 — 2026-10-20
