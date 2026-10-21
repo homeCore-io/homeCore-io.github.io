@@ -193,6 +193,12 @@ devices and scenes: `last_command_error`. "Holiday Lights Remote 1"
 becomes a 5-button Pico. Devices read offline until the plugin is
 connected.
 
+**Lutron notices a silent repeater (2026-10-21)**: `hc-lutron` 0.1.23. When
+the main repeater lost power or dropped off the network without closing the
+connection, all Lutron devices stayed "online" and commands went nowhere for
+about 15 minutes. Now the plugin expects an answer to its keepalive and
+reconnects within about a minute. Nothing else changes; no upgrade steps.
+
 ---
 
 ## v0.1.90 — 2026-10-20
