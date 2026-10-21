@@ -84,6 +84,19 @@ The browser loads them through homeCore at
 `GET /api/v1/plugins/{id}/ui/{build}/{file}`. A build never changes, so it is
 cached for good; a rebuilt UI has a new `build`, so it is never stale.
 
+### Pictures the plugin keeps
+
+A screen often wants pictures the plugin fetched from its devices while it runs
+— a Roku channel's icon, say — which cannot be in the built UI. The plugin
+keeps them in a folder of its own and serves them the same way
+(`with_files_dir` in the Rust SDK, homeCore 0.1.92 and later); the browser gets
+them at `GET /api/v1/plugins/{id}/files/{path}` (pictures only: png, jpg, webp,
+gif), and a screen makes that address with `host.fileUrl(path)`. **A file's
+name is its identity** — it is cached for good — so a plugin writes a new name
+when the contents change (hc-roku names an icon by channel and version).
+`host.fileUrl` is absent on an app before the one after 0.1.27: draw no
+picture there.
+
 ## The host
 
 Every element is given a `host` — everything a screen may use, scoped to its
@@ -96,6 +109,7 @@ homeCore repository).
 | `host.command(deviceId, body)` | a command to one of its devices |
 | `host.action(id, params)` / `host.query(id, params)` | one of the plugin's actions; `query` for read-only ones, open to anyone who can see devices |
 | `host.upload(action, file, params)` | a file sent to one of its actions (up to 32 MiB) |
+| `host.fileUrl(path)` | where a picture the plugin keeps is, for an `<img src>` (see above) |
 | `host.config` | its settings file (admins): `get()`, `patch(section, values)`, `restartPlugin()` |
 | `host.store` | JSON documents the web app keeps for its screens (up to 2 MiB each) |
 | `host.fetch(path)` | homeCore's API as the person using it, for anything else |

@@ -25,6 +25,84 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.92 — 2026-10-21
+
+**Theme:** Roku gets its own screens, with every channel's real icon, and
+the Roku plugin is reworked.
+
+### What you'll notice
+
+- **Open a channel by its icon.** Each Roku's panel starts with "Open a
+  channel": its channels with their own icons from the Roku, most used
+  first, and the one playing lit. "All 43 ›" opens every channel, A–Z, with
+  a search. Icons are kept by the plugin, so they show at once and survive
+  a restart.
+- **The Roku panel**: what is on (channel and position, an input, or off),
+  a power button, the remote (arrows, OK, Back, Home, replay, options,
+  rewind, play/pause, fast-forward, volume, mute, typing on the screen, and
+  "Find my remote" where the Roku has it), and on TVs an Inputs tab with
+  the inputs named as you named them on the TV.
+- **The Roku page**: each Roku with its channel strip, room, model,
+  address, network, Roku OS, whether phone control is allowed, and how many
+  channels and inputs it has, plus "Open the remote", "Refresh channels",
+  and "Forget it" for a found Roku that is gone for good.
+- **Cards**: a Roku card with play/pause, volume and power, and in large
+  size its four most used channels. A TV that is off has "Turn on".
+- **In automations**: open a channel (picked by its icon), switch input,
+  turn on or off, or press a button a number of times. Opening a channel
+  on a TV that is off turns it on first.
+- **Remote presses arrive in order.** A burst of presses no longer jumbles
+  or drops, and the Roku is checked once afterwards instead of after every
+  press.
+- **A Roku that refuses control says so.** If "Control by mobile apps" is
+  off, the device shows why and an alert gives the fix (on the Roku:
+  Settings › System › Advanced system settings › Control by mobile apps ›
+  Network access: Default). It clears on the next command that works.
+- **A TV that is off keeps its channels and inputs**, including after a
+  restart, so the 65" TV's panel is never empty. A TV on an input reads
+  "On · HDMI 1" rather than "playing", and one that is off shows no input.
+- **A Roku that stops answering** stops showing what it was playing; it is
+  never removed. One that changes address is found again by its serial
+  number and keeps its id, name, room and automations.
+- **A TV fully off can be woken after a restart**: the plugin remembers its
+  network address for Wake-on-LAN.
+- Settings no longer re-register every few seconds, and a Roku's state no
+  longer carries its network name and hardware addresses.
+
+### For integrators
+
+- `GET /plugins/{id}/files/{file}`: a picture a running plugin keeps
+  (png, jpg, webp, gif; up to 4 MiB), passed through and cached for good —
+  a plugin gives a file a new name when it changes. The plugin side is the
+  Rust SDK's `with_files_dir`; plugin screens get the address from the new
+  optional `host.fileUrl(path)`.
+- Rust SDK 0.6.2: `with_files_dir` and `with_async_handler` (plugin actions
+  that run without holding up the others).
+
+### Release matrix
+
+**Tagged at v0.1.92:** `homeCore` (core), `hc-roku` 0.1.13. App:
+`hc-web-svelte` v0.1.28.
+
+### Upgrade notes
+
+- Update core, the app (0.1.28) and `hc-roku` (0.1.13) together; channel
+  icons need all three. On an older app the screens show coloured name
+  tiles instead.
+- Roku device ids are unchanged. No house automations use Rokus.
+- Removed from Roku state: `device_info`, `model_name`, `model_number`,
+  `software_version`, `friendly_name`, the MAC addresses and the network
+  name. Renamed: `supports_wake_on_lan` → `supports_wake_on_wlan`. `state`
+  is `idle` on an input (was `playing`) and when off (was `stopped`);
+  `source` is empty when off (was "Home"); a TV with its screen off
+  ("DisplayOff") counts as on.
+- Actions: `next` / `previous` became `rewind` / `fast_forward`;
+  `app_icon` is gone; `forget_device` and `status` are new. New
+  attributes: `media_position_updated_at`, `last_command_error`, and
+  `icon` and `launches` on each channel.
+
+---
+
 ## v0.1.91 — 2026-10-21
 
 **Theme:** an alert can start automations, and they stay tied to it — for
