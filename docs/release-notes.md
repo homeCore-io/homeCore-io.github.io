@@ -93,6 +93,58 @@ every kind of alert and every plugin.
   without these screens.
 - No configuration changes. Existing automations are unchanged.
 
+**YoLink gets its own screens, and leak sensors are read right (2026-10-21)**:
+`hc-yolink` 0.1.17 and app `hc-web-svelte` 0.1.26. No core change needed.
+
+- **"Water Valve Off" will start working.** It only runs on changes from
+  YoLink itself, and the plugin never marked them that way, so it has never
+  fired. From 0.1.17 a leak sensor getting wet runs it and turns the Water
+  Valve switch **on**, as the automation says — check that "on" is the way
+  round you want before upgrading.
+- **A leak stays a leak.** The hourly check and the check after a restart
+  read a wet sensor as dry; now they read it right.
+- **The mouse trap's vibration sensor works** (it could never report
+  shaking), and so do YoLink motion sensors.
+- **Power is right**: the power-meter plug showed 37 W for 3.7 W. Plugs
+  without a meter (Office Humidifier Plug, Water Valve) no longer show a
+  made-up 0 W.
+- **A low lock battery is an alert now.** YoLink's lowest level read as
+  25% and never alerted; it now raises the low-battery alert.
+- **A sensor that goes quiet goes offline** after 9 hours with nothing, so
+  a leak sensor with dead batteries is never shown as dry.
+- **Locking and unlocking the Laundry Room Lock from homeCore** sends the
+  request newer YoLink locks expect.
+- **The live feed from the hub no longer drops** when its sign-in renews,
+  catches up after a reconnect, and the hourly check no longer holds up
+  leak alerts or lock commands.
+- **The YoLink page**: water (all 7 leak sensors), temperatures with what
+  each one alerts on, doors, locks, switches, batteries lowest first (in
+  YoLink's quarters), and sensors that have gone quiet.
+- **A lock opens with Lock and History tabs**: lock or unlock (unlocking
+  asks first), the door, the battery, the last problem, auto-lock and beep
+  volume, and how it was last locked or unlocked (fingerprint, app, button,
+  by itself, homeCore). A lock that fails to lock raises an alert that
+  clears on the next success.
+- **The freezer opens with "Tell me when"**: warmer than a temperature for a
+  while makes an alert rule ("Garage Freezer warming up"), so "Do
+  something…" works on it. Leak sensors show when they were last wet, their
+  check-in and any sensor fault.
+- **Cards**: a lock card, a freezer card, and a "Water" card for the
+  dashboard. Room temperature sensors, doors and switches keep the app's
+  own cards.
+- **In automations**: lock, unlock, change auto-lock, and beep volume.
+- The app (0.1.26) lets a plugin's card apply to some of its devices only
+  (the freezer gets YoLink's card, room sensors keep the app's).
+
+**Upgrade:** update the app to 0.1.26 with or before `hc-yolink` 0.1.17. No
+longer published: `energy_kwh`, the freezer probe's `humidity`, and
+`power_w` on plugs without a meter. `power_w` on the metering plug is now
+a tenth of what it was. New: `battery_low`, `last_seen`, the lock's
+`last_lock_action` / `last_lock_method`, `last_alert_at` /
+`last_alert_source`, a leak sensor's `temperature`, `probe_fault`,
+`freeze_warning`, and the temperature sensors' own limits. Device ids are
+unchanged.
+
 ---
 
 ## v0.1.90 — 2026-10-20
