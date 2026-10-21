@@ -118,6 +118,48 @@ profiles in the shared names — step six of the device vocabulary.
 
 **Upgrade:** update the app to 0.1.22 with or before `hc-lutron` 0.1.21.
 
+**Sonos gets its own screens, and grouping works (2026-10-20)**: `hc-sonos`
+0.1.17 and app `hc-web-svelte` 0.1.23. No core change needed.
+
+- **The Sonos page** shows your speakers with what each is playing, a
+  play/pause button and its volume, your Sonos favourites (pick one, pick
+  the speakers, Play), your alarms with a switch each, and which speakers
+  aren't answering.
+- **Grouping is fixed.** A group shows within seconds of changing, not up to
+  five minutes later. Play, pause, skip and favourites go to the group
+  whichever speaker you touched — before, pausing a grouped speaker reported
+  success and did nothing. Grouped speakers show the group's music.
+- **Play together**: tick the speakers, choose which one the music plays
+  from, and the plugin makes the whole group in one go and says speaker by
+  speaker what happened ("Living Room didn't answer — try again"). A group
+  is one card with a volume for the group and each speaker's own under it.
+- **A speaker opens as a player**: artwork, progress (or "Live" for a
+  station), transport and volume, with tabs for Favourites, Group and Sound
+  — bass, treble, loudness, crossfade, a sleep timer, and on a soundbar
+  night mode, speech enhancement and switching to TV or line-in.
+- **Cards**: a speaker card in three sizes, and "Sonos speakers" and "Sonos
+  favourites" cards for a dashboard.
+- **In automations**: play a favourite (optionally at a volume), set the
+  volume, pause, or group speakers — the group step names the speakers and
+  makes exactly that group.
+- **A speaker that stops answering is no longer deleted.** It used to be
+  removed after three minutes, losing its room and breaking the automations
+  that used it. It now shows offline and comes back on its own; a new
+  "Forget" button removes one deliberately. Its id stays the same through
+  renames, restarts and a new IP address.
+- Also fixed: stereo pairs and surround speakers no longer appear as extra
+  speakers; renames in the Sonos app carry through without a restart; Sonos
+  playlists and album favourites play (they failed with error 714); a
+  command that fails says why on the speaker; a station no longer shows the
+  last track's length; one sleeping speaker no longer slows the rest.
+- New setting `ssdp` (default on): turn it off to use only the addresses in
+  `manual_hosts`.
+- The app (0.1.23) leaves out its own artwork, buttons and volume when a
+  media player's plugin draws its own panel, so they aren't shown twice.
+
+**Upgrade:** update the app to 0.1.23 with or before `hc-sonos` 0.1.17.
+Existing speakers keep their ids.
+
 ---
 
 ## v0.1.89 — 2026-10-20
