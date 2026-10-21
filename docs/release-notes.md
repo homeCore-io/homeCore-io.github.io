@@ -25,6 +25,76 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.91 — 2026-10-21
+
+**Theme:** an alert can start automations, and they stay tied to it — for
+every kind of alert and every plugin.
+
+### What you'll notice
+
+- **"Do something…" on every alert** (Alerts page): choose what it covers —
+  this device, any device like it (any YoLink leak sensor, including ones
+  you add later), or every alert of its kind — and when: it happens, it
+  ends, or it's still on after 10 minutes. The automation editor opens with
+  that trigger filled in, a banner saying which alert starts it, and a few
+  steps to start from. The alert's words can go in any message as
+  `{alert.message}`.
+- **Settings › Alert rules shows what each alert starts.** Under every alert
+  rule, every plugin alert type, and a new "homeCore's own" section (wet,
+  smoke, offline, jammed, low battery) is a "When it happens:" line naming its
+  automations, with "+ Do something…". Automations you wrote by hand that
+  start from an alert are found and listed too.
+- **Alerts and their automations are looked after together.**
+  - Turn an alert rule off, set a plugin alert to "Show it: Off", or ignore
+    an alert, and the automations it starts wait — their cards say so — and
+    come back when you turn it on again.
+  - Deleting an alert rule that starts automations asks first: delete them
+    too, or keep them turned off. An automation that also has another
+    trigger keeps running on that one; only the deleted rule's trigger goes.
+    A kept automation says its alert was deleted and runs again once you
+    give it another trigger.
+  - Deleting an automation leaves its alert alone.
+- **Automations list:** each card started by an alert says which ("Started by
+  the alert “Freezer warming up”"), and a "Started by alerts" filter shows
+  just those. Sentences name the alert ("When the alert “Garage door left
+  open” is raised", "When an offline alert from YoLink is raised").
+- Turning on an automation that can't run is now refused before anything is
+  saved (before, it was saved and then failed).
+
+### What is deliberately unchanged
+
+- Alerts still notify on their own ("Tell" / "Also send to"); automations are
+  for everything else.
+- "When it ends" also runs when an alert is withdrawn — its rule turned off
+  or the alert ignored — so clean-up automations still run.
+- Automations that watch a device directly (like "Water Valve Off" on the
+  leak sensors) aren't tied to an alert and aren't listed under one.
+
+### For integrators
+
+- `GET /alerts/automations`: every automation with an alert trigger, what can
+  raise it, and whether it is waiting (`off`, `ignored`, `deleted`).
+- `GET /alert-rules/{id}/automations`: what deleting the rule would touch.
+- `DELETE /alert-rules/{id}?automations=delete|disable`. Without the choice,
+  a rule that starts automations is refused with 409 and the list; a rule
+  that starts nothing is deleted as before (204).
+- An alert filter's `plugin_id` now also matches homeCore's own kinds on that
+  plugin's devices (`{kind: "wet", plugin_id: "plugin.yolink"}`). A filter
+  with only `plugin_id` set therefore also matches that plugin's devices
+  going offline or wet.
+
+### Release matrix
+
+**Tagged at v0.1.91:** `homeCore` (core). App: `hc-web-svelte` v0.1.25.
+
+### Upgrade notes
+
+- Update the app to 0.1.25 with core. On an older core the app still works,
+  without these screens.
+- No configuration changes. Existing automations are unchanged.
+
+---
+
 ## v0.1.90 — 2026-10-20
 
 **Theme:** readings in each person's own units, and the topic-mapper

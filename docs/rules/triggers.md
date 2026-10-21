@@ -510,6 +510,29 @@ type      = "device_battery_recovered"
 
 ---
 
+### Alert triggers: `AlertRaised`, `AlertCleared`, `AlertAcknowledged`, `AlertActiveFor`
+
+Fire when an alert like `filter` is raised, clears, is marked seen, or has
+been active for `minutes`. The alert is the rule's to act on: `{alert.message}`
+in a message, and the alert steps act on it. Every filter field narrows; an
+empty filter is any alert.
+
+```ron
+trigger: AlertRaised(
+    filter: AlertFilter(
+        kind: Some(rule),
+        rule_id: Some("b02d4f67-…"),
+    ),
+),
+```
+
+`plugin_id` means that plugin's alerts and homeCore's own about its devices
+(`kind: Some(wet), plugin_id: Some("plugin.yolink")` is any YoLink leak sensor). See
+[Alerts that start automations](./alert-automations.md) — including what
+happens to such a rule when its alert is turned off or deleted.
+
+---
+
 ## Trigger context in conditions
 
 For `WebhookReceived` triggers, the request body is available in `ScriptExpression` conditions as `event.body`. For `DeviceStateChanged`, `event.device_id`, `event.attribute`, and `event.value` are available.

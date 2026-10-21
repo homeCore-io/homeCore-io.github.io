@@ -98,6 +98,9 @@ The Python, Node.js and .NET SDKs have the same calls (`set_alerts` /
   none are); and act on them — press an alert's button, wait until it clears,
   mark it seen, skip it — including for each active alert in turn.
   `{alert.device}`, `{alert.key}` and the rest can be used in messages.
+  **Do something…** on any alert makes one — see
+  [Alerts that start automations](../rules/alert-automations.md). Setting a
+  kind to *Show it: Off* leaves the automations it starts waiting.
 
 WLED's "install firmware updates at night" is exactly that: at 03:00, for each
 active *Firmware update available* alert, press its button and wait for it to
