@@ -5,287 +5,209 @@ sidebar_label: Thermostat
 sidebar_position: 11
 ---
 
-# Virtual Thermostat (`hc-thermostat`)
+# Software thermostats (`hc-thermostat`)
 
-The `hc-thermostat` plugin implements software thermostats that **observe one or
-more temperature sensors and drive another HomeCore device on/off** according
-to a setpoint, hysteresis deadband, and mode. It's the first plugin that is a
-**cross-device consumer** — it reads state from devices owned by other plugins
-and publishes commands to them.
+A temperature sensor switches a plug or switch to hold a room at a
+temperature. The sensors and the plug can belong to any plugin — a YoLink
+sensor and a Z-Wave outlet running a window AC, say.
 
-Typical use: aggregate two or three sensor readings (e.g. YoLink or Ecowitt
-thermometers), maintain a target temperature, and control a Z-Wave relay, Hue
-plug, or Shelly switch that powers HVAC equipment.
+Each thermostat runs **an AC, a heater or a fan**: an AC or a fan cools (modes
+Cool and Off), a heater heats (Heat and Off). Each is a `thermostat` device.
 
-## Features
+## Before you start
 
-- **Multi-sensor aggregation:** average / min / max across any number of sensor
-  devices, with configurable attribute name (default `temperature`)
-- **Hysteresis deadband:** actuator flips at `setpoint ± hysteresis/2`, with
-  sticky state inside the deadband to prevent oscillation
-- **Heat / cool / off modes:** inverts the control logic; `off` force-idles
-  and publishes an OFF command even inside a lockout window
-- **Short-cycle protection:** optional `min_on_secs` and `min_off_secs`
-  windows that delay actuator transitions to protect HVAC compressors
-- **Pending-call surfacing:** when a lockout defers a transition, the
-  thermostat reports the pending state + remaining lockout time for UI display
-- **Runtime command persistence:** setpoint / mode / hysteresis / sensors /
-  actuator changes made at runtime are kept in homeCore's learned state for
-  the plugin and applied over the config file on start (unless the file's
-  entry was edited since), so restarts are idempotent
-- **Restart reconciliation:** on startup, the plugin reads its own retained
-  state topic to restore `actuator_last_change`, so short-cycle lockouts
-  survive plugin restarts
-- **Full SDK integration:** heartbeat, log forwarding, remote config,
-  dynamic log level, custom management commands
+- A **sensor** in the room that reports `temperature` — or several.
+- A **plug or switch** that runs the AC, heater or fan, and reports `on`. A
+  plug that reports its state back is what lets the thermostat check every on
+  and off.
+- For a **heater**: a plug with its own auto-off, set a little longer than the
+  thermostat's longest run (4 h unless you change it), is safer still.
 
-## Setup
+## Its screens
 
-### 1. Copy and edit the config
+hc-thermostat carries its own screens; the app shows them in place of its
+generic ones.
 
-```bash
-cd plugins/hc-thermostat
-cp config/config.toml.example config/config.toml
-# (or config.dev.toml if you're running a dev build)
-```
+- **The plugin page** (Settings › Plugins › Thermostat): a card per thermostat —
+  the room's temperature, the target and mode, what it is doing and why, its
+  sensor and how old the reading is, its switch and whether it confirmed,
+  today's run, its guards — with Open and Turn off. **+ Add a thermostat** asks
+  what it runs, the plug or switch (plugs and switches only; one already run by
+  a thermostat is marked), the sensors (with their readings now), the target,
+  and the safety settings for its kind, then says what it will do ("Turns
+  Outlet - Office AC on when Office Desk Temperature rises above 68°"). A
+  thermostat in Settings that can't run is shown with why — and for a target
+  that looks like °F, **Make it 68 °F (20 °C)**.
+- **A thermostat's panel**: the room in a ring, the target with − and +, its
+  modes; *Doing now* with the reason and the button that helps (Start now
+  anyway, Take over now, Send it again, See the alert); one-tap holds ("66° for
+  2 h", "66° until 7:00") and "Back to 68°"; **Today** — the room's temperature
+  against the target band with the times it ran shaded, from homeCore's
+  history of the thermostat; what it reads, what it switches, and how it
+  switches, each with a way to change it.
+- **Its card** on Home and the rooms, in three sizes; outlined when it needs
+  someone — no reading, the switch not answering, a hand flip being left alone.
+- **The automation step**: Set the target, Set the mode, Hold for a while, Back
+  to usual.
 
-### 2. Broker ACL
+Temperatures are kept in °C and shown in the unit each person chose; the target
+moves half a degree Celsius at a time.
 
-The thermostat is a *cross-device consumer*, so its ACL is broader than
-typical plugins:
+## How it decides
 
-```toml
-[[broker.clients]]
-id       = "plugin.thermostat"
-password = "{bcrypt_hash}"
-allow_pub = [
-    "homecore/devices/thermostat_+/state",       # own state
-    "homecore/devices/+/cmd",                    # commands to actuators
-    "homecore/plugins/plugin.thermostat/+",      # heartbeat + logs
-]
-allow_sub = [
-    "homecore/devices/thermostat_+/cmd",         # own cmd topic
-    "homecore/devices/+/state",                  # read any sensor
-    "homecore/plugins/plugin.thermostat/manage/cmd",
-]
-```
+- **The reading.** Several sensors combine by their average, the warmest or the
+  coldest. A reading counts while it is **current**: from a sensor that is
+  online, between −40 and 60 °C, and less than 2 h old (`sensor_timeout_secs`).
+- **The swing.** `hysteresis` is a width in °C split either side of the target:
+  with 1, an AC turns on half a degree above the target and off half a degree
+  below.
+- **Short-cycle guards.** Once on it stays on at least `min_on_secs`, once off
+  at least `min_off_secs` — a compressor is damaged by short cycling. New
+  thermostats get their kind's guards (AC 3 min on / 5 min off, heater 2 / 2,
+  fan 1 / 1). An AC with none is pointed out on the plugin page.
+- **Every on and off is checked.** The switch has 30 s to report the state it
+  was asked for; until then the thermostat isn't "cooling". One it never
+  confirms, or a switch that is offline, raises an alert and is asked again,
+  less often each time.
+- **A sensor goes quiet.** With no current reading the switch is turned off and
+  an alert says so, until a reading comes back (`on_stale = "hold"` leaves the
+  switch as it is instead). A sensor not heard from at all gets two minutes at
+  start: when homeCore restarts, its broker forgets the last readings, and the
+  sensor's plugin needs a moment to say them again.
+- **Someone flips the switch** while it heats or cools: a manual override. It is
+  left alone for an hour (`override_secs`), or until the target or mode changes.
+- **Off** sends one OFF, then leaves the switch to the household.
+- **Heaters, always**: turned off after their longest run without a break (4 h
+  unless set, with an alert), when the plugin stops, and when the thermostat is
+  removed.
+- **Removing** a thermostat, or giving it another switch, turns off the switch
+  it was running first.
 
-### 3. Register the plugin in `homecore.toml`
+## What a thermostat reports
 
-```toml
-[[plugins]]
-id      = "plugin.thermostat"
-binary  = "../plugins/hc-thermostat/target/debug/hc-thermostat"
-config  = "../plugins/hc-thermostat/config/config.dev.toml"
-enabled = true
-```
+| Attribute | |
+|---|---|
+| `temperature` | the combined current reading, °C (null with none) |
+| `setpoint` | the usual target, °C — writable |
+| `hvac_mode` | `cool` / `off` (AC, fan) or `heat` / `off` (heater) — writable |
+| `hvac_action` | what the switch is confirmed doing: `cooling`, `heating`, `idle`, `off` |
+| `reason` | why: `cooling`, `heating`, `idle_in_band`, `waiting_min_off`, `waiting_min_on`, `override`, `sensors_stale`, `actuator_not_responding`, `max_run_exceeded`, `no_switch`, `off` |
+| `kind` | `ac`, `heater` or `fan` |
+| `hold_setpoint`, `hold_until` | a hold running |
+| `override_until` | a hand flip being left alone until |
+| `sensors_stale` | no current reading |
+| `sensor_readings` | each sensor's `temperature`, `at`, `stale`, `online` |
+| `actuator_state`, `actuator_confirmed`, `actuator_online` | the switch: on, confirmed, online |
+| `last_command_error` | the last command's refusal; null once one succeeds |
+| `run_secs_today`, `cycles_today`, `longest_run_secs_today` | today's runs |
 
-### 4. Build and start
+And its settings: `hysteresis`, `aggregation`, `sensor_ids`,
+`actuator_device_id`, `min_on_secs`, `min_off_secs`, `max_run_secs`,
+`sensor_timeout_secs`, `on_stale`, `override_secs`.
 
-```bash
-cd plugins/hc-thermostat
-cargo build --release
-```
-
-## Configuration
-
-```toml
-[homecore]
-plugin_id      = "plugin.thermostat"
-broker_host    = "127.0.0.1"
-broker_port    = 1883
-password       = ""                 # empty for anonymous dev broker
-heartbeat_secs = 60
-
-[logging]
-level              = "info"         # stderr + file filter; RUST_LOG overrides
-rotation           = "daily"        # daily | hourly | weekly | never
-max_size_mb        = 100            # 0 = time-only rotation
-compress           = true           # gzip rotated files
-prune_after_days   = 5              # 0 = never prune
-log_forward_level  = "info"
-
-# One [[thermostat]] block per virtual thermostat
-[[thermostat]]
-id                 = "living_room"
-name               = "Living Room Thermostat"
-sensor_device_ids  = ["yolink_lr_temp_a", "yolink_lr_temp_b"]
-sensor_attribute   = "temperature"  # default
-aggregation        = "average"      # "average" | "min" | "max"
-setpoint           = 21.0           # °C (−40–45; convert °F with (F − 32) × 5/9)
-hysteresis         = 1.0            # ±0.5 °C deadband
-mode               = "heat"         # "heat" | "cool" | "off"
-actuator_device_id = "switch_furnace_relay"
-min_on_secs        = 300            # short-cycle protection
-min_off_secs       = 180
-# actuator_on_cmd  = { on = true }        # optional override (this is the default)
-# actuator_off_cmd = { on = false }
-```
-
-Each thermostat entry becomes a device at `thermostat_<id>` under `plugin.thermostat`
-with `device_type = "thermostat"`.
-
-## Published state
-
-Each thermostat continuously publishes to `homecore/devices/thermostat_<id>/state`:
-
-```json
-{
-  "temperature": 21.8,
-  "hvac_action": "heating",
-  "sensors_stale": false,
-  "actuator_state": true,
-  "actuator_last_change": "2026-04-19T12:34:56Z",
-  "pending_call": null,
-  "lockout_until": null,
-  "actuator_last_error": null,
-  "setpoint": 21.0,
-  "hysteresis": 1.0,
-  "hvac_mode": "heat",
-  "aggregation": "average",
-  "sensor_ids": ["yolink_lr_temp_a", "yolink_lr_temp_b"],
-  "sensor_attribute": "temperature",
-  "actuator_device_id": "switch_furnace_relay",
-  "min_on_secs": 300,
-  "min_off_secs": 180,
-  "last_update": "2026-04-19T12:34:56Z"
-}
-```
-
-Names follow homeCore's shared device vocabulary: `temperature` and
-`setpoint` are °C (the app shows °F to anyone who prefers it), `hvac_mode` is
-what it is set to do, and `hvac_action` is what its actuator is doing now —
-`off` in mode off, `heating`/`cooling` while the actuator is on, `idle`
-otherwise. `pending_call` is what it will do once a short-cycle lockout ends,
-in the same words. `sensors_stale` is `true` while no sensor has a reading.
-
-## Runtime commands
-
-Publish to `homecore/devices/thermostat_<id>/cmd` (or use the device-command
-REST endpoint). The setpoint and the mode are writable attributes:
+## Commands
 
 ```json
 { "setpoint": 21.5 }
-{ "hvac_mode": "heat" }                                 // "heat" | "cool" | "off"
+{ "hvac_mode": "cool" }
+{ "action": "set_setpoint", "value": 21.5 }
+{ "action": "set_mode", "value": "cool" }
+{ "action": "hold", "setpoint": 19, "for_secs": 7200 }
+{ "action": "resume" }
+{ "action": "start_now" }
+{ "action": "resync" }
+{ "action": "set_hysteresis", "value": 1.0 }
+{ "action": "set_aggregation", "value": "max" }
+{ "action": "set_short_cycle", "min_on_secs": 180, "min_off_secs": 300 }
+{ "action": "set_sensors", "sensor_ids": ["yolink_a", "yolink_b"] }
+{ "action": "set_actuator", "device_id": "zwave_39" }
 ```
 
-Everything else is a declared action:
-
-```json
-{ "action": "set_setpoint",    "value": 21.5 }
-{ "action": "set_mode",        "value": "heat" }      // "heat" | "cool" | "off"
-{ "action": "set_hysteresis",  "value": 0.5 }
-{ "action": "set_sensors",     "sensor_ids": ["sensor_a", "sensor_b"],
-                                "attribute": "temperature" }
-{ "action": "set_actuator",    "device_id": "switch_x" }
-{ "action": "set_aggregation", "value": "min" }       // "average" | "min" | "max"
-{ "action": "set_short_cycle", "min_on_secs": 300, "min_off_secs": 180 }
-{ "action": "recalculate" }
-```
-
-Runtime changes are kept in homeCore's learned state for the plugin, not
-written to the config file; on start they are applied over the file, unless
-the file's entry for that thermostat has been edited since the change was
-made — then the file wins.
+- A **hold** keeps a different target for a while, then goes back to the usual
+  one by itself. **resume** ends a hold or a hand-flip override now.
+  **start_now** skips a short-cycle guard once. **resync** sends the switch what
+  it should be, even if it seems so already.
+- Targets are °C. One that looks like °F (68) is refused, not obeyed.
+- A mode the thermostat's kind hasn't got is refused: an AC can't heat.
+- **set_actuator** takes only a plug or switch — a device with an on/off that
+  isn't a lock, a thermostat or one of its sensors. Custom on/off payloads come
+  from the settings file only.
+- Every command ends in a `plugin_command_result` event, and a refusal is said
+  on the device (`last_command_error`).
 
 ## Plugin actions
 
-Two of the management commands below are surfaced as
-[capability actions](./capabilities) on the manifest, so they render
-as buttons under **Actions** on the plugin detail page (and hc-mcp
-exposes them via `list_plugin_actions`):
+| Action | Purpose |
+|---|---|
+| `status` | The thermostats that run, and those in Settings that can't — why, and the °F fix (read-only) |
+| `get_thermostats` | Each thermostat's settings (read-only) |
+| `recalculate_all` | Decide every thermostat now; `force` sends every switch what it should be |
+| `add_thermostat` | Add one (admin) — the page's "+ Add a thermostat" |
+| `remove_thermostat` | Remove one, its switch off first (admin) |
+| `fix_entry` | Set the target of a thermostat in Settings that can't run (admin) — "Make it 68 °F (20 °C)" |
 
-- **`recalculate_all`** (sync, user) — force every thermostat to
-  re-evaluate immediately.
-- **`reload_config`** (sync, user) — re-read `config.toml`, apply
-  changes, diff subscriptions, and recalculate.
+## Alerts
 
-`add_thermostat` / `remove_thermostat` / `get_thermostats` are
-intentionally **not** in the manifest. The "+ New thermostat" wizard
-on the plugin page handles creation because it needs live
-sensor/actuator pickers from the WS device map — the v1 capability
-schema subset (`type: string|integer|number|boolean|array|object`)
-can't express a "pick from existing devices" widget. They remain
-available as raw management commands (table below).
+| Kind | Means |
+|---|---|
+| `sensors_stale` | No current reading; the switch was turned off. Clears with a reading. |
+| `actuator_not_responding` | The switch didn't confirm an on or off, or is offline. With **Send it again**. |
+| `max_run_exceeded` | It ran its longest run without a break and was turned off. With **Start it again**. |
+| `manual_override` | Someone switched it by hand; left alone until … With **Take over now**. Off unless you turn it on. |
+| `config_entry_skipped` | A thermostat in Settings can't run as written. |
 
-## Management commands
+"Do something…" on any of them makes an automation that starts on it.
 
-Via `POST /api/v1/plugins/plugin.thermostat/command`:
+## Setup
 
-| Action | Purpose | In manifest |
-|---|---|---|
-| `recalculate_all` | Force every thermostat to re-evaluate immediately | yes |
-| `reload_config` | Re-read `config.toml`, applying changes + subscription diffs | yes |
-| `add_thermostat` | Create a new thermostat from a JSON config; persists to disk | wizard-only |
-| `remove_thermostat` | Delete a thermostat; clears retained state + persists | command-line only |
-| `get_thermostats` | Return the current list of thermostat configs | command-line only |
+Install it from the registry — Plugins › Add — and add thermostats from its
+page. Or in its settings:
 
-Example — add a thermostat from the command line:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/plugins/plugin.thermostat/command \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "action": "add_thermostat",
-    "config": {
-      "id": "bedroom",
-      "name": "Bedroom Thermostat",
-      "sensor_device_ids": ["yolink_bed_temp"],
-      "setpoint": 20.0,
-      "hysteresis": 1.0,
-      "mode": "heat",
-      "actuator_device_id": "zwave_bedroom_heater"
-    }
-  }'
+```toml
+[[thermostat]]
+id                 = "office_ac"
+name               = "Office AC Thermostat"
+kind               = "ac"
+sensor_device_ids  = ["yolink_office_temp"]
+setpoint           = 20.0          # °C — 68 °F is 20 °C
+hysteresis         = 1.0
+mode               = "cool"
+actuator_device_id = "zwave_38"
+min_on_secs        = 180
+min_off_secs       = 300
 ```
 
-## Admin UI
+A thermostat that can't run as written — a missing field, a °F target, a heater
+set to cool — is left out and said on the plugin page; the others run.
 
-Each thermostat gets a dedicated card on its device detail page (`/devices/thermostat_<id>`):
+With an external Mosquitto broker, the plugin needs to publish to its own
+devices, `homecore/devices/+/cmd` (the switches) and its plugin topics, and to
+subscribe to `homecore/devices/+/state`, `/state/partial` and `/availability`
+(the sensors and switches) besides its own. The plugin's README lists the exact
+patterns.
 
-- Large current temperature readout with `heat`/`cool`/`idle`/`stale` pill
-- Setpoint stepper (±0.5°), mode segmented control, hysteresis slider
-- Lockout countdown when short-cycle protection defers a transition
-- **Diagnostics banner** — surfaces missing sensors, unconfigured actuator,
-  stale readings, last actuator publish error
-- **Collapsible Configuration section** — sensor multi-select (filtered to
-  devices exposing a numeric temperature attribute), actuator picker
-  (filtered to on/off-capable devices), aggregation toggle, short-cycle inputs
-- **History chart** — 1h / 6h / 24h / 7d selector, temperature line, setpoint
-  overlay, shaded bands for actuator-on periods
-- **Remove button** — drops the thermostat and clears its retained state
+## Upgrading from 0.1.17
 
-A compact thermostat card also appears on the devices grid showing current
-temperature + setpoint + mode controls.
+- New: `kind`, `reason`, `sensor_readings`, `actuator_confirmed`,
+  `actuator_online`, `on_since`, holds (`hold_setpoint`, `hold_until`),
+  `override_until`, today's figures, and the settings `max_run_secs`,
+  `sensor_timeout_secs`, `on_stale`, `override_secs`.
+- `actuator_last_error` is now `last_command_error`; `last_update` is gone.
+- `hvac_action` says cooling or heating only once the switch confirmed it.
+- Modes follow the kind; a thermostat without `kind` is an AC unless its mode
+  is `heat`.
+- **No current reading now turns the switch off** (it used to hold it).
+- **Off now sends one OFF and leaves the switch alone**, and a hand flip while
+  it heats or cools is an override for an hour.
+- A °F target in Settings no longer stops the whole plugin.
+- `reload_config` is gone: homeCore restarts the plugin when its settings file
+  changes.
 
-On the Plugins page, `plugin.thermostat` exposes three action buttons
-(Recalculate all, Reload config) plus an inline "+ New thermostat" wizard for
-creating thermostats without hand-editing `config.toml`.
+## Notes
 
-## Logs
-
-Log files rotate daily in `plugins/hc-thermostat/logs/hc-thermostat.log`.
-Plugin logs at `log_forward_level` or above are also published to
-`homecore/plugins/plugin.thermostat/logs` and appear in HomeCore's log stream.
-
-## Integration patterns
-
-### Multi-zone HVAC
-
-One `[[thermostat]]` block per zone, each with its own sensor set and
-actuator. All thermostats share the same `homecore/plugins/plugin.thermostat/`
-management namespace, so commands like `recalculate_all` reach all of them.
-
-### Outdoor reset
-
-Use `aggregation = "max"` across indoor sensors and a negative-feedback rule
-that lowers the setpoint when an outdoor sensor rises above a threshold.
-
-### Fail-safe
-
-If all configured sensors drop offline, `sensors_stale` becomes `true` and the
-plugin holds the last actuator command (it neither turns on nor off
-spontaneously). Pair with a rule that notifies when `sensors_stale` is `true`
-for longer than 15 minutes — the create-thermostat wizard will soon offer
-this as an opt-in template.
+- After homeCore restarts, a thermostat's guard timer, a hold, an override and
+  today's figures start again: they are kept in homeCore's broker, which
+  forgets them on a restart (a restart of the plugin alone keeps them).
+- The thermostat sees a switch only through what its plugin reports. A plug
+  whose plugin doesn't report its state can't confirm, and shows as not
+  answering.

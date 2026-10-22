@@ -25,6 +25,105 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.93 — 2026-10-21
+
+**Theme:** the thermostat plugin is made safe and gets its own screens.
+Plugins are now asked to stop before they are killed.
+
+### What you'll notice
+
+- **The Thermostat page**: a card for each thermostat with the room
+  temperature, its target and mode, what it is doing and why, its sensors,
+  switch, today's run and its guards, with Open, Turn off and Remove. A
+  "needs you" count and outline point at one that has a problem.
+- **Add a thermostat** from the page: pick what it runs (an AC, a heater,
+  or a fan or other), the plug or switch, the sensors and the target. Safe
+  guards for that kind are filled in for you. Plugs already run by a
+  thermostat are marked, and lights, locks and other thermostats are not
+  offered.
+- **The thermostat panel**: the room temperature, target ± and the modes
+  that kind can do (an AC only Cool and Off, a heater only Heat and Off),
+  "Doing now" with the reason in words, one-tap holds ("66° for 2 h",
+  "until 7 AM") and "Back to usual", today's chart from homeCore's
+  history, and its sensors, switch and guards, each with "Change ›".
+- **Cards** in three sizes, and **an automation step** to set the target,
+  set the mode, hold a target for a while, or go back to usual.
+- **A sensor that goes quiet turns the switch off.** After 2 hours with
+  no reading (changeable) a sensor no longer counts; with none left the
+  AC, heater or fan is turned off and an alert says so. Before, a dead
+  sensor's last reading was trusted for ever.
+- **Every on and off is checked.** If the plug doesn't confirm within 30 s,
+  or is offline, an alert says so and the command is tried again.
+- **A switch flipped by hand is left alone for 1 hour** (or until the
+  target or mode changes, or you press "Take over now"). An optional alert
+  can tell you when it happens.
+- **Heaters are turned off** when the plugin stops, when a thermostat is
+  removed or moved to another plug, and after their longest run (4 h
+  unless changed), with an alert.
+- **Nothing is switched at startup** until the plugin knows its state, so
+  an AC no longer flicks on and off on a restart.
+- **One bad thermostat no longer stops the plugin.** It is skipped with a
+  notice and an alert; the rest run. A target that looks like °F (46–110)
+  gets a "Make it 68 °F (20 °C)" button.
+- **Plugins get 2 seconds to stop.** homeCore now asks a plugin to stop
+  (SIGTERM) and only kills it if it is still running after 2 s, so a
+  plugin can leave what it controls safe.
+- A plugin notice and its fix on a plugin's page now have a space between
+  them.
+
+### For integrators
+
+- Rust SDK 0.6.3: `subscribe_availability` and
+  `ManagementHandle::with_availability_handler`, to hear whether another
+  plugin's devices are online.
+- Rust SDK 0.6.3 fixes a hang on reconnect: a plugin with many
+  subscriptions that started before the broker could stop reading messages
+  for good after core restarted. Every Rust plugin built on 0.6.3 has the
+  fix as it is next released.
+- A thermostat's command (`set_actuator`) can no longer be used to send an
+  arbitrary command to another device: the new switch must be a plain
+  on/off device, and custom on/off payloads come only from the config
+  file.
+
+### Release matrix
+
+**Tagged at v0.1.93:** `homeCore` (core), `hc-thermostat` 0.1.18. App:
+`hc-web-svelte` v0.1.29.
+
+### Upgrade notes
+
+- Update core, the app (0.1.29) and `hc-thermostat` (0.1.18) together.
+  The house has no thermostats set up today, so nothing changes until one
+  is added.
+- A config entry with a target such as `setpoint = 68` used to stop the
+  plugin. Now that thermostat alone is skipped until you press "Make it
+  68 °F (20 °C)" on the Thermostat page or fix the file.
+- New in config: `kind` (`ac`, `heater` or `fan`; an entry without one
+  follows its mode), `max_run_secs`, `sensor_timeout_secs`, `on_stale`
+  (`off` by default, `hold` to keep the old behaviour) and
+  `override_secs`. New thermostats get their kind's guards (AC 3 min on /
+  5 min off). An AC with no guards gets a notice; very large swings and
+  guards are capped.
+- **Off now means off and left alone**: one OFF is sent, then the switch
+  is not touched. **No current reading now turns the switch off** (it used
+  to hold it).
+- Attributes: `actuator_last_error` → `last_command_error`;
+  `last_update` removed. New: `kind`, `reason`, `sensor_readings`,
+  `actuator_confirmed`, `actuator_online`, `on_since`, `hold_setpoint`,
+  `hold_until`, `override_until`, today's run figures (`run_secs_today`,
+  `cycles_today`, `longest_run_secs_today`, `today_from`) and the new
+  settings above. `hvac_mode` offers only the kind's modes.
+- Actions: `hold`, `resume`, `start_now` and `resync` are new; the
+  plugin's `reload_config` is gone (homeCore already restarts a plugin
+  when its file changes).
+- Holds, hand-flip overrides and the compressor guard's timer survive a
+  plugin restart but not a core restart.
+- Not yet tried against the real plugs: real Z-Wave and YoLink confirm
+  timing, and a heater plug's own auto-off. Set a heater plug's auto-off a
+  little longer than the thermostat's longest run.
+
+---
+
 ## v0.1.92 — 2026-10-21
 
 **Theme:** Roku gets its own screens, with every channel's real icon, and
