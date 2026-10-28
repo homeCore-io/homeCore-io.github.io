@@ -161,6 +161,29 @@ nothing to press), `hc-zwave` 0.1.18 and `hc-roku` 0.1.14 ("Offline", not
 "Not answering"), `hc-yolink` 0.1.18 (the cold limit shows an example, not
 a dash). Update the app first; the plugins' cards follow it.
 
+**App v0.1.31, `hc-sonos` 0.1.19 and `hc-hue` 0.2.5 (2026-10-28)**, no core
+change:
+
+- **Sonos playlists.** The plugin always read your Sonos playlists; now its
+  screens show them — under Favourites on its page (pick, choose speakers,
+  Play), as a Playlists tab on a speaker's panel, and as "Play a playlist"
+  in automations.
+- **Restarting or updating a plugin.** "…is restarting" and "…installed and
+  starting" now clear once it's running again, instead of staying up. A
+  plugin updated while the app is open keeps its own screens and offers
+  "Reload to see its new screens" — it used to fall back to the general
+  plugin page. The Settings tab reads its form again after a restart.
+- **Panels.** A light that's off shows its last brightness, faded, not
+  "0%". Sonos's panel fills its dialog, shows a music note where there's no
+  artwork, and an offline speaker shows nothing to press. Hue's light panel
+  no longer repeats "Off".
+- **Smaller things.** "For everyone" no longer opens with a note about
+  changes to things that are gone (Done tidies them away). A rule's page
+  doesn't say the rule twice. Automations: one link style, "Show them all"
+  on an empty search, a tidier phone layout. Add a person says a short
+  password as you type. Me labels its unit rows. A plugin's custom log rule
+  is shown instead of an empty box.
+
 ---
 
 ## v0.1.92 — 2026-10-21
