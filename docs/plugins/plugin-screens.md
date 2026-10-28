@@ -10,7 +10,8 @@ sidebar_position: 4
 A plugin can bring its own screens to the homeCore web app — a page for
 itself, a panel for its devices, a form in the automation editor, its devices'
 cards on Home and the rooms, and cards of its own a household adds to a page.
-WLED and Ecowitt are built this way; nothing about either lives in the app.
+WLED, Ecowitt, Hue, Lutron, Sonos, Z-Wave, YoLink, Caséta, Roku and Thermostat are
+built this way; nothing about any of them lives in the app.
 
 **The plugin carries its screens and serves them.** They are web components
 (custom elements) in a folder that travels with the plugin, in whatever package
@@ -203,7 +204,7 @@ Any way of making custom elements works:
 
 - **Plain JavaScript** — the plugin template's `ui/` is a page and a card as
   plain classes, with no build tools.
-- **Svelte 5** with Vite — WLED and Ecowitt. `compilerOptions: { customElement:
+- **Svelte 5** with Vite — every plugin above. `compilerOptions: { customElement:
   true }`, `build.lib` with `formats: ['es']`, and `public/manifest.json` copied
   into `dist/`.
 - **Lit**, or anything else that defines elements.
@@ -238,3 +239,8 @@ installs it there. Commit `ui/package-lock.json`. Nothing else is published.
 - `plugins/hc-wled/ui` — a page, a controller's panel, the automation editor's
   WLED step (with files sent to an action), a controller's card, and "Quick
   presets" with its settings.
+- `plugins/hc-roku/ui` — pictures the plugin keeps (channel icons through
+  `host.fileUrl`) and an automation step with its own device picker.
+- `plugins/hc-thermostat/ui` — an add flow on the page, a panel that reads
+  homeCore's device history (`host.devices.history`) for its chart, and a
+  step whose `describe()` names what it does in the editor.

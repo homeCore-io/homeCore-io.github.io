@@ -62,7 +62,7 @@ signed artifact, installed from the registry rather than built into homeCore.
 
 A plugin can bring its own screens to the web app — its page, its devices'
 panel and cards, a form in the automation editor, and cards you add to a page
-yourself (Edit → Add a card). WLED and Ecowitt do. They come in the plugin's
+yourself (Edit → Add a card). WLED, Ecowitt, Hue, Lutron, Sonos, Z-Wave, YoLink, Caséta, Roku and Thermostat do. They come in the plugin's
 own package and update with it; a plugin without them gets the app's generic
 screens. See [Screens and Cards](./plugin-screens) for how a plugin provides
 them.
@@ -296,11 +296,13 @@ All Rust device plugins use the official SDK with full management protocol suppo
 - **hc-caseta** — heartbeat, remote config, dynamic log level, MQTT log forwarding
 - **hc-ecowitt** — + gateway actions: `discover_gateways`, `refresh_sensors`,
   `get_gateway_info`, `set_custom_server`
-- **hc-roku** — + device actions: `discover_devices`, `list_devices`,
-  `refresh_catalog`, `device_info`, `send_command`, `app_icon`,
+- **hc-roku** — + plugin actions: `status`, `discover_devices`,
+  `refresh_catalog`, `device_info`, `send_command`, `forget_device`,
   `forget_stale_devices`
-- **hc-thermostat** — + custom actions: `recalculate_all`, `reload_config`,
-  `add_thermostat`, `remove_thermostat`, `get_thermostats`.
+- **hc-thermostat** — + plugin actions: `status`, `get_thermostats`,
+  `recalculate_all`, `add_thermostat`, `remove_thermostat`, `fix_entry`.
+  Hears whether its sensors and switches are online
+  (`subscribe_availability`).
   First plugin to use the SDK's cross-device state subscription
   (`subscribe_state` / `run_managed_with_state`).
 
