@@ -184,6 +184,15 @@ change:
   password as you type. Me labels its unit rows. A plugin's custom log rule
   is shown instead of an empty box.
 
+**App v0.1.32 (2026-10-28)**, no core change — the last of the polish pass:
+System shows a person's identical connections once ("× 6"); Alert rules
+say what "Add rule" still needs, give their times in your clock ("between
+11:00 PM and 5:00 AM") and write "14°F"; the settings search runs full
+width; choosing a backup file is no longer a red button (the warning comes
+at Restore); a plugin's "Delete all its devices…" is an ordinary button;
+Add a plugin says "Update to …" for a newer version; and Add a card's
+filters show there are more to scroll to.
+
 ---
 
 ## v0.1.92 — 2026-10-21
