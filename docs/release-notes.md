@@ -122,6 +122,45 @@ Plugins are now asked to stop before they are killed.
   timing, and a heater plug's own auto-off. Set a heater plug's auto-off a
   little longer than the thermostat's longest run.
 
+**App v0.1.30 (2026-10-28)** follows with no core change — a polish pass
+across the whole app, from a walkthrough of every screen:
+
+- **Numbers that agree.** Settings, System, Devices and Plugins count the
+  same way: plugin scenes go with scenes ("1 scene · 81 from plugins"), and
+  a plugin turned off on purpose isn't counted as trouble. "Last backup"
+  goes by calendar day.
+- **Times, dates and units said one way.** Your own 12- or 24-hour clock
+  everywhere, never "02:04 PM"; "Today" and "Yesterday"; "12 d ago", not
+  "285 h ago"; degrees against the number ("70.7°F"). Device pages say
+  times, named values ("Lock failed", a WLED effect's name) and colours
+  instead of raw data.
+- **Offline looks offline.** A card for a device that's offline drops its
+  switch and controls and says "Offline" — the same word on every card.
+- **One Edit button** on Home and each room: "Just for me" (the old
+  Customise) or "For everyone".
+- **Alerts:** each alert is one card with its buttons inside, always in the
+  same order; the quieter choices are behind "⋯"; a count and "Mark all
+  seen".
+- **Wording:** "Delete…" for anything that destroys, "Remove" only for
+  taking something out of a list, "Uninstall…" for plugins.
+- **The automation editor:** triggers, checks and steps are all added from
+  the same picker; an unfinished part reads "(choose a device)"; a new
+  automation's to-do list waits for its first Save.
+- **On a phone:** More lists your rooms; nothing scrolls over the header;
+  Devices' filters scroll in one row; the "devices may be gone" banners
+  fold into one line.
+- **Pages** is out of the menus until it's built.
+- Plugin cards hold their place while they load instead of swapping in, and
+  their names wrap to two lines.
+
+**Plugins, same day, no core change — their cards:** `hc-hue` 0.2.4 (the
+card laid out as the app's own, with its symbol, switch and colour bar; a
+switched-off light's switch no longer dims), `hc-wled` 0.1.24 and
+`hc-sonos` 0.1.18 (an offline controller or speaker says "Offline" with
+nothing to press), `hc-zwave` 0.1.18 and `hc-roku` 0.1.14 ("Offline", not
+"Not answering"), `hc-yolink` 0.1.18 (the cold limit shows an example, not
+a dash). Update the app first; the plugins' cards follow it.
+
 ---
 
 ## v0.1.92 — 2026-10-21
