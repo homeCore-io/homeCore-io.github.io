@@ -66,6 +66,12 @@ keeps its own pages, themes and pictures; homeCore keeps the house.
   them if you like, or leave them — they're harmless and backups still
   include them.
 
+**App v0.1.33 and `hc-yolink` 0.1.19 (2026-10-28)**, no core change. The
+app no longer offers the retired dashboard and skin permissions when you
+make or change a key. On YoLink's screens, a temperature limit's saved
+wording now writes the degree sign against the number ("30°C", not
+"30 °C"), like the rest of the app. Update YoLink from the Plugins page.
+
 ---
 
 ## v0.1.93 — 2026-10-21
