@@ -30,8 +30,8 @@ returns.
 |---|---|
 | `admin` | Everything, including users, plugins, and API keys belonging to other people |
 | `user` | Read everything, command devices, author automations/scenes/areas. No user or plugin management, no audit log |
-| `read_only` | Read devices, automations, dashboards, scenes, and areas. Nothing else — no plugins, no audit |
-| `observer` | `read_only` plus `plugins:read` and `audit:read`. A good default for dashboards and observability services |
+| `read_only` | Read devices, automations, scenes, and areas. Nothing else — no plugins, no audit |
+| `observer` | `read_only` plus `plugins:read` and `audit:read`. A good default for status screens and observability services |
 | `device_operator` | `observer` plus `devices:write` — drives devices but cannot author automation logic. The shape a wall panel or kiosk account wants |
 | `rule_editor` | `observer` plus authoring automations, scenes, and areas. Cannot command devices |
 | `service_operator` | `user` plus `audit:read`. The usual envelope for a service account |
@@ -42,12 +42,10 @@ returns.
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | `devices:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `automations:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `dashboards:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `scenes:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `areas:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `devices:write` | ✓ | ✓ | | | ✓ | | ✓ |
 | `automations:write` | ✓ | ✓ | | | | ✓ | ✓ |
-| `dashboards:write` | ✓ | ✓ | | | | ✓ | ✓ |
 | `scenes:write` | ✓ | ✓ | | | | ✓ | ✓ |
 | `areas:write` | ✓ | ✓ | | | | ✓ | ✓ |
 | `plugins:read` | ✓ | | | ✓ | ✓ | ✓ | |

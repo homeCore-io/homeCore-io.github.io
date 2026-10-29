@@ -52,7 +52,7 @@ use on the web UI; the TUI persists the JWT in the cache directory.
 The main UI is a tab strip across the top, with a status line at the
 bottom. The visible tab set depends on your role:
 
-- **`user` / `read_only`** — Devices, Dashboards, Scenes, Areas,
+- **`user` / `read_only`** — Devices, Scenes, Areas,
   Automations, Events
 - **`admin`** — adds Users, Plugins, and a Manage section
   (Matter commissioning, Logs)
@@ -109,12 +109,6 @@ generic transport controls:
 |---|---|
 | `a` | Activate selected scene |
 
-### Dashboards tab
-
-| Key | Action |
-|---|---|
-| `Enter` | Inspect selected dashboard summary |
-
 ### Manage → Matter (admin only)
 
 | Key | Action |
@@ -142,10 +136,6 @@ narrow by level and module.
   the affected slice.
 - There is no background polling loop; live updates come from the
   event stream WebSocket.
-- Dashboard sync accepts both flat and wrapped API response shapes.
-  If a dashboard fetch fails, the TUI keeps working and surfaces a
-  per-dashboard warning in the status line rather than blanking the
-  list.
 
 ---
 
@@ -161,7 +151,6 @@ GET  /auth/me                       # role + scope inspection
 
 GET  /devices                       # device list
 PATCH /devices/{id}/state           # toggle / control
-GET  /dashboards                    # dashboard list
 GET  /scenes
 POST /scenes/{id}/activate
 GET  /areas
@@ -191,7 +180,6 @@ WS   /logs/stream                   # admin, when Manage → Logs is open
 | Live event stream | yes | yes |
 | Typed rule editor | yes | read-only list |
 | Plugin streaming actions | yes (ActionDrawer) | no |
-| Dashboards | full editor + hero | read-only summary |
 | Audit log | yes | no |
 | Matter commissioning | no | yes (Manage → Matter) |
 | Live log streaming | yes (`/logs/stream`) | yes (Manage → Logs, on-demand) |
@@ -199,7 +187,7 @@ WS   /logs/stream                   # admin, when Manage → Logs is open
 | Mobile-friendly | yes (responsive) | no (terminal) |
 | Works over plain SSH | no | yes |
 
-If you need rule editing, audit review, dashboards, or backups, use
+If you need rule editing, audit review, or backups, use
 the [web UI](../web-ui/overview.md). For everything else — and especially
 remote / headless administration — the TUI is the lower-overhead
 choice.

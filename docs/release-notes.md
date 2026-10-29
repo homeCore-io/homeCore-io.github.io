@@ -25,6 +25,49 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.94 — 2026-10-28
+
+**Theme:** homeCore stops carrying the old Flutter app's pages. The app
+keeps its own pages, themes and pictures; homeCore keeps the house.
+
+### What you'll notice
+
+- Nothing in the current app changes. Its pages, Homes, themes and
+  pictures already live in the app's own server.
+- **The old Flutter app (hc-web) is retired.** Its pages came from
+  homeCore's dashboards, which are gone, so it no longer works against this
+  version. Remove it from your stack when you upgrade (below).
+
+### For integrators
+
+- Removed from the API: `/dashboards` and everything under it (templates,
+  vocabulary, import, export, access, default), `/skins`, and `/assets`
+  (including the public `GET /assets/{id}`). They now answer 404.
+- Plugin manifests' dashboard `widgets` are no longer read (no plugin sent
+  them), and `GET /plugins` no longer has a `widgets` field. The
+  `dashboard.card` screen slot for plugins' own cards is unchanged.
+- The permissions `dashboards:read`, `dashboards:write`, `skins:read` and
+  `skins:write` are retired. Keys and accounts that hold them keep working;
+  the old permissions are ignored, aren't shown, and are dropped if a
+  client asks for them when making or changing a key.
+
+### Release matrix
+
+**Tagged at v0.1.94:** `homeCore` (core). No plugin or app change.
+
+### Upgrade notes
+
+- **Remove the Flutter service** (the one on port 3002) from
+  `compose.host.yml` before running `up -d --remove-orphans`, so it is
+  stopped and removed rather than left failing.
+- Saved dashboards and skins stay on disk where they were
+  (`data/dashboards.json`, `data/skins.json`, the `assets/` folder and an
+  `assets` table in `state.redb`). homeCore no longer reads them; delete
+  them if you like, or leave them — they're harmless and backups still
+  include them.
+
+---
+
 ## v0.1.93 — 2026-10-21
 
 **Theme:** the thermostat plugin is made safe and gets its own screens.

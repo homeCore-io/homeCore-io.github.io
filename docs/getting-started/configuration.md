@@ -297,7 +297,7 @@ public_key = "d64zXOo99GE+uYAPbtbIwLUJHtBaACJB73cUppj93I8="
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `state_db_path` | string | `"data/state.redb"` | Path to the redb state database (devices, rules, users, dashboards, audit, battery latches). Relative to `HOMECORE_HOME`. |
+| `state_db_path` | string | `"data/state.redb"` | Path to the redb state database (devices, rules, users, audit, battery latches). Relative to `HOMECORE_HOME`. |
 | `history_db_path` | string | `"data/history.db"` | Path to the SQLite time-series history DB. |
 
 ### `[profiles]`
