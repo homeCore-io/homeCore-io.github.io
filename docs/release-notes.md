@@ -72,6 +72,20 @@ make or change a key. On YoLink's screens, a temperature limit's saved
 wording now writes the degree sign against the number ("30°C", not
 "30 °C"), like the rest of the app. Update YoLink from the Plugins page.
 
+**`hc-zwave` 0.1.19 (2026-10-28)**, no core or app change. **Z-Wave low
+batteries reach Alerts again.** Since Z-Wave JS 15.10 a device's own
+"battery low" warning arrives as an event rather than a value, and the
+plugin was still waiting for the value — so no Z-Wave device has raised a
+low-battery alert from its own warning since the controller was upgraded.
+It now listens for the event, and also for the "recharge or replace" and
+Power Management battery readings some devices send instead. **A lock's
+battery is low at 30 % or below**, earlier than homeCore's line for
+everything else, because locks stop answering well before they read empty;
+the lock's screen already said so, and Alerts now agrees. A warning clears
+once the battery reads above 30 % (new batteries). Update Z-Wave from the
+Plugins page; a lock already at or below 30 % shows in Alerts as soon as
+the plugin restarts.
+
 ---
 
 ## v0.1.93 — 2026-10-21
