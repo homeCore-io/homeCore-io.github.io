@@ -97,6 +97,15 @@ low battery on switches and contact sensors as well as motion sensors.
 Update the app, then Hue and Z-Wave from the Plugins page. With an older
 app, the updated screens use homeCore's default line (20 %) instead.
 
+**`hc-yolink` 0.1.20 and `hc-ecowitt` 0.1.22 (2026-10-29)**, no core or
+app change. YoLink's and Ecowitt's screens now follow Alerts for low
+batteries too, so every plugin screen that shows a battery agrees with
+Alerts: ignore a low-battery alert and the warning goes from the plugin's
+page, panels and cards as well. On YoLink's screens a battery at 1 of 4
+now reads "A quarter"; "Low — change soon" appears when homeCore says the
+battery is low. Update YoLink and Ecowitt from the Plugins page (app
+v0.1.34 or later; an older app keeps the plugins' own judgement).
+
 ---
 
 ## v0.1.93 — 2026-10-21
