@@ -106,6 +106,16 @@ now reads "A quarter"; "Low — change soon" appears when homeCore says the
 battery is low. Update YoLink and Ecowitt from the Plugins page (app
 v0.1.34 or later; an older app keeps the plugins' own judgement).
 
+**`hc-thermostat` 0.1.19 (2026-10-29)**, no core or app change. **A
+thermostat's hold, a hand-flip override, its short-cycle guard and today's
+figures now survive a homeCore restart.** Before, restarting homeCore (an
+upgrade, a reboot) dropped a running hold back to the usual target, forgot
+when the switch last changed — so an AC could start again before its
+minimum off time — and zeroed today's run time. Restarting just the plugin
+was already fine. When adding a thermostat, each sensor now says how long
+ago it last reported, so a quiet one is easy to skip. Update Thermostat
+from the Plugins page.
+
 ---
 
 ## v0.1.93 — 2026-10-21
