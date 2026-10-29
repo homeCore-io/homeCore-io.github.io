@@ -86,6 +86,17 @@ once the battery reads above 30 % (new batteries). Update Z-Wave from the
 Plugins page; a lock already at or below 30 % shows in Alerts as soon as
 the plugin restarts.
 
+**App v0.1.34, `hc-hue` 0.2.6 and `hc-zwave` 0.1.20 (2026-10-29)**, no
+core change. **A plugin's screens now say a battery is low exactly when
+Alerts does.** Before, each plugin's screens had their own idea: Hue's
+called a battery low at 15 % while Alerts said 20 %, so a Hue sensor at
+16–20 % was in Alerts but not on its page. Screens can now read homeCore's
+alerts, and Hue's and Z-Wave's do: the line you set in Settings, and an
+alert you chose to ignore, apply on their pages too. Hue's cards now show a
+low battery on switches and contact sensors as well as motion sensors.
+Update the app, then Hue and Z-Wave from the Plugins page. With an older
+app, the updated screens use homeCore's default line (20 %) instead.
+
 ---
 
 ## v0.1.93 — 2026-10-21
