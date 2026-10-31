@@ -129,7 +129,7 @@ updating, reload the app everywhere it's open** (wall panels, phones,
 other tabs): an older copy of the app that is still open forgets section
 changes if someone presses Done in Edit.
 
-**App v0.1.36 (2026-10-31)**, no core or plugin change. **Home can show
+**App v0.1.37 (2026-10-31)**, no core or plugin change. (v0.1.36 was tagged but never published: its build stopped at the size check. v0.1.37 is the same app with the customising sheets loading when opened.) **Home can show
 your rooms as boxes, and you choose what each box shows.** In Customise
 (just you) or Edit (everyone), pick a style: **room field** (boxes sized by
 what's in each room), **room tiles** (every room the same size), **rooms in
