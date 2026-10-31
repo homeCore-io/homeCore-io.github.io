@@ -116,6 +116,19 @@ was already fine. When adding a thermostat, each sensor now says how long
 ago it last reported, so a quiet one is easy to skip. Update Thermostat
 from the Plugins page.
 
+**App v0.1.35 (2026-10-31)**, no core or plugin change. **Home's sections
+can be moved, hidden and renamed.** In Customise (just you), each section
+heading has up and down arrows and Hide; you can put Scenes above Rooms, or
+hide "What's going on". In Edit (everyone), there's also a pencil to rename a
+section for the whole household. A hidden section shows only its heading
+and a Show button while you're arranging, and Needs attention always stays
+first. Room pages get the same tools. In Edit, an empty Favourites section
+now shows, so the household can choose where it goes. Your saved
+arrangements, pins and added cards carry over unchanged. **After
+updating, reload the app everywhere it's open** (wall panels, phones,
+other tabs): an older copy of the app that is still open forgets section
+changes if someone presses Done in Edit.
+
 ---
 
 ## v0.1.93 — 2026-10-21
