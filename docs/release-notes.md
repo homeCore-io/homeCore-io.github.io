@@ -129,6 +129,28 @@ updating, reload the app everywhere it's open** (wall panels, phones,
 other tabs): an older copy of the app that is still open forgets section
 changes if someone presses Done in Edit.
 
+**App v0.1.36 (2026-10-31)**, no core or plugin change. **Home can show
+your rooms as boxes, and you choose what each box shows.** In Customise
+(just you) or Edit (everyone), pick a style: **room field** (boxes sized by
+what's in each room), **room tiles** (every room the same size), **rooms in
+the sidebar** (each room's temperature and status beside its name, on wide
+screens), or the room list you have today. Tap a room's box to choose its big
+number (temperature, humidity, lights on or none), where its temperature
+comes from (any sensor in the house, or an average of the ones you tick),
+what it shows (lights, locks, music, someone here, fans, timers, batteries)
+and whether it has an "All off" button. "Every room's box" sets the same for
+all rooms at once; a room set on its own keeps its own settings, and "Use
+these instead" puts it back. An open door, a leak or an offline device
+always shows on its room's box. **The big numbers** (Inside, Outside,
+Lights on, Playing, Open, Someone here, Humidity) can be shown across the
+top of Home, chosen and put in order; Inside and Outside take any sensor or
+an average. **Nothing changes until someone picks a style**: Home looks as
+before after the update. Also: a temperature from an older plugin that
+labelled its reading in °F next to a °C schema now reads correctly
+everywhere. **After updating, reload the app everywhere it's open**: an
+older copy still open forgets the big numbers' settings if someone presses
+Done in Edit.
+
 ---
 
 ## v0.1.93 — 2026-10-21
