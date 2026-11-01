@@ -14,8 +14,8 @@ This plugin is being tested and isn't on the Plugins page yet. This page will sa
 :::
 
 NuHeat Signature floor-heating thermostats, through NuHeat's cloud. Each
-thermostat on your NuHeat account is a homeCore thermostat: the floor's
-temperature, its target, whether it is heating, and whether it follows its
+thermostat on your NuHeat account is a homeCore thermostat: its temperature
+(the floor's or the room's, as the thermostat is set up), its target, whether it is heating, and whether it follows its
 own schedule. You can set the target, hold it for a while or indefinitely,
 and hand it back to the schedule.
 
@@ -43,7 +43,7 @@ its page. Signing in again takes a minute and starts another 30 days.
 ## On Home
 
 Each thermostat is a device, `nuheat_<serial>`, with the app's own card: the
-floor's temperature and the target ("70.7°F · 75.2°F"), and in its details a
+temperature and the target ("70.7°F · 75.2°F"), and in its details a
 target slider, **Resume the schedule**, **Hold a temperature** (for up to 23
 hours) and **Hold indefinitely**. A new target on a thermostat that is on a
 permanent hold stays permanent; otherwise it holds for a while and the
@@ -54,7 +54,7 @@ indefinitely** is on).
 
 | Reading | |
 |---|---|
-| `temperature` | the floor's temperature, °C |
+| `temperature` | the thermostat's reading (floor or air, as it is set up), °C |
 | `setpoint` | the target, °C |
 | `hvac_action` | `heating` or `idle` |
 | `hvac_mode` | always `heat` |
@@ -66,7 +66,7 @@ Temperatures are °C in homeCore and shown in each person's own units.
 
 ## Alerts
 
-A thermostat that reports a fault, most often its floor sensor, raises a
+A thermostat that reports a fault, most often a sensor, raises a
 **Thermostat fault** alert (an error, on by default), in the thermostat's own
 words. It clears when the fault does.
 
