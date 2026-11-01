@@ -25,6 +25,62 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.95 — 2026-11-01
+
+**Theme:** weather for the house, with the forecast and severe weather
+warnings, from a new plugin.
+
+### What you'll notice
+
+- **A new Weather plugin, `hc-weather` 0.1.0.** Install it from the
+  Plugins page. It needs no account or key. With nothing set up it gives
+  the weather where the house is, from the location in homeCore's
+  settings; you can add other places by postal code, place name or
+  coordinates. Each place is a device with the current temperature,
+  feels like, humidity, pressure, wind and gusts, UV, cloud and air
+  quality, a 7-day forecast and the next 24 hours. Forecasts come from
+  Open-Meteo (data under CC BY 4.0, credited on the plugin's page).
+- **Severe weather warnings become alerts.** In the US they come from the
+  National Weather Service, in Europe from MeteoAlarm (set the place's
+  MeteoAlarm region). A warning is an error and a watch is a warning,
+  both on by default; advisories are info and off until you turn them
+  on. Each clears by itself when it's withdrawn or runs out. Automations
+  can use the place's `alert_level`, `wind_gust` and the rest like any
+  other reading.
+- **App v0.1.42.** The Weather card picks a place with a forecast before
+  a weather station, shows each day's sky with its icon, and says
+  temperatures and wind in whole numbers with their unit ("58°F",
+  "2 mph"). On a phone, Home's one alert line leads with the most serious
+  alert, such as a weather warning, and still shows how many there are.
+- An alert from a plugin keeps its title's capitals ("Home weather: Severe
+  Thunderstorm Warning…").
+
+### For integrators
+
+- homeCore publishes the house's coordinates on the retained topic
+  `homecore/system/location` (`{"lat": …, "lon": …}`) beside
+  `homecore/system/tz`, and the Rust SDK reads it. If `[location]` was
+  never set, it is homeCore's built-in default, the same point sunrise
+  and sunset use.
+- A new device type, `weather`. Its readings use the shared names and
+  units (°C, hPa, m/s, mm). `forecast` is a list of days, each
+  `{time, high, low, condition, precipitation_probability,
+  precipitation_mm}`, with `time` at local midnight and its offset.
+
+### Release matrix
+
+**Tagged at v0.1.95:** `homeCore` (core) and `hc-weather-v0.1.0` (the
+plugin, on the same commit). **App:** `hc-web-svelte` v0.1.42.
+
+### Upgrade notes
+
+- Nothing to change. An older homeCore doesn't publish its location, so
+  hc-weather raises a notice until you add a place in its settings. An
+  older copy of the app shows a weather place as a plain device; reload
+  it.
+
+---
+
 ## v0.1.94 — 2026-10-28
 
 **Theme:** homeCore stops carrying the old Flutter app's pages. The app
@@ -115,6 +171,113 @@ minimum off time — and zeroed today's run time. Restarting just the plugin
 was already fine. When adding a thermostat, each sensor now says how long
 ago it last reported, so a quiet one is easy to skip. Update Thermostat
 from the Plugins page.
+
+**App v0.1.35 (2026-10-31)**, no core or plugin change. **Home's sections
+can be moved, hidden and renamed.** In Customise (just you), each section
+heading has up and down arrows and Hide; you can put Scenes above Rooms, or
+hide "What's going on". In Edit (everyone), there's also a pencil to rename a
+section for the whole household. A hidden section shows only its heading
+and a Show button while you're arranging, and Needs attention always stays
+first. Room pages get the same tools. In Edit, an empty Favourites section
+now shows, so the household can choose where it goes. Your saved
+arrangements, pins and added cards carry over unchanged. **After
+updating, reload the app everywhere it's open** (wall panels, phones,
+other tabs): an older copy of the app that is still open forgets section
+changes if someone presses Done in Edit.
+
+**App v0.1.37 (2026-10-31)**, no core or plugin change. (v0.1.36 was tagged but never published: its build stopped at the size check. v0.1.37 is the same app with the customising sheets loading when opened.) **Home can show
+your rooms as boxes, and you choose what each box shows.** In Customise
+(just you) or Edit (everyone), pick a style: **room field** (boxes sized by
+what's in each room), **room tiles** (every room the same size), **rooms in
+the sidebar** (each room's temperature and status beside its name, on wide
+screens), or the room list you have today. Tap a room's box to choose its big
+number (temperature, humidity, lights on or none), where its temperature
+comes from (any sensor in the house, or an average of the ones you tick),
+what it shows (lights, locks, music, someone here, fans, timers, batteries)
+and whether it has an "All off" button. "Every room's box" sets the same for
+all rooms at once; a room set on its own keeps its own settings, and "Use
+these instead" puts it back. An open door, a leak or an offline device
+always shows on its room's box. **The big numbers** (Inside, Outside,
+Lights on, Playing, Open, Someone here, Humidity) can be shown across the
+top of Home, chosen and put in order; Inside and Outside take any sensor or
+an average. **Nothing changes until someone picks a style**: Home looks as
+before after the update. Also: a temperature from an older plugin that
+labelled its reading in °F next to a °C schema now reads correctly
+everywhere. **After updating, reload the app everywhere it's open**: an
+older copy still open forgets the big numbers' settings if someone presses
+Done in Edit.
+
+**App v0.1.38 (2026-10-31)**, no core or plugin change. **Add anything to
+any section of Home, make your own sections, and move cards between
+them.** While arranging, every section that takes cards has **Add here**:
+pick something in the house (a light, a scene, a lock…) or a new kind of
+card: **Heading**, **Text** (a note for the household), **Worth knowing**
+(doors left open, locks left unlocked), **Playing** (every speaker that's
+on), **Weather** (your weather station's readings now; a forecast appears
+once a weather source publishes one) and **Chart** (a temperature or
+humidity over the last day). **New section** makes a section of your own,
+with a name, a layout (grid, row or list) and a place on the page. Each
+card's tools now have **Move to**, to put it into another section. Pinned
+is an ordinary section now: your pins stay, and it can take a layout. All
+of this works in Customise (just for you) and in Edit (for everyone), and
+on room pages too. **Nothing changes until someone adds or moves
+something.** **After updating, reload the app everywhere it's open**: an
+older copy still open forgets your own sections and the new cards' settings
+if someone presses Done in Edit.
+
+**App v0.1.39 (2026-10-31)**, no core or plugin change. **Each device's
+card has its own settings.** While arranging, a card's settings button opens
+a sheet with a preview: its **size**; its **main reading** (what the card
+leads with, such as a motion sensor's light level or a light's brightness);
+what else it shows (a Large light card's brightness and warmth sliders,
+battery, a door's state, when it last changed and how, such as "by
+fingerprint"); **tapping the card** (as before, the switch acts and the rest
+opens the device; or the whole card switches or locks it, a big target for
+wall panels, with an arrow and "Open details" on a long press to open it);
+and a **symbol** for that card only, so a switch that runs a fan can show a
+fan. **Same for every light card…** (or lock, sensor…) sets them for every
+card of that type, and a card's own settings win. Works in Customise (just
+for you) and Edit (for everyone). Cards drawn by a plugin offer their size
+only. **Nothing changes until someone sets something**, and an older copy
+of the app still open keeps these settings when it saves; reload it to see
+them.
+
+**App v0.1.40 (2026-11-01)**, no core or plugin change. **Pages of your
+own.** Pages lists the house's pages, then yours. New page starts empty or
+as a copy of Home or of a room, for everyone in the house or just you. A
+copy is a snapshot, so a device added later won't appear on it by itself.
+Only people who edit the house's pages can make one for everyone; anyone
+can make their own. A page is arranged like Home, with the same Add and
+sections: the house's pages in Edit, your own in Customise, and each person
+can still hide or move things on a house page for themselves. A page's
+"This page" sheet renames it, changes its symbol, puts it in your phone bar
+in place of Pages, and removes it. Pages joins the default phone bar once a
+page exists. Settings → Displays now offers the house's pages, never a
+personal one, and a page put on a display becomes the one it rests on.
+Also: a display opened at its home address now goes to its first page,
+which changes displays already set up whose first page isn't Home. A device
+card's sheet no longer offers the same reading twice (a lock's "Lock" beside
+"As usual"). A section made in Customise or Edit stays where it was put
+when more are made after it. An older copy of the app still open keeps
+pages when it saves, shows Pages as still to come, and skips a page named
+in a bar or on a display; reload it to see them.
+
+**App v0.1.41 (2026-11-01)**, no core or plugin change. **The Room field
+style looks like its design.** Home in that style has the day and mode
+above the title, the big numbers (Inside and Outside now say °F or °C, as
+cards do), then the rooms as a grid where the busiest rooms are tall as
+well as wide and quiet ones are small squares with one short line. Beside
+the rooms is a column: Needs attention first, then Pinned, Worth knowing,
+Playing, and Scenes & modes as chips. Favourites start under the rooms. In
+Customise or Edit each of these sections can go "Beside the rooms" or
+"Under the rooms" and move up and down; the alerts stay first. The sidebar
+lists no rooms in this style. On a phone the alerts are one line after the
+numbers, the rooms are four across, and the other sections follow. Playing
+shows what's playing, its room, and a pause button, and never a speaker's
+own id (a Sonos on its line-in). Room tiles, the room list and rooms in the
+sidebar are unchanged. An older copy of the app still open ignores the
+column choice, and its Edit → Done drops the household's changes to Worth
+knowing and Playing; reload it.
 
 ---
 
