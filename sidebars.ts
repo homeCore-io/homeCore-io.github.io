@@ -92,6 +92,7 @@ const sidebars = {
         'plugins/thermostat',
         'plugins/ecowitt',
         'plugins/roku',
+        'plugins/weather',
       ],
     },
     {

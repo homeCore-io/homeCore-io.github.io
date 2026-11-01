@@ -53,6 +53,7 @@ plugin-specific code. See [Plugin Capabilities & Actions](./capabilities).
 | [hc-ecowitt](./ecowitt) | Rust | Ecowitt weather gateways and consoles |
 | [hc-roku](./roku) | Rust | Roku players and TVs (ECP) |
 | [hc-thermostat](./thermostat) | Rust | Virtual thermostats (aggregated sensors → actuator) |
+| [hc-weather](./weather) | Rust | The weather for a place (Open-Meteo), and weather warnings as alerts |
 | [http-poller](./http-poller) | Rust | Generic HTTP endpoint polling |
 
 The Rust plugins live in the homeCore repository, each releasing its own
