@@ -25,6 +25,62 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.95 — 2026-11-01
+
+**Theme:** weather for the house, with the forecast and severe weather
+warnings, from a new plugin.
+
+### What you'll notice
+
+- **A new Weather plugin, `hc-weather` 0.1.0.** Install it from the
+  Plugins page. It needs no account or key. With nothing set up it gives
+  the weather where the house is, from the location in homeCore's
+  settings; you can add other places by postal code, place name or
+  coordinates. Each place is a device with the current temperature,
+  feels like, humidity, pressure, wind and gusts, UV, cloud and air
+  quality, a 7-day forecast and the next 24 hours. Forecasts come from
+  Open-Meteo (data under CC BY 4.0, credited on the plugin's page).
+- **Severe weather warnings become alerts.** In the US they come from the
+  National Weather Service, in Europe from MeteoAlarm (set the place's
+  MeteoAlarm region). A warning is an error and a watch is a warning,
+  both on by default; advisories are info and off until you turn them
+  on. Each clears by itself when it's withdrawn or runs out. Automations
+  can use the place's `alert_level`, `wind_gust` and the rest like any
+  other reading.
+- **App v0.1.42.** The Weather card picks a place with a forecast before
+  a weather station, shows each day's sky with its icon, and says
+  temperatures and wind in whole numbers with their unit ("58°F",
+  "2 mph"). On a phone, Home's one alert line leads with the most serious
+  alert, such as a weather warning, and still shows how many there are.
+- An alert from a plugin keeps its title's capitals ("Home weather: Severe
+  Thunderstorm Warning…").
+
+### For integrators
+
+- homeCore publishes the house's coordinates on the retained topic
+  `homecore/system/location` (`{"lat": …, "lon": …}`) beside
+  `homecore/system/tz`, and the Rust SDK reads it. If `[location]` was
+  never set, it is homeCore's built-in default, the same point sunrise
+  and sunset use.
+- A new device type, `weather`. Its readings use the shared names and
+  units (°C, hPa, m/s, mm). `forecast` is a list of days, each
+  `{time, high, low, condition, precipitation_probability,
+  precipitation_mm}`, with `time` at local midnight and its offset.
+
+### Release matrix
+
+**Tagged at v0.1.95:** `homeCore` (core) and `hc-weather-v0.1.0` (the
+plugin, on the same commit). **App:** `hc-web-svelte` v0.1.42.
+
+### Upgrade notes
+
+- Nothing to change. An older homeCore doesn't publish its location, so
+  hc-weather raises a notice until you add a place in its settings. An
+  older copy of the app shows a weather place as a plain device; reload
+  it.
+
+---
+
 ## v0.1.94 — 2026-10-28
 
 **Theme:** homeCore stops carrying the old Flutter app's pages. The app
