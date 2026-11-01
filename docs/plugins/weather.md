@@ -36,32 +36,40 @@ read.
 |---|---|
 | `temperature`, `feels_like` | now, °C |
 | `humidity`, `cloud_cover_pct` | now, % |
+| `dewpoint` | now, °C |
 | `pressure` | at sea level, hPa |
 | `wind_speed`, `wind_gust` | now, m/s |
 | `wind_direction` | where the wind comes from, ° |
 | `precipitation_mm` | rain in the last 15 minutes |
+| `rain_next_hour_mm` | rain expected in the next hour |
+| `rain_starts_in_min`, `rain_soon` | minutes until rain starts (within two hours, else empty), and whether that is within 30 minutes |
 | `condition` | `clear`, `partly_cloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `freezing_rain`, `snow`, `showers`, `thunderstorm` |
 | `is_day` | day or night |
-| `today_high`, `today_low`, `rain_chance_pct`, `uvi` | today |
+| `today_high`, `today_low`, `rain_chance_pct`, `snow_today_mm`, `uvi` | today |
+| `tonight_low`, `freeze_tonight` | the coldest hour before 9 tomorrow morning, and whether it is at or below freezing |
+| `tomorrow_high`, `tomorrow_low` | tomorrow |
 | `aqi`, `pm25_ugm3`, `ozone_ugm3` | the air now (US AQI) |
+| `aqi_category` | `good` to `hazardous`, the EPA's bands |
 | `forecast` | seven days, today first |
 | `forecast_hourly` | the next 24 hours |
 | `alert_count`, `alert_level`, `alert_headline` | warnings in force (level 0 none, 1 advisory, 2 watch, 3 warning) |
 
-Each day in `forecast` has `time` (the place's midnight, with its offset),
-`high`, `low`, `condition`, `precipitation_probability` and
-`precipitation_mm`. Each hour in `forecast_hourly` has `time`, `temperature`,
+Each day in `forecast` has `time` (the place's midnight, with that day's
+offset), `high`, `low`, `condition`, `precipitation_probability`,
+`precipitation_mm`, `snowfall_mm` and `wind_gust` (the day's strongest). Each hour in `forecast_hourly` has `time`, `temperature`,
 `condition`, `precipitation_probability`, `precipitation_mm` and `wind_gust`.
 
-Automations can start on any of these: gusts over 15 m/s, a chance of rain
-today, the sky turning to snow, `alert_level` reaching 3.
+Automations can start on any of these: rain due within 30 minutes (close the
+skylight), a freeze tonight (cover the plants), gusts over 15 m/s, the sky
+turning to snow, `alert_level` reaching 3.
 
 ## Warnings
 
 US places get the National Weather Service's warnings; European places get
 MeteoAlarm's. Each one in force is an alert on the place's device, in the
 house's alert list and on Home under Needs attention, and it clears by itself
-when the service withdraws it or it runs out.
+when the service withdraws it or it runs out. The plugin's page shows each one
+in full: when it ends, the service's description, and what it says to do.
 
 | Alert | What | Severity | Shown unless turned off |
 |---|---|---|---|
