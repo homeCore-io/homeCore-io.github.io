@@ -7,6 +7,12 @@ sidebar_position: 14
 
 # NuHeat (`hc-nuheat`)
 
+:::note Not released yet
+
+This plugin is being tested and isn't on the Plugins page yet. This page will say when it is.
+
+:::
+
 NuHeat Signature floor-heating thermostats, through NuHeat's cloud. Each
 thermostat on your NuHeat account is a homeCore thermostat: the floor's
 temperature, its target, whether it is heating, and whether it follows its
