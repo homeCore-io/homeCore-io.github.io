@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Your Mysa sign-in code</title>
+<!--
+  Mysa sends the browser here after someone signs in for the Mysa driver on an
+  RTI control system. An RTI processor has no browser of its own, so this page
+  shows the code for the person to enter in the driver.
+
+  The code is useless on its own: exchanging it needs the PKCE verifier, which
+  only that person's driver holds. Nothing is stored, logged or sent anywhere;
+  there are no outside scripts. Mysa allows about a minute to use the code.
+-->
+<style>
+  :root { color-scheme: light dark; --bg: #f3f0e8; --card: #fff; --ink: #1e2126; --muted: #5d6470; --line: #e2dccf; --accent: #9a4a07; --accent-ink: #fff; --alert: #b42318; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0d1015; --card: #161a21; --ink: #e9edf2; --muted: #9aa4b2; --line: #2a303b; --accent: #f2b544; --accent-ink: #1a1306; --alert: #ff7a6b; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 48px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+  h1 { margin: 0; font-size: 22px; }
+  p { margin: 0; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .bad { color: var(--alert); font-weight: 600; }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 700; cursor: pointer; align-self: flex-start; }
+  code { display: block; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); word-break: break-all; font-size: 15px; user-select: all; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1 id="title">Your Mysa sign-in code</h1>
+    <p id="error" class="bad" hidden></p>
+    <div id="got" hidden>
+      <p>Enter this code in the Mysa driver now. It only works for about a minute.</p>
+      <p class="label" style="margin-top:14px">Code</p>
+      <code id="code"></code>
+      <p style="margin-top:10px"><button id="copy-code" type="button">Copy the code</button></p>
+      <div id="state-box" hidden>
+        <p class="label" style="margin-top:14px">Check value</p>
+        <p class="muted">If the driver asks for it too.</p>
+        <code id="state"></code>
+      </div>
+    </div>
+    <p id="none" hidden>This page shows the code Mysa gives after you sign in for an RTI driver. It has nothing to show right now.</p>
+    <p class="muted">This page belongs to <a href="/">homeCore</a>. It shows what Mysa sent back and keeps nothing.</p>
+  </div>
+</main>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var code = q.get('code');
+  var state = q.get('state');
+  var error = q.get('error');
+
+  if (error) {
+    document.getElementById('title').textContent = 'Signing in didn’t finish';
+    document.getElementById('error').textContent =
+      'Mysa said: ' + (q.get('error_description') || error) + '. Nothing was linked; start again in the driver.';
+    document.getElementById('error').hidden = false;
+  } else if (code) {
+    document.getElementById('code').textContent = code;
+    if (state) {
+      document.getElementById('state').textContent = state;
+      document.getElementById('state-box').hidden = false;
+    }
+    document.getElementById('got').hidden = false;
+    document.getElementById('copy-code').onclick = function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(code);
+      this.textContent = 'Copied';
+    };
+  } else {
+    document.getElementById('none').hidden = false;
+  }
+  // The code shouldn't stay in history or a shared screenshot of the address bar.
+  if (code || error) history.replaceState(null, '', location.pathname);
+})();
+</script>
+</body>
+</html>
