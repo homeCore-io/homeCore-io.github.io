@@ -27,6 +27,14 @@ forecast before a weather station without one. The device's own card says
 the temperature and the sky ("16°C · Cloudy"), with the moon on a clear
 night.
 
+For something livelier, add **Weather, animated** instead: the weather now
+as a moving scene, with drifting clouds, rain or snow that falls harder when
+it rains harder and slants in the wind, sun rays or a moon and stars, and
+lightning in a storm. It shows the temperature, a ribbon when a watch or
+warning is in force, "Rain in 20 min" when rain is due, the next few hours,
+and five days when large. It stops moving when it is off screen, and stays
+still for anyone whose phone or computer is set to reduce motion.
+
 ## Readings
 
 All in homeCore's units: the app shows °F, mph and inches if that's what you
