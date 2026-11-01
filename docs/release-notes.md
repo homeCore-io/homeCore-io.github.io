@@ -206,6 +206,23 @@ when more are made after it. An older copy of the app still open keeps
 pages when it saves, shows Pages as still to come, and skips a page named
 in a bar or on a display; reload it to see them.
 
+**App v0.1.41 (2026-11-01)**, no core or plugin change. **The Room field
+style looks like its design.** Home in that style has the day and mode
+above the title, the big numbers (Inside and Outside now say °F or °C, as
+cards do), then the rooms as a grid where the busiest rooms are tall as
+well as wide and quiet ones are small squares with one short line. Beside
+the rooms is a column: Needs attention first, then Pinned, Worth knowing,
+Playing, and Scenes & modes as chips. Favourites start under the rooms. In
+Customise or Edit each of these sections can go "Beside the rooms" or
+"Under the rooms" and move up and down; the alerts stay first. The sidebar
+lists no rooms in this style. On a phone the alerts are one line after the
+numbers, the rooms are four across, and the other sections follow. Playing
+shows what's playing, its room, and a pause button, and never a speaker's
+own id (a Sonos on its line-in). Room tiles, the room list and rooms in the
+sidebar are unchanged. An older copy of the app still open ignores the
+column choice, and its Edit → Done drops the household's changes to Worth
+knowing and Playing; reload it.
+
 ---
 
 ## v0.1.93 — 2026-10-21
