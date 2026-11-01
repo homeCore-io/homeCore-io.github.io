@@ -25,6 +25,59 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.96 — 2026-11-01
+
+**Theme:** NuHeat thermostats, and a thermostat card worth looking at.
+
+### What you'll notice
+
+- **A new NuHeat plugin, `hc-nuheat` 0.1.0,** for NuHeat Signature
+  thermostats. Install it from the Plugins page, press "Link NuHeat
+  account" on its page and sign in on NuHeat's own site; you come back
+  through homecore.io to your homeCore, signed in. There is no client id
+  to request or paste: the plugin signs in as homeCore's NuHeat client.
+  Each thermostat on the account appears with its temperature, its
+  target, whether it is heating, and whether it follows its schedule. You
+  can hold a target until the schedule changes, for some hours or until
+  you change it, and hand it back to the schedule. NuHeat ends a sign-in
+  after 30 days; the plugin's page shows when, and a notice reminds you
+  five days before.
+- **App v0.1.43: a thermostat card.** A dial shows the temperature now,
+  the target, and fills orange while it heats or blue while it cools.
+  − and + under it change the target; on a thermostat with a schedule they
+  hold it until the schedule changes (each card can choose 1 or 2 hours,
+  or until changed), and the card says so with a Resume button. Large
+  cards add the schedule, the hold length and, for heat and cool
+  thermostats, the mode. Temperatures on the card are whole degrees.
+- A device added while a page is open no longer shows as offline, with
+  its controls off, until the page is reloaded. Fixed on both sides: the
+  app now treats any report from a device as it being online, and
+  homeCore says so when a new device first reports.
+
+### For integrators
+
+- When a device's first state report brings it up, homeCore now emits
+  `device_availability_changed` with `available: true`. Before, the
+  report set it available without an event.
+- `hc-nuheat` uses homeCore's registered NuHeat client (authorization code
+  with PKCE, no secret) and the relay page at
+  `https://homecore.io/oauth/nuheat/callback`, which sends the browser
+  back to the homeCore page that started the sign-in. Its readings use
+  the shared names: `temperature`, `setpoint`, `hvac_mode`, `hvac_action`
+  and `schedule_mode`.
+
+### Release matrix
+
+**Tagged at v0.1.96:** `homeCore` (core) and `hc-nuheat-v0.1.0` (the
+plugin, on the same commit). **App:** `hc-web-svelte` v0.1.43.
+
+### Upgrade notes
+
+- Nothing to change. The thermostat card replaces the plain card for
+  every thermostat, including homeCore's own thermostat plugin.
+
+---
+
 ## v0.1.95 — 2026-11-01
 
 **Theme:** weather for the house, with the forecast and severe weather
