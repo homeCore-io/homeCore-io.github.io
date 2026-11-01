@@ -151,6 +151,24 @@ everywhere. **After updating, reload the app everywhere it's open**: an
 older copy still open forgets the big numbers' settings if someone presses
 Done in Edit.
 
+**App v0.1.38 (2026-10-31)**, no core or plugin change. **Add anything to
+any section of Home, make your own sections, and move cards between
+them.** While arranging, every section that takes cards has **Add here**:
+pick something in the house (a light, a scene, a lock…) or a new kind of
+card: **Heading**, **Text** (a note for the household), **Worth knowing**
+(doors left open, locks left unlocked), **Playing** (every speaker that's
+on), **Weather** (your weather station's readings now; a forecast appears
+once a weather source publishes one) and **Chart** (a temperature or
+humidity over the last day). **New section** makes a section of your own,
+with a name, a layout (grid, row or list) and a place on the page. Each
+card's tools now have **Move to**, to put it into another section. Pinned
+is an ordinary section now: your pins stay, and it can take a layout. All
+of this works in Customise (just for you) and in Edit (for everyone), and
+on room pages too. **Nothing changes until someone adds or moves
+something.** **After updating, reload the app everywhere it's open**: an
+older copy still open forgets your own sections and the new cards' settings
+if someone presses Done in Edit.
+
 ---
 
 ## v0.1.93 — 2026-10-21
