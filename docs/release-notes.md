@@ -169,6 +169,23 @@ something.** **After updating, reload the app everywhere it's open**: an
 older copy still open forgets your own sections and the new cards' settings
 if someone presses Done in Edit.
 
+**App v0.1.39 (2026-10-31)**, no core or plugin change. **Each device's
+card has its own settings.** While arranging, a card's settings button opens
+a sheet with a preview: its **size**; its **main reading** (what the card
+leads with, such as a motion sensor's light level or a light's brightness);
+what else it shows (a Large light card's brightness and warmth sliders,
+battery, a door's state, when it last changed and how, such as "by
+fingerprint"); **tapping the card** (as before, the switch acts and the rest
+opens the device; or the whole card switches or locks it, a big target for
+wall panels, with an arrow and "Open details" on a long press to open it);
+and a **symbol** for that card only, so a switch that runs a fan can show a
+fan. **Same for every light card…** (or lock, sensor…) sets them for every
+card of that type, and a card's own settings win. Works in Customise (just
+for you) and Edit (for everyone). Cards drawn by a plugin offer their size
+only. **Nothing changes until someone sets something**, and an older copy
+of the app still open keeps these settings when it saves; reload it to see
+them.
+
 ---
 
 ## v0.1.93 — 2026-10-21
