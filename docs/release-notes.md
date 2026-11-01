@@ -186,6 +186,26 @@ only. **Nothing changes until someone sets something**, and an older copy
 of the app still open keeps these settings when it saves; reload it to see
 them.
 
+**App v0.1.40 (2026-11-01)**, no core or plugin change. **Pages of your
+own.** Pages lists the house's pages, then yours. New page starts empty or
+as a copy of Home or of a room, for everyone in the house or just you. A
+copy is a snapshot, so a device added later won't appear on it by itself.
+Only people who edit the house's pages can make one for everyone; anyone
+can make their own. A page is arranged like Home, with the same Add and
+sections: the house's pages in Edit, your own in Customise, and each person
+can still hide or move things on a house page for themselves. A page's
+"This page" sheet renames it, changes its symbol, puts it in your phone bar
+in place of Pages, and removes it. Pages joins the default phone bar once a
+page exists. Settings → Displays now offers the house's pages, never a
+personal one, and a page put on a display becomes the one it rests on.
+Also: a display opened at its home address now goes to its first page,
+which changes displays already set up whose first page isn't Home. A device
+card's sheet no longer offers the same reading twice (a lock's "Lock" beside
+"As usual"). A section made in Customise or Edit stays where it was put
+when more are made after it. An older copy of the app still open keeps
+pages when it saves, shows Pages as still to come, and skips a page named
+in a bar or on a display; reload it to see them.
+
 ---
 
 ## v0.1.93 — 2026-10-21
