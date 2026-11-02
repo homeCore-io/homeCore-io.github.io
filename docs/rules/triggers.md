@@ -7,166 +7,219 @@ sidebar_position: 2
 
 # Triggers
 
-A trigger defines **what event causes a rule to be evaluated**. Every rule has exactly one trigger.
+A trigger is the event that makes homeCore evaluate a rule. Every rule has one in `trigger`, and it can list more in `triggers`. Any of them starts the rule.
+
+## How triggers are written
+
+Rule files are RON. Each trigger is written as its type name followed by its fields in parentheses. The REST API uses the same structure in JSON, with the type name as the object key.
+
+```ron
+trigger: DeviceStateChanged(
+    device_id: "entryway.front_door",
+    attribute: Some("open"),
+    to: Some(true),
+),
+```
+
+```json
+{
+  "trigger": {
+    "DeviceStateChanged": {
+      "device_id": "entryway.front_door",
+      "attribute": "open",
+      "to": true
+    }
+  }
+}
+```
+
+Two RON details catch people out:
+
+- Optional fields take `Some(...)` in RON: `attribute: Some("open")`, not `attribute: "open"`. Leave an optional field out entirely to mean "not set". JSON needs no wrapper.
+- A trigger with no fields is written by name alone: `trigger: SystemStarted` in RON, `"trigger": "SystemStarted"` in JSON.
+
+Fields called `device_id` also accept the spelling `device`. Either one takes a canonical name (`living_room.floor_lamp`), a unique display name (`Kitchen Speaker`) or a raw device ID. If a display name matches more than one device, homeCore disables the rule with an ambiguity error instead of guessing. See [Rules overview](./overview.md#device-references).
+
+### Several triggers
+
+`triggers` holds any number of additional triggers. The rule runs when `trigger` or any entry in `triggers` matches. If one event matches several of them, the rule still runs once. The rule's fire history records which trigger started it.
+
+```ron
+trigger: DeviceStateChanged(
+    device_id: "living_room.lamp",
+    attribute: Some("on"),
+    to: Some(true),
+),
+triggers: [
+    DeviceStateChanged(
+        device_id: "living_room.lamp",
+        attribute: Some("on"),
+        to: Some(false),
+    ),
+    SystemStarted,
+],
+```
 
 ## Trigger reference
 
 ### `DeviceStateChanged`
 
-Fires when any MQTT state publish arrives for a device.
+Fires when a device publishes a state update.
 
-```toml
-[trigger]
-type      = "device_state_changed"
-device    = "entryway.front_door"
-
-# Optional: only fire when this attribute changes
-attribute = "open"
-
-# Optional: only fire when the attribute changes TO this specific value
-to = true
+```ron
+trigger: DeviceStateChanged(
+    device_id: "entryway.front_door",
+    attribute: Some("open"),   // optional: only this attribute
+    to: Some(true),            // optional: only when it changes to this value
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device` | yes¹ | Preferred device reference: canonical name, unique display name, or raw device ID. |
-| `device_id` | yes¹ | Backward-compatible alias for `device`. |
-| `device_ids` (alias `devices`) | no | Additional device IDs — fires when *any* of these changes. When non-empty the primary `device` is also included in the set. |
-| `attribute` | no | Narrow to one attribute (e.g. `"on"`, `"open"`, `"temperature"`). |
+| `device_id` (alias `device`) | yes | The device to watch. |
+| `device_ids` (alias `devices`) | no | More devices. The trigger fires when `device_id` or any of these changes. |
+| `attribute` | no | Only react to this attribute (`"on"`, `"open"`, `"temperature"`). |
 | `to` | no | Only fire when the new value equals this. |
 | `from` | no | Only fire when the previous value equals this. |
-| `not_to` | no | Only fire when the new value is **not** this. |
-| `not_from` | no | Only fire when the previous value is **not** this. |
-| `for_duration_secs` | no | "Sticky" trigger: only fire after the new value has held for this many seconds. |
-| `change_kind` | no | Provenance filter: `homecore`, `physical`, `external`, or `unknown`. |
-| `change_source` | no | Exact-match filter on the change source label (plugin id or rule id). |
+| `not_to` | no | Only fire when the new value is not this. |
+| `not_from` | no | Only fire when the previous value is not this. |
+| `for_duration_secs` | no | Wait this many seconds, then fire only if the value still matches `to` and `not_to`. |
+| `change_kind` | no | Only fire for changes of this origin: `homecore`, `physical`, `external` or `unknown`. |
+| `change_source` | no | Only fire when the change's source label is exactly this (for example `api`, `rule`, `scene`, `script`, or a label a plugin reports). |
 
-¹ One of `device` or `device_ids` must be set.
+Without `attribute`, the trigger fires on every state update from the device, and `to`, `from`, `not_to` and `not_from` are ignored. With `attribute`, it fires only when that attribute is present in the update and its value differs from the previous one.
 
-If you use a display name and more than one device matches it, HomeCore marks the rule invalid with an ambiguity error.
+About `for_duration_secs`: homeCore waits the full time and then looks at the device's current value once. It does not watch the value in between, so a value that changes away and comes back during the wait still counts. When a rule fires this way, the `trigger_*()` Rhai functions return empty values.
 
-**Examples:**
+Examples:
 
-```toml
-# Fire on any state change for a device
-[trigger]
-type      = "device_state_changed"
-device    = "hallway.dimmer"
+```ron
+// Any state update from the device
+trigger: DeviceStateChanged(
+    device_id: "hallway.dimmer",
+),
+```
 
-# Fire only when the "on" attribute changes (either direction)
-[trigger]
-type      = "device_state_changed"
-device    = "living_room.floor_lamp"
-attribute = "on"
+```ron
+// The "on" attribute changes, in either direction
+trigger: DeviceStateChanged(
+    device_id: "living_room.floor_lamp",
+    attribute: Some("on"),
+),
+```
 
-# Fire only when a door opens (open = true)
-[trigger]
-type      = "device_state_changed"
-device    = "garage.main_door"
-attribute = "open"
-to        = true
+```ron
+// Any of three contact sensors opens
+trigger: DeviceStateChanged(
+    device_id: "sensor_front",
+    device_ids: ["sensor_back", "sensor_garage"],
+    attribute: Some("open"),
+    to: Some(true),
+),
+```
 
-# Multi-device: any of three contact sensors going open
-[trigger]
-type        = "device_state_changed"
-device_ids  = ["sensor_front", "sensor_back", "sensor_garage"]
-attribute   = "open"
-to          = true
+```ron
+// Someone flipped the lamp by hand (not a rule or the app)
+trigger: DeviceStateChanged(
+    device_id: "living_room.lamp",
+    attribute: Some("on"),
+    change_kind: Some(physical),
+),
+```
 
-# Only fire when the change came from a physical actor (not from a rule)
-[trigger]
-type        = "device_state_changed"
-device      = "living_room.lamp"
-attribute   = "on"
-change_kind = "physical"
-
-# Sticky: motion has held "true" for at least 30 seconds
-[trigger]
-type              = "device_state_changed"
-device            = "motion_hallway"
-attribute         = "motion"
-to                = true
-for_duration_secs = 30
+```ron
+// Motion reported true, and still true 30 seconds later
+trigger: DeviceStateChanged(
+    device_id: "motion_hallway",
+    attribute: Some("motion"),
+    to: Some(true),
+    for_duration_secs: Some(30),
+),
 ```
 
 ---
 
 ### `TimeOfDay`
 
-Fires at a specific time on specified days of the week. Computed in local wall-clock time.
+Fires at a set time on the listed days, in the timezone from `[location] timezone` in `homecore.toml` (UTC when unset).
 
-```toml
-[trigger]
-type = "time_of_day"
-time = "07:30"   # HH:MM
-days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+```ron
+trigger: TimeOfDay(
+    time: "07:30:00",
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+),
 ```
 
-Valid day names: `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`, `Sun`
+| Field | Required | Description |
+|---|---|---|
+| `time` | yes | `"HH:MM:SS"` or `"HH:MM"`. The scheduler works to the minute. |
+| `days` | yes | Day names: `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`, `Sun` (full names such as `Monday` also work). An empty list `[]` means every day. |
 
-**Catch-up on restart:** If HomeCore restarts after a `TimeOfDay` trigger's scheduled time, the scheduler fires it immediately if the missed time falls within `catchup_window_minutes` (default 15).
+Catch-up on restart: if homeCore starts shortly after a scheduled time, it fires the missed trigger at startup when the time falls within `[scheduler] catchup_window_minutes` (default 15, set 0 to turn catch-up off). The same applies to `SunEvent` and `Cron`.
 
 ---
 
 ### `SunEvent`
 
-Fires at sunrise or sunset, computed locally from your latitude/longitude in config.
+Fires at a solar event, computed locally from the latitude and longitude in `[location]`. No internet connection is needed.
 
-```toml
-[trigger]
-type            = "sun_event"
-event           = "sunset"      # "sunrise" | "sunset"
-offset_minutes  = -30           # minutes before (-) or after (+) the event
+```ron
+trigger: SunEvent(
+    event: Sunset,
+    offset_minutes: -30,   // 30 minutes before sunset
+),
 ```
 
-**Examples:**
+| Field | Required | Description |
+|---|---|---|
+| `event` | yes | `Sunrise`, `Sunset`, `SolarNoon`, `CivilDawn` or `CivilDusk`. |
+| `offset_minutes` | yes | Minutes before (negative) or after (positive) the event. Write `0` for the event itself. |
 
-```toml
-# At sunrise
-[trigger]
-type  = "sun_event"
-event = "sunrise"
+On a day when the event doesn't happen (polar day or night), the trigger doesn't fire.
 
-# 30 minutes before sunset
-[trigger]
-type           = "sun_event"
-event          = "sunset"
-offset_minutes = -30
+```ron
+// At sunrise
+trigger: SunEvent(
+    event: Sunrise,
+    offset_minutes: 0,
+),
+```
 
-# 15 minutes after sunrise
-[trigger]
-type           = "sun_event"
-event          = "sunrise"
-offset_minutes = 15
+```ron
+// 15 minutes after civil dusk
+trigger: SunEvent(
+    event: CivilDusk,
+    offset_minutes: 15,
+),
 ```
 
 ---
 
 ### `Cron`
 
-Fires on a repeating cron schedule. Uses **6-field expressions** (second, minute, hour, day-of-month, month, day-of-week) evaluated in local wall-clock time.
+Fires on a cron schedule. Expressions have six fields (second, minute, hour, day of month, month, day of week) and are evaluated in the configured timezone.
 
-```toml
-[trigger]
-type       = "cron"
-expression = "0 30 7 * * Mon-Fri"
-#             ^  ^  ^ ^ ^  ^
-#             s  m  h dom mo dow
+```ron
+trigger: Cron(
+    expression: "0 30 7 * * Mon-Fri",
+    //           s m  h dom mo dow
+),
 ```
 
 | Expression | Meaning |
 |---|---|
 | `0 0 7 * * *` | 7:00 AM every day |
-| `0 30 7 * * Mon-Fri` | 7:30 AM weekdays only |
+| `0 30 7 * * Mon-Fri` | 7:30 AM on weekdays |
 | `0 */15 * * * *` | Every 15 minutes |
 | `0 0 */2 * * *` | Every 2 hours |
 | `0 0 8 1 * *` | 8:00 AM on the 1st of every month |
-| `0 0 20 * * Sat,Sun` | 8:00 PM weekends only |
+| `0 0 20 * * Sat,Sun` | 8:00 PM on weekends |
 
-Rules with invalid cron expressions are **automatically disabled** at startup with an `error` field set.
+The scheduler checks once a minute, so a schedule finer than a minute fires at most once per minute.
+
+At startup, homeCore disables any rule with an invalid cron expression and sets its `error` field to `invalid cron expression: ...`. To list them:
 
 ```bash
-# Check for invalid cron rules
 curl -s http://localhost:8080/api/v1/automations \
   -H "Authorization: Bearer $TOKEN" \
   | jq '[.[] | select(.error | strings | contains("cron")) | {name, error}]'
@@ -174,348 +227,374 @@ curl -s http://localhost:8080/api/v1/automations \
 
 ---
 
+### `Periodic`
+
+Fires at a fixed interval. Simpler than `Cron` when you only need "every N minutes".
+
+```ron
+trigger: Periodic(
+    every_n: 15,
+    unit: Minutes,   // Minutes | Hours | Days | Weeks
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `every_n` | yes | How many units between firings. |
+| `unit` | yes | `Minutes`, `Hours`, `Days` or `Weeks`. |
+
+The interval counts from the rule's last firing, which homeCore keeps in memory. A periodic rule added while homeCore is running fires at the next minute tick and then every interval. After a restart, it fires at startup if the interval is no longer than the catch-up window. Otherwise its first firing comes one interval after startup.
+
+---
+
 ### `WebhookReceived`
 
-Fires when an HTTP POST arrives at `/api/v1/webhooks/{path}`. **No authentication required.** The path acts as the shared secret.
+Fires when an HTTP POST arrives at `/api/v1/webhooks/{path}`. This endpoint needs no authentication, so the path works as a shared secret. Pick something hard to guess.
 
-```toml
-[trigger]
-type = "webhook_received"
-path = "front-door-bell-a3f9c2"
+```ron
+trigger: WebhookReceived(
+    path: "front-door-bell-a3f9c2",
+),
 ```
 
-The webhook URL: `POST http://homecore.local/api/v1/webhooks/front-door-bell-a3f9c2`
-
-The request body (if valid JSON) is forwarded as the `body` field in the event payload and accessible in `ScriptExpression` conditions:
-
-```toml
-# Condition using webhook body
-[[conditions]]
-type   = "script_expression"
-script = 'event.body["pin"] == "1234"'
-```
-
-**Example — trigger from a cloud service:**
+The URL for this example is `POST http://homecore.local/api/v1/webhooks/front-door-bell-a3f9c2`.
 
 ```bash
-# Fire the trigger from any HTTP client — a script, a scheduler, a physical button, etc.
+# Fire it from any HTTP client: a script, a scheduler, another service
 curl -X POST http://homecore.local/api/v1/webhooks/front-door-bell-a3f9c2 \
   -H "Content-Type: application/json" \
   -d '{"source": "doorbell", "action": "pressed"}'
+```
+
+In Rhai, `trigger_value()` returns the JSON request body (or nothing if there was none) and `trigger_extra()` returns the query-string parameters as a map. These functions work in the rule's `trigger_condition` and `required_expression` and in `RunScript` actions, but not in `ScriptExpression` conditions. To accept only requests carrying a PIN:
+
+```ron
+trigger: WebhookReceived(
+    path: "front-door-bell-a3f9c2",
+),
+trigger_condition: Some(r#"trigger_value()["pin"] == "1234""#),
 ```
 
 ---
 
 ### `CustomEvent`
 
-Fires when a `FireEvent` action emits the matching `event_type`. Enables clean rule chaining — one rule fires an event, other rules react to it **in the same process with no MQTT round-trip**.
+Fires when a `FireEvent` action emits an event with the matching `event_type`. This is how one rule hands work to others. The event goes through homeCore's internal event bus, so the other rules react without waiting on the MQTT broker.
 
-```toml
-[trigger]
-type       = "custom_event"
-event_type = "morning_routine_started"
+```ron
+trigger: CustomEvent(
+    event_type: "morning_routine_started",
+),
 ```
 
-This is the primary mechanism for **fan-out** (one event → many parallel reactions) and **pipeline** patterns (chain of rules that each do one thing).
+Use it for fan-out (one event, several rules reacting) and for pipelines (a chain of rules that each do one thing). It also matches the `response_event` that a `PingHost` action fires. A few event names are reserved for other triggers and never reach a `CustomEvent` trigger: `webhook`, `hub_variable_changed`, `calendar_event`, `system_started` and `mode_changed`.
 
-**Example chain:**
+A chain of three rules, shown as the parts that differ:
 
-```toml
-# Rule 1: motion sensor → start morning routine
-[trigger]
-type      = "device_state_changed"
-device_id = "motion_bedroom"
-attribute = "motion"
-to        = true
-
-[[actions]]
-type       = "fire_event"
-event_type = "morning_routine_started"
-payload    = {}
-
-# Rule 2: morning routine → turn on coffee
-[trigger]
-type       = "custom_event"
-event_type = "morning_routine_started"
-
-[[actions]]
-type      = "set_device_state"
-device_id = "smart_plug_coffee"
-state     = { on = true }
-
-# Rule 3: morning routine → set thermostat
-[trigger]
-type       = "custom_event"
-event_type = "morning_routine_started"
-
-[[actions]]
-type      = "set_device_state"
-device_id = "thermostat_main"
-state     = { setpoint = 21 }   # °C
+```ron
+// Rule 1: bedroom motion starts the morning routine
+trigger: DeviceStateChanged(
+    device_id: "motion_bedroom",
+    attribute: Some("motion"),
+    to: Some(true),
+),
+actions: [
+    RuleAction(
+        enabled: true,
+        action: FireEvent(
+            event_type: "morning_routine_started",
+            payload: {},
+        ),
+    ),
+],
 ```
+
+```ron
+// Rule 2: the routine turns on the coffee maker
+trigger: CustomEvent(
+    event_type: "morning_routine_started",
+),
+actions: [
+    RuleAction(
+        enabled: true,
+        action: SetDeviceState(
+            device_id: "smart_plug_coffee",
+            state: { "on": true },
+        ),
+    ),
+],
+```
+
+```ron
+// Rule 3: the routine sets the thermostat (°C)
+trigger: CustomEvent(
+    event_type: "morning_routine_started",
+),
+actions: [
+    RuleAction(
+        enabled: true,
+        action: SetDeviceState(
+            device_id: "thermostat_main",
+            state: { "setpoint": 21 },
+        ),
+    ),
+],
+```
+
+In Rhai, `trigger_value()` returns the event's payload.
 
 ---
 
 ### `SystemStarted`
 
-Fires **once**, immediately after the rule engine finishes pre-populating its device cache on startup. Use to catch state that may have changed while HomeCore was offline.
+Fires once at startup, right after the rule engine has loaded the current state of every device. Use it to catch anything that changed while homeCore was down.
 
-```toml
-[trigger]
-type = "system_started"
+```ron
+trigger: SystemStarted,
 ```
 
-Always pair with `DeviceState` conditions to guard the action:
+Pair it with conditions so the actions only run when something needs attention:
 
-```toml
-# Alert if garage door was left open across a restart
-[trigger]
-type = "system_started"
-
-[[conditions]]
-type      = "device_state"
-device_id = "yolink_garage_door"
-attribute = "open"
-op        = "Eq"
-value     = true
-
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Garage door is OPEN (detected on startup)"
+```ron
+// Warn if the garage door was left open across a restart
+trigger: SystemStarted,
+conditions: [
+    DeviceState(
+        device_id: "yolink_garage_door",
+        attribute: "open",
+        op: Eq,
+        value: true,
+    ),
+],
+actions: [
+    RuleAction(
+        enabled: true,
+        action: Notify(
+            channel: "telegram",
+            message: "Garage door is OPEN (detected on startup)",
+        ),
+    ),
+],
 ```
 
 ---
 
 ### `DeviceAvailabilityChanged`
 
-Fires when a device comes online or goes offline.
+Fires when a device goes online or offline.
 
-```toml
-[trigger]
-type      = "device_availability_changed"
-device_id = "hue_001788fffe6841b3_1"
-
-# Optional: only fire in one direction
-to = false   # only when device goes offline
-
-# Optional: sticky guard — only fire after the new state has held this long
-for_duration_secs = 60
+```ron
+trigger: DeviceAvailabilityChanged(
+    device_id: "hue_001788fffe6841b3_1",
+    to: Some(false),               // optional: only when it goes offline
+    for_duration_secs: Some(60),   // optional: wait before firing
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` (alias `device`) | yes | Device to monitor. |
-| `to` | no | `true` = online only, `false` = offline only, omitted = both. |
-| `for_duration_secs` | no | Only fire after the new availability state has held for this many seconds (debounces flapping devices). |
+| `device_id` (alias `device`) | yes | The device to watch. |
+| `to` | no | `true` for online only, `false` for offline only. Leave it out for both. |
+| `for_duration_secs` | no | Delay the firing by this many seconds. |
+
+:::caution
+For this trigger, `for_duration_secs` only delays the rule. homeCore does not check availability again when the time is up, so a device that drops off and comes straight back still fires the rule a minute later. To skip devices that have already recovered, add a condition that checks the device's current state.
+:::
+
+In Rhai, `trigger_value()` returns `true` or `false` (the new availability).
 
 ---
 
 ### `MqttMessage`
 
-Fires when a raw MQTT message arrives on a matching topic. Supports MQTT wildcards.
+Fires when a raw MQTT message arrives on a matching topic. Use it for integrations that don't register as homeCore devices.
 
-```toml
-[trigger]
-type          = "mqtt_message"
-topic_pattern = "homecore/devices/+/state"   # + = one level
-# topic_pattern = "homecore/devices/#"        # # = rest of path
+```ron
+trigger: MqttMessage(
+    topic_pattern: "homecore/events/+",   // + matches one level, # the rest
+),
 ```
 
-Use this for non-standard integrations or when you need to react to any MQTT traffic, not just typed device events.
+homeCore's internal client subscribes to `homecore/#`. It subscribes to every topic (`#`) only when at least one ecosystem profile is loaded from the profiles directory. Without a profile, a pattern outside `homecore/` never matches.
+
+| Field | Required | Description |
+|---|---|---|
+| `topic_pattern` | yes | Topic to match. `+` matches one level and `#` matches everything after it. |
+| `payload` | no | Only fire when the raw payload is exactly this string. |
+| `value_path` | no | JSON pointer into the payload, such as `"/temperature"`. |
+| `value_op` | no | Comparison for `value_path`: `Eq`, `Ne`, `Gt`, `Gte`, `Lt` or `Lte`. |
+| `value_cmp` | no | The value to compare against. |
+
+`value_path`, `value_op` and `value_cmp` work together: all three must be set for the comparison to apply, and the payload must be JSON.
+
+```ron
+// Fire when a CallService response_event reports more than 30
+trigger: MqttMessage(
+    topic_pattern: "homecore/events/weather_update",
+    value_path: Some("/temperature"),
+    value_op: Some(Gt),
+    value_cmp: Some(30),
+),
+```
+
+In Rhai, `trigger_value()` returns the payload as a string.
 
 ---
 
 ### `ManualTrigger`
 
-Never fires automatically. Only activated via the `/test` dry-run endpoint.
+Never fires on its own. Use it for a rule you only want to run on request. Run it with `POST /api/v1/automations/{id}/run` (which works for any rule), or dry-run it with `POST /api/v1/automations/{id}/test`.
 
-```toml
-[trigger]
-type = "manual_trigger"
+```ron
+trigger: ManualTrigger,
 ```
-
-Useful for rules that should only ever run when explicitly tested.
 
 ---
 
 ### `ModeChanged`
 
-Fires when a named mode transitions on or off.
+Fires when a mode turns on or off.
 
-```toml
-[trigger]
-type    = "mode_changed"
-mode_id = "mode_night"   # optional — omit to fire on any mode change
-to      = true           # optional — only when turning on (false = only off)
+```ron
+trigger: ModeChanged(
+    mode_id: Some("mode_night"),   // optional: leave out to match any mode
+    to: Some(true),                // optional: only when it turns on
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `mode_id` | no | Mode device id (e.g. `"mode_night"`). Omit to match any mode. |
-| `to` | no | `true` = only when the mode turns on, `false` = only when it turns off, omitted = both. |
+| `mode_id` | no | The mode's device ID, such as `"mode_night"`. Leave it out to match any mode. |
+| `to` | no | `true` for turning on only, `false` for turning off only. Leave it out for both. |
 
 ---
 
 ### `ButtonEvent`
 
-Fires when a physical button device (e.g. a Pico remote, keypad, or smart switch) reports a button press.
+Fires when a button device (a Pico remote, a keypad, a scene switch) reports a press.
 
-```toml
-[trigger]
-type          = "button_event"
-device_id     = "lutron_pico_bedroom"
-button_number = 2          # optional: specific button number
-event         = "Pushed"   # "Pushed" | "Held" | "DoubleTapped" | "Released"
+```ron
+trigger: ButtonEvent(
+    device_id: "lutron_pico_bedroom",
+    button_number: Some(2),   // optional: one button only
+    event: Pushed,            // Pushed | Held | DoubleTapped | Released
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` (alias `device`) | yes | Button device. |
-| `button_number` | no | Specific button number. Omit to match any button on the device. |
-| `event` | yes | One of `Pushed`, `Held`, `DoubleTapped`, `Released`. |
+| `device_id` (alias `device`) | yes | The button device. |
+| `button_number` | no | Match one button. Leave it out for any button on the device. |
+| `event` | yes | `Pushed`, `Held`, `DoubleTapped` or `Released`. |
 
-> **Implementation note:** button events arrive as `DeviceStateChanged`
-> events with attribute name matching the event type (`pushed`, `held`,
-> `double_tapped`, `released`) and the button number as the value. The
-> `ButtonEvent` trigger is a typed wrapper that handles the routing for
-> you.
+Button presses arrive as ordinary state updates: the device sets an attribute named after the event (`pushed`, `held`, `double_tapped` or `released`) to the button number. `ButtonEvent` matches on that attribute so you don't have to. As with `DeviceStateChanged`, the attribute's value has to differ from its previous value for the trigger to fire.
 
 ---
 
 ### `NumericThreshold`
 
-Fires when a numeric attribute crosses a threshold value. Unlike
-`DeviceStateChanged` + `to`, this trigger fires only on the crossing
-edge (the transition itself), not on every change while the value
-remains past the threshold.
+Fires when a numeric attribute is past a threshold. The `Crosses...` operators fire once, on the update that crosses the line, instead of on every update while the value stays past it.
 
-```toml
-[trigger]
-type              = "numeric_threshold"
-device_id         = "sensor_basement_temp"
-attribute         = "temperature"
-op                = "CrossesAbove"   # crossing edge only
-value             = 80.0
-for_duration_secs = 60               # optional: debounce
+```ron
+trigger: NumericThreshold(
+    device_id: "sensor_basement_temp",
+    attribute: "temperature",
+    op: CrossesAbove,
+    value: 27.0,                   // °C
+    for_duration_secs: Some(60),   // optional: still past it 60 s later
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` (alias `device`) | yes | Device to monitor. |
-| `attribute` | yes | Numeric attribute name. |
-| `op` | yes | `"Above"` / `"Below"` / `"CrossesAbove"` / `"CrossesBelow"` (see below). |
-| `value` | yes | Threshold value. |
-| `for_duration_secs` | no | Only fire if the threshold condition has held for at least this many seconds (debounce). |
+| `device_id` (alias `device`) | yes | The device to watch. |
+| `attribute` | yes | A numeric attribute. |
+| `op` | yes | `Above`, `Below`, `CrossesAbove` or `CrossesBelow`. |
+| `value` | yes | The threshold. |
+| `for_duration_secs` | no | Wait this many seconds, then fire only if the current value is still past the threshold. |
 
 | `op` | Fires when |
 |---|---|
-| `Above` | The new value is `> value` (every change while above). |
-| `Below` | The new value is `< value` (every change while below). |
-| `CrossesAbove` | The previous value was `≤ value` and the new value is `> value` (one-shot edge). |
-| `CrossesBelow` | The previous value was `≥ value` and the new value is `< value` (one-shot edge). |
+| `Above` | The new value is greater than `value`. This fires on every update from the device while it stays above. |
+| `Below` | The new value is less than `value`, on every update while it stays below. |
+| `CrossesAbove` | The previous value was at or below `value` and the new value is above it. |
+| `CrossesBelow` | The previous value was at or above `value` and the new value is below it. |
 
-For one-shot alerting (e.g. "fire once when temp goes above 80"), use
-`CrossesAbove` / `CrossesBelow`. For "any sample while we're past the
-threshold", use `Above` / `Below`.
+For a single alert when a reading goes past a line, use `CrossesAbove` or `CrossesBelow`. Use `Above` or `Below` when you want to act on every reading while the value is out of range.
 
 ---
 
 ### `HubVariableChanged`
 
-Fires when a hub variable is written via `SetHubVariable` action or
-API. The trigger does not filter on values — combine with a
-`HubVariable` condition for value-based filtering.
+Fires when a `SetHubVariable` action writes a hub variable. The trigger doesn't look at the value. To act on particular values, add a `HubVariable` condition.
 
-```toml
-[trigger]
-type = "hub_variable_changed"
-name = "alarm_armed"   # optional — omit to watch all hub vars
+```ron
+trigger: HubVariableChanged(
+    name: Some("alarm_armed"),   // optional: leave out to watch every hub variable
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | no | Specific variable name. Omit to fire on any hub variable change. |
+| `name` | no | The variable to watch. Leave it out to fire on any hub variable change. |
 
----
-
-### `Periodic`
-
-Fires at a fixed interval. Simpler than `Cron` for basic repeating
-tasks.
-
-```toml
-[trigger]
-type    = "periodic"
-every_n = 15
-unit    = "Minutes"   # "Minutes" | "Hours" | "Days" | "Weeks"
-```
-
-| Field | Required | Description |
-|---|---|---|
-| `every_n` | yes | Interval count. |
-| `unit` | yes | `Minutes`, `Hours`, `Days`, or `Weeks`. |
+In Rhai, `trigger_value()` returns a map with `name`, `value` and `prev_value`.
 
 ---
 
 ### `CalendarEvent`
 
-Fires based on `.ics` calendar events. See [Advanced: Calendar triggers](./advanced#calendar-triggers) for full configuration.
+Fires when an event in a loaded `.ics` calendar starts, optionally shifted by an offset. See [Advanced: Calendar triggers](./advanced#calendar-triggers) for setup.
 
-```toml
-[trigger]
-type           = "calendar_event"
-calendar_id    = "us_holidays"     # optional — stem of the .ics filename
-title_contains = "Holiday"         # optional — case-insensitive substring
-offset_minutes = -30               # fire 30 min before event start
+```ron
+trigger: CalendarEvent(
+    calendar_id: Some("us_holidays"),   // optional: .ics filename without the extension
+    title_contains: Some("Holiday"),    // optional: case-insensitive
+    offset_minutes: -30,                // optional: 30 minutes before the start
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `calendar_id` | no | Stem of the `.ics` filename (e.g. `"us_holidays"` for `us_holidays.ics`). Omit to match any loaded calendar. |
-| `title_contains` | no | Case-insensitive substring match on the event title. Omit to match any event. |
-| `offset_minutes` | no | Negative = before event start, positive = after, default `0`. |
+| `calendar_id` | no | The `.ics` filename without its extension (`"us_holidays"` for `us_holidays.ics`). Leave it out to match any loaded calendar. |
+| `title_contains` | no | Case-insensitive text to look for in the event title. Leave it out to match any event. |
+| `offset_minutes` | no | Negative fires before the event starts, positive after. Defaults to `0`. |
+
+Calendars load from `[calendars] dir` (default `config/calendars`). The scheduler checks once a minute.
 
 ---
 
 ### `DeviceBatteryLow`
 
-Fires once when a device's battery percentage crosses the configured low
-threshold. Hysteresis is enforced by the watcher (latches at
-`threshold_pct`, clears at `threshold_pct + recover_band_pct`), so the
-trigger fires only on the crossing edge — not on every battery report.
+Fires once when a device's battery level drops past the low threshold. The battery watcher applies hysteresis: it latches at `threshold_pct` and clears at `threshold_pct + recover_band_pct`. That means the trigger fires on the crossing, not on every battery report while the level stays low.
 
-`device_id` is optional: omit it to match any battery-powered device.
+Leave out `device_id` to match any battery-powered device.
 
-```toml
-[trigger]
-type      = "device_battery_low"
-# device_id = "yolink_d88b4c0400064299"   # optional — omit to match any device
+```ron
+trigger: DeviceBatteryLow(
+    device_id: None,   // or Some("yolink_d88b4c0400064299") for one device
+),
 ```
 
-Thresholds live in `[battery]` in `homecore.toml`. See [Battery monitoring](../devices/battery-monitoring.md) for the full feature, including how to identify which device fired the trigger inside an action.
+The thresholds live in `[battery]` in `homecore.toml`. See [Battery monitoring](../devices/battery-monitoring.md) for the whole feature.
 
 ---
 
 ### `DeviceBatteryRecovered`
 
-Counterpart to `DeviceBatteryLow`. Fires once when a previously-low
-device's battery climbs back above `threshold_pct + recover_band_pct`.
+The counterpart to `DeviceBatteryLow`. Fires once when a device that was low climbs back above `threshold_pct + recover_band_pct`.
 
-```toml
-[trigger]
-type      = "device_battery_recovered"
-# device_id = "yolink_d88b4c0400064299"   # optional
+```ron
+trigger: DeviceBatteryRecovered(
+    device_id: None,   // or Some("yolink_d88b4c0400064299")
+),
 ```
 
 ---
 
 ### Alert triggers: `AlertRaised`, `AlertCleared`, `AlertAcknowledged`, `AlertActiveFor`
 
-Fire when an alert like `filter` is raised, clears, is marked seen, or has
-been active for `minutes`. The alert is the rule's to act on: `{alert.message}`
-in a message, and the alert steps act on it. Every filter field narrows; an
-empty filter is any alert.
+These fire when an alert matching `filter` is raised, clears, is marked seen, or has been active for `minutes`. The alert that started the rule is the one the rule acts on: `{alert.message}` and similar placeholders in a message refer to it, and the alert actions act on it unless told otherwise. Each filter field narrows the match. An empty filter matches any alert.
 
 ```ron
 trigger: AlertRaised(
@@ -526,15 +605,45 @@ trigger: AlertRaised(
 ),
 ```
 
-`plugin_id` means that plugin's alerts and homeCore's own about its devices
-(`kind: Some(wet), plugin_id: Some("plugin.yolink")` is any YoLink leak sensor). See
-[Alerts that start automations](./alert-automations.md) — including what
-happens to such a rule when its alert is turned off or deleted.
+```ron
+// Any YoLink leak sensor that has been wet for 5 minutes
+trigger: AlertActiveFor(
+    filter: AlertFilter(
+        kind: Some(wet),
+        plugin_id: Some("plugin.yolink"),
+    ),
+    minutes: 5,
+),
+```
+
+| Trigger | Fields |
+|---|---|
+| `AlertRaised` | `filter` (optional) |
+| `AlertCleared` | `filter` (optional) |
+| `AlertAcknowledged` | `filter` (optional) |
+| `AlertActiveFor` | `filter` (optional), `minutes` (required) |
+
+`AlertRaised` fires for new alerts only, not when an alert that is already active is updated. `AlertActiveFor` fires once per alert. If that alert clears and is raised again later, it counts as a new alert.
+
+`plugin_id` matches that plugin's own alerts and homeCore's alerts about its devices, so `kind: Some(wet), plugin_id: Some("plugin.yolink")` is any YoLink leak sensor. The filter fields are listed in [Alerts that start automations](./alert-automations.md), along with what happens to such a rule when its alert is turned off or deleted.
 
 ---
 
-## Trigger context in conditions
+## Trigger context in Rhai
 
-For `WebhookReceived` triggers, the request body is available in `ScriptExpression` conditions as `event.body`. For `DeviceStateChanged`, `event.device_id`, `event.attribute`, and `event.value` are available.
+Rhai scripts can read details of the event that started the rule:
 
-For `DeviceBatteryLow` and `DeviceBatteryRecovered`, the firing device's id is exposed to Rhai via `trigger_device()`. Pair it with `device_state(id)` inside a `RunScript` action to read the device name and current battery level.
+| Function | Returns |
+|---|---|
+| `trigger_device()` | The device ID behind the event, or `""`. |
+| `trigger_attribute()` | The attribute involved, or `""`. |
+| `trigger_value()` | The new value: the attribute's value for device triggers, the payload for MQTT and custom events, the body for webhooks. |
+| `trigger_prev_value()` | The attribute's previous value, when there is one. |
+| `trigger_event_type()` | The event type, such as `device_state_changed`. |
+| `trigger_change_kind()`, `trigger_change_source()`, `trigger_change_actor_id()`, `trigger_change_actor_name()` | Who or what made a device change. |
+| `trigger_extra()` | Webhook query parameters as a map. |
+| `trigger_label()` | The rule's `trigger_label`, or `""`. |
+
+These functions are available in the rule's `trigger_condition` and `required_expression` and in `RunScript` actions. `ScriptExpression` conditions and the expressions in `Conditional`, `RepeatUntil`, `RepeatWhile` and `WaitForExpression` don't receive trigger context.
+
+For `DeviceBatteryLow` and `DeviceBatteryRecovered`, `trigger_device()` returns the device and `trigger_value()` returns its battery level. In a `RunScript` action, `device_state(trigger_device())` returns that device's current attributes.

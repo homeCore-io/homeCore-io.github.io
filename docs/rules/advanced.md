@@ -7,73 +7,72 @@ sidebar_position: 5
 
 # Advanced Rule Patterns
 
+The snippets on this page are fragments of a rule file. Put them inside a full `Rule(...)` as shown in the [Rules Overview](./overview.md#rule-file-format-ron).
+
 ## Run modes
 
-Every rule has a `run_mode` that controls concurrency when the rule is triggered while a previous firing is still executing.
+`run_mode` decides what happens when a rule is triggered while an earlier run is still executing its actions.
 
 | Run mode | Behavior |
 |---|---|
-| `Parallel` | Default. Multiple firings run concurrently with no restrictions. |
-| `Single` | Only one firing at a time. Additional triggers while in progress are silently dropped. |
-| `Restart` | A new trigger cancels any in-progress firing (including pending delays) and starts fresh. |
-| `Queued` | Firings queue up and execute one at a time in order. Use `max_queue` to limit depth. |
+| `Parallel` | Default. Every trigger starts a new run, alongside any that are still going. |
+| `Single` | While a run is in progress, new triggers are skipped. History records `skipped` with the reason `single: already in-flight`. |
+| `Restart` | A new trigger cancels this rule's pending cancellable delays, then starts a new run. |
+| `Queued` | Runs start alongside each other, as with `Parallel`, until `max_queue` are in progress (default 10). Further triggers are skipped with the reason `queued: queue full (max N)`. |
 
-```toml
-# Motion light with restart mode — re-motion resets the off timer
-id       = ""
-name     = "Motion light — restart on motion"
-enabled  = true
-run_mode = "restart"
+`Restart` does not abort the earlier run. Cancelling a delay ends the wait early, and that run then carries on with the steps after the delay. Delays without `cancelable: true` are not touched at all. If the steps after a delay would undo the new run's work (turning a light off, say), `Restart` is the wrong tool.
 
-[trigger]
-type      = "device_state_changed"
-device    = "hallway.motion"
-attribute = "motion"
-to        = true
+`Queued` does not wait for one run to finish before starting the next. It only caps how many run at once.
 
-[[actions]]
-type      = "set_device_state"
-device    = "hallway.light"
-state     = { on = true }
+For a motion light that stays on until the room has been quiet for five minutes, `Single` with a wait step does the job in one rule:
 
-[[actions]]
-type          = "delay"
-duration_secs = 300
+```ron
+name: "Hallway motion light",
+run_mode: Single,
 
-[[actions]]
-type      = "set_device_state"
-device    = "hallway.light"
-state     = { on = false }
+trigger: DeviceStateChanged(
+    device: "hallway.motion",
+    attribute: Some("motion"),
+    to: Some(true),
+),
+
+actions: [
+    RuleAction(action: SetDeviceState(device: "hallway.light", state: { "on": true })),
+    // Wait until there has been no motion for 5 minutes straight.
+    // Scripts use the raw device ID, not the canonical name.
+    RuleAction(action: WaitForExpression(
+        expression: "device_state(\"motion_hallway\")[\"motion\"] == false",
+        hold_duration_ms: Some(300000),
+    )),
+    RuleAction(action: SetDeviceState(device: "hallway.light", state: { "on": false })),
+],
 ```
 
-With `restart` mode, new motion during the 5-minute delay cancels the entire firing and starts a fresh sequence. This eliminates the need for separate cancel-delay rules in many cases.
+Fresh motion while the rule is waiting is skipped as a trigger, but it makes the expression false, which restarts the five-minute hold.
 
 ---
 
 ## Cooldown (`cooldown_secs`)
 
-Prevents a rule from firing more than once within a window, regardless of how many triggering events arrive.
+Stops a rule from firing again within a window, however many triggering events arrive.
 
-```toml
-id       = ""
-name     = "Motion light — no thrash"
-enabled  = true
-priority = 10
-cooldown_secs = 60   # won't fire again for 60 seconds after firing
+```ron
+name: "Motion light, no thrash",
+priority: 10,
+cooldown_secs: Some(60),   // won't fire again for 60 seconds after firing
 
-[trigger]
-type      = "device_state_changed"
-device    = "hallway.motion"
-attribute = "motion"
-to        = true
+trigger: DeviceStateChanged(
+    device: "hallway.motion",
+    attribute: Some("motion"),
+    to: Some(true),
+),
 
-[[actions]]
-type      = "set_device_state"
-device    = "hallway.light"
-state     = { on = true }
+actions: [
+    RuleAction(action: SetDeviceState(device: "hallway.light", state: { "on": true })),
+],
 ```
 
-When a rule is in cooldown, evaluations are recorded in fire history with `outcome.type = "cooldown"` and a `remaining_secs` field. Check how long remains:
+The window starts when the rule fires (its conditions pass), not when it is merely triggered. Triggers that arrive during the window are recorded in fire history with `outcome.type = "cooldown"` and a `remaining_secs` field. A manual run (`POST /automations/{id}/run`) ignores the cooldown.
 
 ```bash
 curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
@@ -85,314 +84,286 @@ curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
 
 ## Rule gates (`trigger_condition`, `required_expression`)
 
-Two optional Rhai gates that can stop rule evaluation before conditions are checked:
+Two optional Rhai expressions can stop a rule before its conditions are checked. Both run after the pause and cooldown checks, `required_expression` first, then `trigger_condition`. Each records its own outcome in fire history when it is false:
 
-- **`trigger_condition`**: evaluated on every trigger match. If `false`, the rule is silently skipped (no fire history entry). Use for high-frequency checks where the noise in history is unwanted.
-- **`required_expression`**: evaluated before conditions. If `false`, records `required_expression_failed` in history. Use when you want visibility into why the rule didn't fire.
+- `required_expression` records `required_expression_failed`. With `cancel_on_false: true`, a false result also cancels the rule's pending cancellable delays.
+- `trigger_condition` records `trigger_gate_failed`.
 
-```toml
-# Only bother evaluating this rule when mode_night is active
-# (skip silently when mode_night is off)
-trigger_condition = 'device_state("mode_night")["on"] == true'
+```ron
+// Only bother with this rule while mode_night is on
+trigger_condition: Some("device_state(\"mode_night\")[\"on\"] == true"),
 
-# Require daytime hours — visible in history when it fails
-required_expression = 'hour() >= 6 && hour() < 22'
+// Daytime hours only
+required_expression: Some("current_hour() >= 6 && current_hour() < 22"),
 ```
+
+Both gates can read device state (`device_state("id")`, by raw device ID), the time helpers (`current_hour()`, `current_minute()`, `current_weekday()`) and the trigger accessors (`trigger_device()`, `trigger_value()`, `trigger_prev_value()`, `trigger_label()` and the rest). A manual run with `"checks": false` skips both.
 
 ---
 
 ## StopRuleChain
 
-When a high-priority rule fires and includes `StopRuleChain`, all lower-priority rules for the **same event** are skipped.
+When a rule that contains a `StopRuleChain` step fires, rules with lower priority that matched the **same event** are not evaluated.
 
-Use case: "VIP entry" — security code entered correctly → disarm, don't trigger the alert rule.
+Example: the right keypad code disarms the alarm, and the "wrong code" alert should not go off.
 
-```toml
-# Priority 100 — security disarm (fires first)
-id       = ""
-name     = "Security — disarm"
-priority = 100
-
-[trigger]
-type      = "device_state_changed"
-device    = "entryway.keypad"
-attribute = "code"
-
-[[conditions]]
-type   = "script_expression"
-script = 'device_state("keypad_main")["code"] == "1234"'
-
-[[actions]]
-type      = "set_device_state"
-device    = "security.armed_switch"
-state     = { on = false }
-
-[[actions]]
-type = "stop_rule_chain"   # ← prevents "intruder alert" rule from firing
-
----
-
-# Priority 0 — intruder alert (never fires when disarmed)
-id       = ""
-name     = "Security — intruder alert"
-priority = 0
-
-[trigger]
-type      = "device_state_changed"
-device    = "entryway.keypad"
-attribute = "code"
-
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Wrong code entered!"
+```ron
+// Priority 100: disarm (evaluated first)
+Rule(
+    id: "00000000-0000-0000-0000-000000000000",
+    name: "Security: disarm",
+    enabled: true,
+    priority: 100,
+    trigger: DeviceStateChanged(
+        device: "entryway.keypad",
+        attribute: Some("code"),
+    ),
+    conditions: [
+        DeviceState(device: "entryway.keypad", attribute: "code", op: Eq, value: "1234"),
+    ],
+    actions: [
+        RuleAction(action: SetDeviceState(device: "security.armed_switch", state: { "on": false })),
+        RuleAction(action: StopRuleChain),   // the alert rule below never sees this event
+    ],
+)
 ```
+
+```ron
+// Priority 0: wrong code (only reached when the disarm rule didn't fire)
+Rule(
+    id: "00000000-0000-0000-0000-000000000000",
+    name: "Security: wrong code",
+    enabled: true,
+    priority: 0,
+    trigger: DeviceStateChanged(
+        device: "entryway.keypad",
+        attribute: Some("code"),
+    ),
+    actions: [
+        RuleAction(action: Notify(channel: "telegram", message: "Wrong code entered!")),
+    ],
+)
+```
+
+The chain stops as soon as the higher rule fires, wherever `StopRuleChain` sits in its action list. Only a top-level step counts; a `StopRuleChain` nested inside a `Conditional` or `Parallel` does not stop the chain. If the disarm rule's condition fails, it doesn't fire, and the wrong-code rule runs as usual.
 
 ---
 
 ## Cancellable delays
 
-A `Delay` action can be cancelled by name before it expires. Classic use case: "turn lights off 5 minutes after no motion, but cancel if motion is detected again."
+A `Delay` with `cancelable: true` can be cut short. Cancelling it ends the wait early, and the run continues with the next step. It does not stop the run.
 
-**Rule 1 — motion detected → turn on, start 5-min delay:**
-
-```toml
-name = "Motion light — on"
-
-[trigger]
-type      = "device_state_changed"
-device    = "hallway.motion"
-attribute = "motion"
-to        = true
-
-[[actions]]
-type      = "set_device_state"
-device    = "hallway.light"
-state     = { on = true }
-
-[[actions]]
-type          = "delay"
-duration_secs = 300
-cancelable    = true
-cancel_key    = "motion_off_delay"
-
-[[actions]]
-type      = "set_device_state"
-device    = "hallway.light"
-state     = { on = false }
+```ron
+actions: [
+    RuleAction(action: Delay(
+        duration_secs: 300,
+        cancelable: true,
+        cancel_key: Some("porch_wait"),
+    )),
+    RuleAction(action: SetDeviceState(device: "porch.light", state: { "on": false })),
+],
 ```
 
-**Rule 2 — motion detected again → cancel the pending delay:**
+Three steps cancel delays:
 
-```toml
-name     = "Motion light — cancel off"
-priority = 5   # higher than rule 1 so it fires first
+| Step | Cancels |
+|---|---|
+| `CancelDelays(key: Some("porch_wait"))` | This rule's delay with that key. |
+| `CancelDelays()` | All of this rule's cancellable delays. |
+| `CancelRuleTimers(rule_id: Some("UUID"))` | All cancellable delays of the rule with that ID (this rule if `rule_id` is left out). |
 
-[trigger]
-type      = "device_state_changed"
-device    = "hallway.motion"
-attribute = "motion"
-to        = true
+Keys belong to the rule that set them, so `CancelDelays` in one rule can't reach a delay in another. Use `CancelRuleTimers` with the other rule's ID for that.
 
-[[actions]]
-type       = "cancel_delays"
-cancel_key = "motion_off_delay"
-```
-
-When motion triggers again while the delay is pending, rule 2 cancels the delay and the light stays on. The next motion event restarts the 5-minute timer.
+Because a cancelled delay lets the run carry on, cancelling the delay above turns the porch light off immediately rather than leaving it on. To build "turn off after five quiet minutes, and start the count again on new motion", use the `WaitForExpression` pattern under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"command": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
 
 ---
 
 ## Rule-local variables
 
-Variables scoped to a single rule. Persist across firings (in-memory; cleared on restart).
+Variables that belong to one rule. They persist across that rule's firings, in memory only, so a restart resets them to the rule's starting values.
 
-```toml
-# Count door openings; notify at every 5th
-[trigger]
-type      = "device_state_changed"
-device    = "entryway.front_door"
-attribute = "open"
-to        = true
+Set starting values with `variables`, change them with the `SetVariable` step, and read them from a `RunScript` step with `rule_var("name")`:
 
-[[actions]]
-type  = "set_variable"
-name  = "open_count"
-op    = "Add"
-value = 1.0
+```ron
+// Count front door openings; notify on every 5th
+variables: { "open_count": 0 },
 
-[[actions]]
-type      = "conditional"
-condition = 'variable("open_count") % 5 == 0'
+trigger: DeviceStateChanged(
+    device: "entryway.front_door",
+    attribute: Some("open"),
+    to: Some(true),
+),
 
-[[actions.then_actions]]
-type    = "notify"
-channel = "telegram"
-message = "Front door opened 5 more times (total: {{variable.open_count}})"
+actions: [
+    RuleAction(action: SetVariable(name: "open_count", value: 1, op: Some(Add))),
+    RuleAction(action: RunScript(script: r#"
+        let n = rule_var("open_count");
+        if n % 5 == 0 {
+            notify("telegram", "Front door opened " + n + " times");
+        }
+    "#)),
+],
 ```
+
+`rule_var()` is available in `RunScript` only. Conditions, gates and `Conditional` scripts can't read rule variables.
 
 **`VariableOp` values:**
 
 | Op | Description |
 |---|---|
-| `Set` | Assign value |
-| `Add` | Add to current (creates if missing) |
-| `Subtract` | Subtract from current |
-| `Multiply` | Multiply current |
-| `Divide` | Divide current |
-| `Toggle` | Flip boolean |
-| `Append` | Append to string |
-| `Clear` | Reset to null |
+| `Set` | Assign the value (the default when `op` is left out) |
+| `Add` | Add to the current value (a missing variable counts as 0) |
+| `Subtract` | Subtract from the current value |
+| `Multiply` | Multiply the current value |
+| `Divide` | Divide the current value |
+| `Toggle` | Flip a boolean (the `value` is ignored) |
 
 ---
 
 ## Hub variables
 
-Cross-rule variables shared across all rules. Use for counters, flags, and state that multiple rules need to read or write.
+Hub variables are shared by all rules. Use them for counters, flags and other state that several rules read or write. Like rule variables they live in memory, so a restart clears them. `GET /api/v1/automations/variables` lists the current values.
 
 **Writing:**
 
-```toml
-[[actions]]
-type  = "set_hub_variable"
-name  = "alarm_armed"
-op    = "Set"
-value = true
+```ron
+RuleAction(action: SetHubVariable(name: "alarm_armed", value: true)),
 ```
 
-**Reading in Rhai:**
+`SetHubVariable` takes the same optional `op` as `SetVariable`.
 
-```toml
-[[conditions]]
-type   = "script_expression"
-script = 'hub_var("alarm_armed") == true'
+**Reading in a script condition or `RunScript`:**
+
+```ron
+ScriptExpression(script: "hub_var(\"alarm_armed\") == true"),
 ```
 
-**`HubVariableIs` condition:**
+**As a condition:**
 
-```toml
-[[conditions]]
-type  = "hub_variable_is"
-name  = "alarm_armed"
-op    = "Eq"
-value = true
+```ron
+HubVariable(name: "alarm_armed", op: Eq, value: true),
 ```
 
-Setting a hub variable fires a `hub_variable_changed` event, so rules can trigger on variable changes using `Trigger::CustomEvent { event_type: "hub_variable_changed" }`.
+**As a trigger.** Setting a hub variable raises a `hub_variable_changed` event, which the `HubVariableChanged` trigger listens for. Leave out `name` to react to any hub variable:
+
+```ron
+trigger: HubVariableChanged(name: Some("alarm_armed")),
+```
 
 ---
 
 ## Startup gap pattern
 
-If HomeCore restarts while a sensor is in an alert state (garage door open, alarm triggered), the `SystemStarted` trigger catches it:
+If HomeCore restarts while a sensor is in an alert state (garage door open, water detected), no state change arrives to trigger your rules. The `SystemStarted` trigger, which fires once after startup, catches it:
 
-```toml
-[trigger]
-type = "system_started"
+```ron
+trigger: SystemStarted,
 
-[[conditions]]
-type      = "device_state"
-device    = "garage.main_door"
-attribute = "open"
-op        = "Eq"
-value     = true
+conditions: [
+    DeviceState(device: "garage.main_door", attribute: "open", op: Eq, value: true),
+],
 
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Garage door is still open (detected on restart)"
+actions: [
+    RuleAction(action: Notify(
+        channel: "telegram",
+        message: "Garage door is still open (detected on restart)",
+    )),
+],
 ```
 
-Without this pattern, a sensor stuck in an alert state across a restart would be silently missed until the state changes again.
+Without a rule like this, a sensor stuck in an alert state across a restart goes unnoticed until its state changes again.
 
 ---
 
 ## Trigger label (`trigger_label`)
 
-A human-readable description added to the `rule_fired` event for better observability. Appears in the event log, WebSocket stream, and fire history.
+A human-readable name for the rule's trigger. It is stored in the trigger context of each fire history entry (`trigger_context.trigger_label`) and returned by `trigger_label()` in Rhai scripts.
 
-```toml
-trigger_label = "bedroom motion at night"
+```ron
+trigger_label: Some("bedroom motion at night"),
 ```
 
-Useful when multiple rules share the same trigger type and you want to distinguish them in log output.
+This helps when several rules share a trigger type and you want to tell them apart in history, or when one script serves several rules.
 
 ---
 
 ## Per-action disable toggle
 
-Any action can be disabled without removing it. Set `enabled = false` to skip that action. The executor records a `Skipped` entry in the fire history so you can confirm the skip happened.
+Any top-level step can be switched off without deleting it. Set `enabled: false` on its `RuleAction`. The executor skips it and records the step as `skipped` in the fire history, so you can confirm it was passed over.
 
-```toml
-[[actions]]
-type      = "set_device_state"
-device    = "office.desk_light"
-state     = { on = true }
-
-[[actions]]
-enabled  = false          # ← temporarily disabled
-type     = "notify"
-channel  = "telegram"
-message  = "Desk light on"
+```ron
+actions: [
+    RuleAction(action: SetDeviceState(device: "office.desk_light", state: { "on": true })),
+    RuleAction(
+        enabled: false,   // temporarily disabled
+        action: Notify(channel: "telegram", message: "Desk light on"),
+    ),
+],
 ```
+
+Steps nested inside `Parallel`, `Conditional` and the repeat steps have no `enabled` flag.
 
 ---
 
 ## Calendar triggers
 
-Fire rules based on `.ics` calendar events. Configure a calendar directory in `homecore.toml`:
+Rules can fire on events in `.ics` calendar files. HomeCore loads every `.ics` file in the calendar directory, set in `homecore.toml`:
 
 ```toml
-[calendar]
-dir            = "calendars"
-expansion_days = 400
+[calendars]
+dir            = "config/calendars"   # the default
+expansion_days = 400                  # how far ahead repeating events are expanded (default 400)
 ```
 
-Then use the `CalendarEvent` trigger:
+Then use the `CalendarEvent` trigger. Every field is optional:
 
-```toml
-[trigger]
-type        = "calendar_event"
-calendar_id = "work"     # filename without .ics
-event_match = "contains" # "exact" | "contains" | "regex"
-summary     = "Team meeting"
-
-# Optional: when relative to the event to fire
-offset_minutes = -15    # 15 minutes before the event starts
+```ron
+trigger: CalendarEvent(
+    calendar_id: Some("work"),             // the .ics filename without the extension
+    title_contains: Some("Team meeting"),  // case-insensitive substring of the event title
+    offset_minutes: -15,                   // 15 minutes before the event starts
+),
 ```
 
-The `.ics` files are hot-reloaded. URL-sourced calendars can be auto-refreshed by including a `.meta.json` sidecar:
+The scheduler checks once a minute and fires the rule when an event's start time, shifted by `offset_minutes`, falls in the current minute. The `CalendarActive` condition takes the same `calendar_id` and `title_contains` and passes while a matching event is under way.
 
-```json
-{
-  "url": "https://calendar.google.com/calendar/ical/yourfeed/basic.ics",
-  "refresh_hours": 6
-}
+The calendar directory is watched, so new or edited `.ics` files are picked up without a restart. To load a calendar from a URL, post it to the API:
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/calendars/fetch \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://calendar.google.com/calendar/ical/yourfeed/basic.ics", "name": "work", "refresh_hours": 6}'
 ```
+
+HomeCore saves the file as `work.ics` with a `work.meta.json` sidecar recording the source URL, when it was fetched and the refresh interval, and fetches it again every `refresh_hours`.
 
 ---
 
 ## Hub mode system (`ModeChanged`, `ModeIs`, `SetMode`)
 
-Named modes are active/inactive boolean flags with solar calculation support. They enable complex context-aware rules:
+Modes are named on/off flags such as `mode_night` and `mode_away`, defined in `modes.toml`. Some follow the sun (night, day); others you switch yourself or from rules. They let one rule behave differently depending on the state of the house.
 
-```toml
-# Turn on porch light when mode_night activates
-[trigger]
-type      = "mode_changed"
-mode_name = "mode_night"
-to        = true
+```ron
+// Turn on the porch light when mode_night turns on
+trigger: ModeChanged(
+    mode_id: Some("mode_night"),   // leave out to react to any mode
+    to: Some(true),                // leave out to react to both directions
+),
 
-[[actions]]
-type      = "set_device_state"
-device    = "porch.light"
-state     = { on = true, brightness_pct = 40 }
+actions: [
+    RuleAction(action: SetDeviceState(device: "porch.light", state: { "on": true, "brightness_pct": 40 })),
+],
+```
 
----
+```ron
+// Check a mode in conditions
+conditions: [
+    ModeIs(mode_id: "mode_away", on: false),
+],
+```
 
-# Set a mode from a rule
-[[actions]]
-type  = "set_mode"
-name  = "mode_away"
-value = true
+```ron
+// Set a mode from a rule: On, Off or Toggle
+RuleAction(action: SetMode(mode_id: "mode_away", command: On)),
 ```
