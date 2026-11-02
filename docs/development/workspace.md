@@ -55,23 +55,22 @@ homeCore/
 │   ├── runtime-host/           ← hc-runtime-host: hosts plugins written in other languages
 │   ├── sdk/rust/               ← the Rust plugin SDK (crate `plugin-sdk-rs`)
 │   ├── sdk/ui/                 ← `@homecore/plugin-ui`: types for a plugin's own screens
-│   ├── plugins/                ← every Rust plugin, as workspace members
-│   │   ├── hc-yolink/          ← YoLink cloud MQTT bridge
-│   │   ├── hc-lutron/          ← Lutron RadioRA2 telnet
-│   │   ├── hc-caseta/          ← Lutron Caseta
-│   │   ├── hc-sonos/           ← Sonos UPnP
-│   │   ├── hc-hue/             ← Philips Hue
-│   │   ├── hc-wled/            ← WLED LED controllers
-│   │   ├── hc-zwave/           ← zwave-js WebSocket bridge
-│   │   ├── hc-isy/             ← ISY/IoX (Insteon, Z-Wave gateway)
-│   │   ├── hc-thermostat/      ← virtual thermostat (sensors + actuator)
-│   │   ├── hc-ecowitt/         ← Ecowitt weather stations
-│   │   ├── hc-roku/            ← Roku TVs and players (ECP)
-│   │   ├── hc-nuheat/          ← NuHeat Signature floor-heating thermostats
-│   │   ├── hc-weather/         ← Open-Meteo weather + national weather service warnings
-│   │   ├── hc-captest/         ← capability-spec conformance test plugin
-│   │   └── hc-plugin-template/ ← the starting point for a new plugin
-│   └── rules/examples/         ← documented rule patterns
+│   └── plugins/                ← every Rust plugin, as workspace members
+│       ├── hc-yolink/          ← YoLink cloud MQTT bridge
+│       ├── hc-lutron/          ← Lutron RadioRA2 telnet
+│       ├── hc-caseta/          ← Lutron Caseta
+│       ├── hc-sonos/           ← Sonos UPnP
+│       ├── hc-hue/             ← Philips Hue
+│       ├── hc-wled/            ← WLED LED controllers
+│       ├── hc-zwave/           ← zwave-js WebSocket bridge
+│       ├── hc-isy/             ← ISY/IoX (Insteon, Z-Wave gateway)
+│       ├── hc-thermostat/      ← virtual thermostat (sensors + actuator)
+│       ├── hc-ecowitt/         ← Ecowitt weather stations
+│       ├── hc-roku/            ← Roku TVs and players (ECP)
+│       ├── hc-nuheat/          ← NuHeat Signature floor-heating thermostats
+│       ├── hc-weather/         ← Open-Meteo weather + national weather service warnings
+│       ├── hc-captest/         ← capability-spec conformance test plugin
+│       └── hc-plugin-template/ ← the starting point for a new plugin
 │
 ├── plugins/                    ← plugins that are NOT Rust, so not members above
 │   └── hc-matter/              ← Matter bridge (TypeScript, matter.js)
