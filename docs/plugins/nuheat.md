@@ -24,11 +24,12 @@ NuHeat's answer on to your own homeCore. There is nothing to set up first:
 the plugin signs in as homeCore's NuHeat client, which NuHeat registered for
 everyone to use.
 
-If homeCore is on your home network, the page sends you straight back. If
-you reach homeCore at an internet address, the page shows that address and
-asks before sending you there. If you sign in from somewhere that can't reach
-homeCore at all, use **Can't come back to this page from NuHeat?** on the
-plugin's page. NuHeat opens in a new tab and ends on an address that won't
+If you opened the plugin's page at a home-network address (localhost, a
+private IPv4 address, an IPv6 unique local address, or a name ending in
+`.local`, `.home.arpa` or `.internal`), the page sends you straight back. It
+sends NuHeat's answer to no other address. If you reach homeCore any other way
+(a public name, a VPN address), use **Can't come back to this page from
+NuHeat?** on the plugin's page. NuHeat opens in a new tab and ends on an address that won't
 load; copy that address and paste it back into the plugin's page.
 
 A sign-in lasts as long as homeCore keeps running. NuHeat only ends one after

@@ -25,6 +25,46 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-mysa 0.1.0, 2026-11-02
+
+**Theme:** Mysa thermostats in homeCore.
+
+A new plugin: homeCore and the app are unchanged.
+
+### What you'll notice
+
+- **Mysa thermostats show up as homeCore thermostats.** Each one reports
+  its temperature, humidity, mode and targets, and has whichever of fan,
+  swing, keypad lock and display brightness its model has. It uses the
+  app's standard thermostat card. Thermostats with a schedule can hold a
+  target until the next change, or go back to the schedule.
+- **Sign in on Mysa's own site.** Press **Link Mysa account** on the
+  plugin's page; homeCore never sees your Mysa password. If the page is
+  open at a home-network address, Mysa sends you straight back to it
+  through homecore.io. From anywhere else you paste an address back.
+  Mysa registered homeCore's client and both return addresses, so there
+  is nothing to set up.
+- **Sign in again every 30 days.** Mysa ends a sign-in 30 days after it
+  starts. The plugin's page shows the date, and the plugin reminds you
+  five days before. Two homeCores on one Mysa account sign each other
+  out.
+- **Checked once a minute.** Mysa has no way to tell homeCore about a
+  change, so the plugin reads every thermostat in one call each minute,
+  as Mysa asks. Changes from homeCore go out straight away.
+
+See [Mysa](./plugins/mysa) for the details.
+
+### Release matrix
+
+**Tagged:** `hc-mysa-v0.1.0` only. No homeCore or app release.
+
+### Upgrade notes
+
+- Install it from Settings › Plugins. Mysa doesn't say whether a
+  thermostat is heating at this moment, so the card doesn't show it.
+
+---
+
 ## App v0.1.44, 2026-11-02
 
 **Theme:** adding to a page puts things where you want them.
