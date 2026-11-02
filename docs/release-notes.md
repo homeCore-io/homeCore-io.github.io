@@ -25,6 +25,35 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-nuheat 0.1.1 — 2026-11-02
+
+**Theme:** NuHeat sign-ins no longer end after 30 days.
+
+A plugin release on its own: homeCore and the app are unchanged.
+
+### What you'll notice
+
+- **No more signing in again every 30 days.** NuHeat removed the 30-day
+  limit on homeCore's sign-ins. A sign-in now lasts while homeCore keeps
+  running; NuHeat ends it only if it goes unused for 15 days. The plugin's
+  page no longer shows a "Sign in again by" date or raises a reminder five
+  days before. It shows when you signed in instead.
+- **When a hold ends is always in UTC.** NuHeat confirmed that a hold's end
+  time is in UTC. The thermostat's `hold_until` now always ends in `Z`
+  (`2026-11-02T19:32:33Z`), however NuHeat writes it.
+
+### Release matrix
+
+**Tagged:** `hc-nuheat-v0.1.1` only. No homeCore or app release.
+
+### Upgrade notes
+
+- Nothing to change. On 0.1.0, a "Sign in again by" reminder appears
+  five days before the old 30-day date; 0.1.1 drops it. If NuHeat ever
+  does end a sign-in, the plugin says it isn't signed in, as before.
+
+---
+
 ## hc-weather 0.1.1 — 2026-11-01
 
 **Theme:** a weather card that moves, and readings to automate on.
