@@ -68,7 +68,7 @@ Home can be arranged in two modes:
 - **Customise** changes the page for you alone ("Only you see these changes"). Long-press a card to star or hide it.
 - **Edit** changes the shared page for everyone, for people allowed to edit it.
 
-In either mode you can move, hide and rename sections, add your own, add cards (a device, a scene, or cards such as Heading, Text, Worth knowing, Playing, Weather and Chart) and move cards between sections. Each device card has its own settings: size, main reading, what else it shows, what a tap does, and its symbol. Home can also show your rooms as boxes (room field, room tiles, or rooms in the sidebar) with chosen big numbers across the top, such as Inside, Outside and Lights on.
+In either mode you can move, hide and rename sections, add your own, add cards (a device, a scene, or cards such as Heading, Text, Worth knowing, Playing, Weather and Chart) and move cards between sections. To add something at a particular place, tap the **+** in the gap between two cards. "Goes here" marks the spot, and the Add sheet opens beside the page (under it on a phone). The sheet says which section and spot it adds to, and you can change either there. It stays open, and each thing you add goes after the last. Each device card has its own settings: size, main reading, what else it shows, what a tap does, and its symbol. Home can also show your rooms as boxes (room field, room tiles, or rooms in the sidebar) with chosen big numbers across the top, such as Inside, Outside and Lights on.
 
 ### Pages
 
