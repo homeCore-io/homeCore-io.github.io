@@ -7,19 +7,32 @@ sidebar_position: 2
 
 # Logging
 
-HomeCore uses `tracing` for structured logging. Three independent outputs can run simultaneously, each with its own format and level filter.
+homeCore uses `tracing` for structured logging. It can write to stderr, a
+rolling file, a separate rules file, and remote syslog at the same time,
+each with its own format, and it keeps recent lines in memory for the live
+log stream.
 
 ## Outputs at a glance
 
 | Output | Default | Best for |
 |---|---|---|
-| **stderr** | enabled, pretty format | Development, systemd journal |
-| **file** | disabled | Production, post-mortem analysis, log aggregators |
-| **syslog** | disabled | Centralised aggregation (Graylog, Loki, rsyslog) |
+| **stderr** | enabled, pretty format | Development, systemd journal, Docker logs |
+| **file** | enabled in the shipped config, JSON, in `logs/` under homeCore's home | Post-mortem analysis, log aggregators |
+| **rules file** | disabled | Following what the rule engine did, without other noise |
+| **syslog** | disabled | Central aggregation (Graylog, Loki, rsyslog) |
+
+:::note File logging defaults
+If `homecore.toml` has no `[logging.file]` table at all, file logging is
+on, in JSON. If you add a `[logging.file]` table, set `enabled = true`
+explicitly: inside a table, `enabled` defaults to `false` and `format` to
+`"pretty"`.
+:::
 
 ## Quick level override
 
-The fastest way to change log verbosity is the `RUST_LOG` environment variable. It always takes highest precedence over config:
+The quickest way to change log verbosity is the `RUST_LOG` environment
+variable. Its directives are applied after the config, so they win for
+stderr and the log file (syslog uses its own level):
 
 ```bash
 # Default — info from all crates
@@ -45,7 +58,7 @@ RUST_LOG=error cargo run -p homecore
 
 All settings live under `[logging]` in `config/homecore.toml`.
 
-### `[logging]` — global defaults
+### `[logging]`: global defaults
 
 ```toml
 [logging]
@@ -59,7 +72,9 @@ level = "info"
 time_display = "local"
 ```
 
-### `[logging.targets]` — per-crate overrides
+`time_display` applies to stderr, the log files and syslog timestamps.
+
+### `[logging.targets]`: per-crate overrides
 
 ```toml
 [logging.targets]
@@ -74,7 +89,8 @@ hc_notify      = "info"    # notification channels
 hc_scripting   = "warn"    # Rhai script execution
 ```
 
-Sub-module granularity:
+Keys are Rust target names, so hyphens in crate names become underscores.
+Sub-module granularity works too:
 
 ```toml
 [logging.targets]
@@ -83,7 +99,7 @@ Sub-module granularity:
 "hc_core::bridge"   = "debug"   # MQTT→EventBus state bridge only
 ```
 
-### `[logging.stderr]` — console output
+### `[logging.stderr]`: console output
 
 ```toml
 [logging.stderr]
@@ -92,7 +108,10 @@ format  = "pretty"   # "pretty" | "compact" | "json"
 ansi    = true       # set false for systemd journal / Docker
 ```
 
-### `[logging.file]` — rolling log file
+If every output is disabled, homeCore falls back to plain stderr so there
+is always somewhere for logs to go.
+
+### `[logging.file]`: rolling log file
 
 ```toml
 [logging.file]
@@ -106,11 +125,38 @@ prune_after_days = 5              # delete rotated logs older than N days (0 = n
 format           = "json"         # "json" | "compact" | "pretty"
 ```
 
-Active file is always `<prefix>.log` (never compressed). Rotated files follow:
+`dir` defaults to `logs` under homeCore's home; a relative path resolves
+against the home directory. `max_size_mb` defaults to 100, `compress` to
+`true` and `prune_after_days` to 0 (never prune).
+
+The active file is always `<prefix>.log` and is never compressed. Rotated
+files are named like this:
+
 - Daily: `homecore.2026-03-27.log.gz`
 - Hourly: `homecore.2026-03-27_14.log.gz`
 
-### `[logging.syslog]` — remote syslog
+### `[logging.rules_file]`: rule engine log
+
+A separate file that receives only `hc_core` output (the rule engine,
+action executor and scheduler), filtered at `hc_core=debug`. It gives you
+a record of trigger evaluations, condition checks and actions without the
+broker, API and state messages mixed in.
+
+```toml
+[logging.rules_file]
+enabled          = true
+dir              = "logs"       # defaults to the [logging.file] dir
+prefix           = "rules"      # active: rules.log; rotated: rules.YYYY-MM-DD.log
+rotation         = "daily"
+max_size_mb      = 100
+compress         = true
+prune_after_days = 5
+format           = "pretty"     # "json" for log aggregators
+```
+
+It is off by default. Its `format` defaults to `"pretty"`.
+
+### `[logging.syslog]`: remote syslog
 
 ```toml
 [logging.syslog]
@@ -124,9 +170,23 @@ app_name  = "homecore"
 level     = "warn"      # optional override; defaults to global [logging].level
 ```
 
+Defaults when a key is left out: `transport = "udp"`, `host =
+"127.0.0.1"`, `port = 514`, `protocol = "rfc5424"`, `facility = "user"`,
+`app_name = "homecore"`.
+
+### `[logging.stream]`: in-memory buffer for the live stream
+
+```toml
+[logging.stream]
+enabled          = true
+ring_buffer_size = 500   # recent lines kept for new subscribers
+```
+
+With `enabled = false`, `GET /logs` and `/logs/stream` return 503.
+
 ## Common recipes
 
-### Development — verbose rule engine, quiet broker
+### Development: verbose rule engine, quiet broker
 
 ```toml
 [logging]
@@ -144,7 +204,7 @@ format  = "pretty"
 ansi    = true
 ```
 
-### Production — structured file + remote warnings
+### Production: structured file plus remote warnings
 
 ```toml
 [logging]
@@ -169,7 +229,7 @@ port      = 514
 level     = "warn"   # only warnings and above go to remote
 ```
 
-### systemd — journal-friendly
+### systemd: journal-friendly
 
 ```toml
 [logging.stderr]
@@ -178,7 +238,7 @@ format  = "compact"
 ansi    = false   # no ANSI codes in journal
 ```
 
-### Grafana Loki / Graylog via file
+### Grafana Loki or Graylog via file
 
 ```toml
 [logging.file]
@@ -204,21 +264,39 @@ rotation = "hourly"
 
 ## Log level API
 
-Change log levels at runtime without restart (Admin required):
+You can change the server's log filter at runtime without a restart. The
+body's `level` is a full filter directive string, in the same syntax as
+`RUST_LOG`, and it replaces the current one. Setting it requires the
+`plugins:write` scope, which only `admin` carries.
 
 ```bash
-# Temporarily enable debug for rule engine
+# Debug for the rule engine, info for everything else
 curl -s -X PUT http://localhost:8080/api/v1/system/log-level \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"target":"hc_core","level":"debug"}'
+  -d '{"level":"info,hc_core=debug"}'
 
-# Read the current effective log levels
+# Read the current directive string
 curl -s http://localhost:8080/api/v1/system/log-level \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-## Live log stream (WebSocket)
+The response is `{"level": "..."}` (or `{"ok": true, "level": "..."}`
+after a change). An invalid directive returns 400.
+
+The change lasts until homeCore restarts. It acts as a global gate in
+front of every output: raising it to `debug` makes debug lines appear in
+the live log stream, but stderr, the log file and syslog still apply
+their own configured levels. To get debug lines into those, change
+`[logging]` or set `RUST_LOG` and restart.
+
+## Reading logs over the API
+
+Both endpoints are **admin only**. They read the same in-memory ring
+buffer (`[logging.stream].ring_buffer_size`, default 500 lines), which
+also holds lines forwarded by plugins.
+
+### Live stream (WebSocket)
 
 ```bash
 # Tail all logs at info+
@@ -228,14 +306,43 @@ websocat "ws://localhost:8080/api/v1/logs/stream?token=$TOKEN"
 websocat "ws://localhost:8080/api/v1/logs/stream?token=$TOKEN&level=warn"
 
 # Filter to a specific module
-websocat "ws://localhost:8080/api/v1/logs/stream?token=$TOKEN&module=hc_core"
+websocat "ws://localhost:8080/api/v1/logs/stream?token=$TOKEN&target=hc_core"
 ```
 
-The log stream replays the last 100 buffered log lines on connect, then streams new lines in real time.
+| Parameter | Description |
+|---|---|
+| `token` | JWT or API key (required) |
+| `level` | Minimum level, default `info` |
+| `target` | Only lines whose target starts with this prefix |
+| `plugin_id` | Only lines forwarded by this plugin, including its SDK and dependencies |
+| `history` | Buffered lines to send first, default 50, maximum 500 |
+
+The stream sends the buffered history first, then new lines as they
+happen.
+
+### Recent lines (REST)
+
+`GET /api/v1/logs` returns the same buffer as JSON, oldest first, for
+scripts and `curl | jq`:
+
+```bash
+curl -s "http://localhost:8080/api/v1/logs?level=warn&limit=200" \
+  -H "Authorization: Bearer $TOKEN" | jq '.lines[]'
+```
+
+It takes `level`, `target` and `plugin_id` like the stream, plus `since`
+(an RFC3339 timestamp, for incremental polling) and `limit` (default 100,
+maximum 1000). The response is `{"count": N, "lines": [...]}`.
+
+In the web app, the same lines are on Settings › System › Logs, and each
+plugin's page shows its own log.
 
 ## Plugin logging
 
-Each hc-* plugin manages its own log file and rotation independently of the homeCore server. All plugins share the same `[logging]` config schema, configured in the plugin's own `config/config.toml`:
+Each hc-* plugin writes its own log file and handles its own rotation,
+separately from the homeCore server. All Rust plugins share the same
+`[logging]` schema (from the plugin SDK), set in the plugin's own
+`config/config.toml`:
 
 ```toml
 [logging]
@@ -251,18 +358,22 @@ log_forward_level = "info"   # min level forwarded to core over MQTT
 |---|---|---|
 | `level` | `"info"` | Stderr log level when `RUST_LOG` is not set. Accepts any tracing filter directive, e.g. `"debug"` or `"hc_hue=debug,rumqttc=warn"`. |
 | `rotation` | `"daily"` | Time-based rotation strategy: `daily`, `hourly`, `weekly`, or `never`. |
-| `max_size_mb` | `100` | Size-based rotation threshold. Combined with `rotation` as "whichever comes first". Set `0` to disable size-based rotation. |
+| `max_size_mb` | `100` | Size-based rotation threshold, combined with `rotation` as "whichever comes first". Set `0` to disable size-based rotation. |
 | `compress` | `true` | Gzip-compress rotated files in a background thread immediately after rotation. The active log file is never compressed. |
 | `prune_after_days` | `0` | Delete rotated `.log` and `.log.gz` files older than this many days. Runs at startup and after each rotation. `0` disables pruning. |
-| `log_forward_level` | `"info"` | Minimum log level forwarded to the HomeCore broker over MQTT. Plugin logs at or above this level appear in the admin UI's Activity page and the `/api/v1/logs/stream` WebSocket. Set to `"off"` to disable forwarding entirely. |
+| `log_forward_level` | `"info"` | Minimum level forwarded to homeCore over MQTT. Forwarded lines appear in the web app's logs and in `/api/v1/logs/stream`. Set to `"off"` to stop forwarding. |
+
+A plugin's log level can also be changed from its page in the web app.
 
 ### MQTT log forwarding
 
-Plugins forward their tracing logs to HomeCore over MQTT, making them visible in the admin UI alongside core logs. The forwarding uses QoS 0 (fire-and-forget) to avoid stalling the logging pipeline.
+Plugins forward their tracing output to homeCore over MQTT, so it shows up
+alongside core's own logs. Forwarding uses QoS 0 (fire-and-forget) so it
+never stalls the plugin's logging.
 
 **Topic:** `homecore/plugins/{plugin_id}/logs`
 
-**Payload format** (same as the core's `LogLine`):
+**Payload format** (the same as core's `LogLine`):
 
 ```json
 {
@@ -274,11 +385,11 @@ Plugins forward their tracing logs to HomeCore over MQTT, making them visible in
 }
 ```
 
-The core's state bridge receives these messages and injects them into the log stream broadcast channel, so they appear in:
-- The `/api/v1/logs/stream` WebSocket (live tail)
-- The admin UI Activity page (filtered by source = "log")
+homeCore puts these lines into the same buffer and broadcast channel as
+its own, so they appear in `/api/v1/logs`, `/api/v1/logs/stream` and the
+web app.
 
-Plugin log files follow the same naming convention as the server:
+Plugin log files follow the same naming as the server's:
 
 | File | Description |
 |---|---|
@@ -287,4 +398,4 @@ Plugin log files follow the same naming convention as the server:
 | `logs/hc-{plugin}.2026-03-27_14.log.gz` | Rotated hourly file (compressed) |
 | `logs/hc-{plugin}.2026-03-27.1.log.gz` | Second size-triggered rotation in the same period |
 
-Defaults preserve the previous behavior if the `[logging]` section is absent from a plugin config.
+If a plugin config has no `[logging]` section, these defaults apply.

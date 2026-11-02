@@ -7,30 +7,38 @@ sidebar_position: 3
 
 # MQTT Broker
 
-HomeCore embeds a full MQTT broker ([rumqttd](https://github.com/bytebeamio/rumqtt))
-that starts automatically alongside the server. For evaluation,
-homelab, and small deployments this is enough — no separate broker
-process to manage.
+homeCore embeds a full MQTT broker ([rumqttd](https://github.com/bytebeamio/rumqtt))
+that starts automatically with the server. For evaluation, homelab and
+small deployments this is enough, with no separate broker process to
+manage.
 
-For deployments where **per-topic ACL enforcement matters** —
-containers, remote plugins, third-party code, or anything going
-through a security review — point HomeCore at an external Mosquitto
-broker instead. The embedded rumqttd authenticates connections but
-does **not** enforce per-topic publish/subscribe ACLs (that's an
-upstream limitation, not a HomeCore choice). The full enforcement path
-plus the `hc-cli broker generate-mosquitto-config` helper that
-converts your existing `[[broker.clients]]` config into a Mosquitto
-ACL file is in [External Mosquitto deployment](#external-mosquitto-deployment)
-below.
+The embedded rumqttd authenticates connections but does **not** enforce
+per-topic publish/subscribe ACLs. That is a limitation of rumqttd, not a
+homeCore setting. Where per-topic enforcement matters (containers, remote
+plugins, third-party code, or a security review), the alternative is an
+external Mosquitto broker. `hc-cli broker generate-mosquitto-config`
+converts your existing `[[broker.clients]]` entries into a Mosquitto ACL
+file; see [External Mosquitto deployment](#external-mosquitto-deployment)
+below, including its current limitation.
 
 | Mode | Authn (CONNECT) | Authz (per-topic ACL) | When to use |
 |---|---|---|---|
 | Embedded `rumqttd` (default) | ✓ enforced | ✗ metadata only | Single host, trusted network, evaluation |
 | External Mosquitto | ✓ enforced | ✓ enforced | Multi-host, third-party plugins, prod |
 
+## Listeners
+
+| Key | Default | Notes |
+|---|---|---|
+| `host` | `"0.0.0.0"` | Address every listener binds to. The shipped `homecore.toml` sets `"127.0.0.1"` |
+| `port` | `1883` | MQTT v3.1.1, plain text. homeCore's own client connects here on `127.0.0.1` |
+| `v5_port` | `1884` | A second, MQTT v5 listener for devices that need it (for example Shelly Plus/Pro). `0` turns it off |
+| `tls_port` | unset | Optional TLS listener; needs `cert_path` and `key_path` |
+
 ## Topic schema
 
-All communication between HomeCore and plugins uses a canonical MQTT topic layout:
+All communication between homeCore and plugins uses this MQTT topic
+layout:
 
 ```
 # Device state  (plugin → broker → HomeCore)
@@ -52,25 +60,42 @@ homecore/plugins/{plugin_id}/register         capability payload
 # Events (HomeCore → any subscriber)
 homecore/events/{event_type}                  rule_fired, scene_activated, etc.
 
-# System
-homecore/system/status                        broker health (retained)
+# System (HomeCore → plugins, retained)
+homecore/system/tz                            the house's IANA time zone
+homecore/system/location                      the house's coordinates
 ```
 
-## Default configuration (no auth)
+Plugins also use further topics under `homecore/plugins/{plugin_id}/`
+(status, heartbeat, logs, management commands); the plugin SDK handles
+those.
 
-Without any `[[broker.clients]]` entries, the broker accepts any connection without credentials:
+## Without credentials (loopback only)
+
+With no `[[broker.clients]]` entries, the broker accepts any connection
+without credentials. homeCore only allows that when the broker is bound
+to loopback:
 
 ```toml
 [broker]
-host = "0.0.0.0"
+host = "127.0.0.1"
 port = 1883
 ```
 
-Suitable for development and fully trusted networks.
+This is what the shipped config does. It suits a single host where core
+and its plugins run on the same machine.
+
+If `host` is a non-loopback address (including the default `0.0.0.0`)
+and there are no `[[broker.clients]]` entries, homeCore **refuses to
+start** and explains how to fix it. Either bind to `127.0.0.1` or add
+credentials. If you have isolated the network some other way and accept
+the risk, setting the environment variable
+`HC_ALLOW_ANONYMOUS_REMOTE_BROKER=1` lets it start, with an error logged.
 
 ## Password authentication
 
-When one or more `[[broker.clients]]` entries are present, the broker requires credentials. Every connecting client must use `username = client_id` and the matching password.
+When one or more `[[broker.clients]]` entries are present, the broker
+requires credentials on every connection. Each client connects with
+`username = client_id` and the matching password.
 
 ```toml
 [broker]
@@ -97,6 +122,10 @@ allow_pub = ["homecore/devices/yolink_+/state", "homecore/plugins/yolink/+"]
 allow_sub = ["homecore/devices/yolink_+/cmd"]
 ```
 
+homeCore's own client connects as `internal.core`, so that entry is
+required as soon as any client is listed. Passwords are written in
+plaintext in `homecore.toml`; protect the file accordingly.
+
 Then in each plugin's `config/config.toml`:
 
 ```toml
@@ -108,16 +137,29 @@ password    = "hue-plugin-password"
 ```
 
 :::caution Topic ACL limitation
-The embedded rumqttd 0.19 broker enforces **connection-level** credentials but does **not** enforce per-topic publish/subscribe ACL. A plugin that authenticates successfully can technically publish to any topic.
+The embedded rumqttd broker (0.20) enforces **connection-level**
+credentials but does **not** enforce per-topic publish/subscribe ACLs. A
+plugin that authenticates can publish to any topic.
 
-`allow_pub` / `allow_sub` fields serve as documentation and can be exported to generate external broker config. For strict topic isolation in production, use an external broker (Mosquitto, EMQX) and point HomeCore's MQTT client at it.
-
-See [External Mosquitto deployment](#external-mosquitto-deployment) below for the full recipe.
+`allow_pub` and `allow_sub` document intent, and `hc-cli` can export them
+to an external broker's config. For real topic isolation you need an
+external broker; see the next section.
 :::
 
 ## External Mosquitto deployment
 
-For deployments where topic isolation matters — containers, remote plugins, third-party code, or anything going through a security review — run HomeCore against an external Mosquitto broker. The `allow_pub` / `allow_sub` patterns you already have in `[[broker.clients]]` are converted to a Mosquitto ACL file that Mosquitto actually enforces.
+Mosquitto enforces topic ACLs. The `allow_pub` / `allow_sub` patterns you
+already have in `[[broker.clients]]` can be converted to a Mosquitto ACL
+file.
+
+:::warning homeCore cannot yet use an external broker
+In homeCore 0.1.96, `homecore.toml` has no setting that points core at an
+external broker. The `[broker] external_url` key mentioned by `hc-cli`
+and the sample compose file is not read by the server: homeCore always
+starts its embedded broker and connects its own client to `127.0.0.1`
+on `[broker].port`. The steps below generate a working Mosquitto setup,
+but core itself will not switch to it until that setting exists.
+:::
 
 ### Generate the config
 
@@ -127,36 +169,47 @@ hc-cli broker generate-mosquitto-config \
   --out-dir ./mosquitto-config
 ```
 
+`--config` defaults to `config/homecore.toml` and `--out-dir` to
+`mosquitto-config`. `--listener-port` (default 1883) sets the port written
+into `mosquitto.conf`, and `--force` overwrites existing files.
+
 This produces three files in `mosquitto-config/`:
 
-- `mosquitto.conf` — listener + references to ACL + passwd files.
-- `aclfile` — generated from every `[[broker.clients]]` entry. Each client's `allow_pub` patterns become `topic write …` rules; `allow_sub` patterns become `topic read …`.
-- `passwd.setup.sh` — helper script. Edit each `CHANGE_ME_<ID>` placeholder to the plaintext password from the matching `[[broker.clients]]` entry, then run the script inside an `eclipse-mosquitto` container to produce the hashed `passwd` file.
+- `mosquitto.conf`: a listener with anonymous access off, plus references
+  to the ACL and password files.
+- `aclfile`: generated from every `[[broker.clients]]` entry. Each
+  client's `allow_pub` patterns become `topic write …` rules and its
+  `allow_sub` patterns become `topic read …`. `internal.core` always gets
+  `readwrite` on `homecore/#` and `$SYS/#`.
+- `passwd.setup.sh`: a helper script. Replace each `CHANGE_ME_<ID>`
+  placeholder with the plaintext password from the matching
+  `[[broker.clients]]` entry, then run the script somewhere
+  `mosquitto_passwd` is available (an `eclipse-mosquitto` container works)
+  to produce the hashed `passwd` file.
 
 ### Deploy
 
-For a native systemd deployment (no Docker), follow the
-[Systemd Deployment guide](./systemd-deployment) — it walks through
-the same `hc-cli broker generate-mosquitto-config` flow end to end.
+For a native systemd setup (no Docker), the
+[Systemd Deployment guide](./systemd-deployment) walks through the same
+`hc-cli broker generate-mosquitto-config` flow end to end.
 
-For Docker, the runnable example lives at `core/docker/docker-compose.external-broker.yml`:
+For Docker, the example lives at `core/docker/docker-compose.external-broker.yml`:
 
 ```bash
 docker compose -f docker-compose.external-broker.yml run --rm passwd-setup
 docker compose -f docker-compose.external-broker.yml up -d
 ```
 
-Then in your `homecore.toml` set:
+The compose file and `hc-cli` then tell you to set:
 
 ```toml
 [broker]
 external_url = "mqtt://mosquitto:1883"
 ```
 
-HomeCore will skip the embedded broker and connect to Mosquitto as any other client. Plugins connect using their existing `plugin_id` + `password` credentials — only the enforcement location changes.
-
-This page is the full design; `hc-cli broker generate-mosquitto-config`
-produces the deployment from your own config.
+As the warning above says, the current server ignores this key. Plugins
+would keep their existing `plugin_id` and `password` credentials; only
+where they are checked would change.
 
 ## TLS
 
@@ -171,7 +224,10 @@ cert_path = "/etc/homecore/broker.crt"
 key_path  = "/etc/homecore/broker.key"
 ```
 
-If the certificate or key file is missing at startup, the TLS listener is skipped with a warning and only the plain-text port opens.
+`cert_path` and `key_path` are PEM files. Relative paths resolve against
+homeCore's home directory. If either file is missing at startup, the TLS
+listener is skipped with a warning and only the plain-text listeners
+open.
 
 ### Generate a self-signed certificate (development)
 
@@ -183,7 +239,7 @@ openssl req -x509 -newkey rsa:4096 \
   -subj   "/CN=homecore-broker"
 ```
 
-For a named host (clients can verify the hostname):
+For a named host (so clients can verify the hostname):
 
 ```bash
 openssl req -x509 -newkey rsa:4096 \
@@ -207,7 +263,7 @@ cert_path = "/etc/letsencrypt/live/homecore.yourdomain.com/fullchain.pem"
 key_path  = "/etc/letsencrypt/live/homecore.yourdomain.com/privkey.pem"
 ```
 
-## Combined auth + TLS example
+## Combined auth and TLS example
 
 ```toml
 [broker]
@@ -232,7 +288,8 @@ allow_sub = ["homecore/devices/zwave_+/cmd"]
 
 ## Connecting with MQTT clients
 
-Any standard MQTT client can connect to the embedded broker:
+Any standard MQTT client can connect to the embedded broker. Add `-u` and
+`-P` if you have configured `[[broker.clients]]`:
 
 ```bash
 # Subscribe to all device state changes (mosquitto_sub)
@@ -246,6 +303,10 @@ mosquitto_pub -h localhost -p 1883 \
 
 ## Retained messages
 
-Device state is published with `retain=true`. New MQTT subscribers (including new HomeCore instances after restart) receive the last-known state for every device immediately upon subscribing, without waiting for the next update.
+Device state is published with `retain=true`. A new MQTT subscriber,
+including homeCore itself after a restart, receives the last-known state
+of every device as soon as it subscribes, without waiting for the next
+update.
 
-This means HomeCore's state bridge always has an up-to-date picture of all devices at startup, even if no plugins are actively publishing.
+So homeCore's state bridge has a current picture of every device at
+startup, even if no plugin is actively publishing.
