@@ -25,6 +25,32 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.45, 2026-11-02
+
+**Theme:** a new plugin opens where it needs you.
+
+An app release on its own: homeCore and the plugins are unchanged.
+
+### What you'll notice
+
+- **A plugin you just installed opens on its own page, if it has one.**
+  Installing from Settings › Plugins › Add always opened the new plugin's
+  Settings tab. NuHeat and Mysa are set up by signing in, and their
+  **Link** button is on their own page, so you had to find it. Now the
+  page says "Starting…" for a few seconds while the plugin starts, then
+  opens its own page (NuHeat, Mysa, Ecowitt, Thermostat, Weather) or, for
+  any other plugin, its Settings as before.
+
+### Release matrix
+
+**Tagged:** `hc-web-svelte` v0.1.45 only. No homeCore or plugin release.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## hc-mysa 0.1.0, 2026-11-02
 
 **Theme:** Mysa thermostats in homeCore.
