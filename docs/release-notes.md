@@ -25,6 +25,54 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-weather 0.1.1 — 2026-11-01
+
+**Theme:** a weather card that moves, and readings to automate on.
+
+A plugin release on its own: homeCore and the app are unchanged.
+
+### What you'll notice
+
+- **A new card, "Weather, animated".** Add it to any page from Add ›
+  Cards. It shows the weather now as a moving scene: drifting clouds, rain
+  or snow that falls harder when it rains harder and slants in the wind,
+  sun rays by day, a moon and stars at night, and lightning in a storm. On
+  it are the temperature, a red ribbon for a warning (amber for a watch),
+  "Rain in 20 min" when rain is due, the next few hours, and five days at
+  the large size. It comes in compact, standard and large, and its
+  settings choose the place and the name shown. It stops moving when it is
+  off screen and stays still for anyone whose device is set to reduce
+  motion.
+- **New readings for automations.** Rain in the next hour and how many
+  minutes until it starts, with "rain within 30 minutes" as on or off (close
+  the skylight); tonight's low and whether it will freeze (cover the
+  plants); tomorrow's high and low; snow expected today; the dew point; and
+  the air quality as a category, from Good to Hazardous. Each forecast day
+  also has its snow and its strongest gust.
+- **Warnings in full.** The plugin's page shows each warning's
+  description, what the weather service says to do, and when it ends. An
+  alert in homeCore now shows when the warning began. When the US weather
+  service updates a warning, only the update is listed.
+- **The plugin's page** also has a line on what's coming (rain soon,
+  tonight's low, tomorrow), the next 24 hours, and whole-degree
+  temperatures.
+- **Forecast days are right across a clock change.** Each day used to
+  take today's UTC offset, so days after the clocks changed began an hour
+  off midnight. Each day now uses its own.
+- **After a failed read** the plugin tries again within a minute, then
+  backs off, rather than waiting a full 15 or 30 minutes.
+
+### Release matrix
+
+**Tagged:** `hc-weather-v0.1.1` only. No homeCore or app release.
+
+### Upgrade notes
+
+- Nothing to change. Existing readings keep their names and units; the
+  new ones start empty and fill on the plugin's next read.
+
+---
+
 ## v0.1.96 — 2026-11-01
 
 **Theme:** NuHeat thermostats, and a thermostat card worth looking at.
