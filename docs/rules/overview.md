@@ -182,7 +182,7 @@ vim rules/front_door_alert.ron
 # INFO hc_core::rule_loader: Rules hot-reloaded (surgical) added_or_updated=1 removed=0
 ```
 
-Subdirectories are not loaded, so `rules/examples/` can hold reference files without them running.
+Subdirectories are not loaded, so a folder such as `rules/archive/` can hold files without them running.
 
 ## Run modes
 
@@ -244,5 +244,4 @@ Paths are relative to the HomeCore core repository.
 | `crates/hc-core/src/executor.rs` | Action execution, all action type handlers |
 | `crates/hc-core/src/rule_loader.rs` | RON loading, hot-reload watcher |
 | `crates/hc-core/src/rule_resolver.rs` | Resolving `device` references to device IDs |
-| `rules/` | Live rule files (RON) |
-| `rules/examples/` | Reference rules (not loaded) |
+| `rules/` | Your rule files (RON), under homeCore's base directory |
