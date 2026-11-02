@@ -15,9 +15,14 @@
   which only that person's plugin holds. Nothing is stored, logged or sent
   anywhere else; there are no outside scripts.
 
-  It goes back by itself only to an address on a home network (localhost, a
-  private IP, a .local or single-word name). Anywhere else it asks first, so
-  this page can't be used to send people to another site unawares.
+  It sends the code only to an address on the person's own network:
+  localhost, a loopback or private IPv4 address (10/8, 172.16/12,
+  192.168/16, 127/8), an IPv6 loopback or unique local address (fc00::/7),
+  or a name that can only be answered locally (.local, .home.arpa,
+  .internal). Never anywhere else, and never after asking: otherwise someone
+  could start a sign-in with their own verifier, put their own address in
+  state, and have a customer's code sent to them. A homeCore reached any other
+  way signs in by pasting the address instead.
 -->
 <style>
   :root { color-scheme: light dark; --bg: #f3f0e8; --card: #fff; --ink: #1e2126; --muted: #5d6470; --line: #e2dccf; --accent: #9a4a07; --accent-ink: #fff; --alert: #b42318; }
@@ -39,10 +44,9 @@
   <div class="card">
     <h1 id="title">Back to homeCore…</h1>
     <p id="error" class="bad" hidden></p>
-    <div id="ask" hidden>
-      <p>Continue to your homeCore at <strong id="host"></strong> to finish signing in to Mysa.</p>
-      <p class="muted">Only continue if that's your homeCore.</p>
-      <p style="margin-top:14px"><a id="go" class="go" href="#">Continue</a></p>
+    <div id="refused" hidden>
+      <p>This sign-in asked to be sent to <strong id="host"></strong>, which isn't an address on a home network, so this page won't send it there. Nothing was linked.</p>
+      <p class="muted">If that is your homeCore, start again from the Mysa plugin's page and use "Can't come back to this page from Mysa?". If you didn't start this sign-in, close this page.</p>
     </div>
     <div id="copy" hidden>
       <p>Copy this page's address and paste it into the Mysa plugin's page in homeCore within a minute, under "Can't come back to this page from Mysa?".</p>
@@ -75,19 +79,22 @@
     }
   }
 
-  // A home network: localhost, a private IPv4, an IPv6 loopback or unique
-  // local, a .local/.lan/.home.arpa/.internal name, or a single-word name.
-  function atHome(host) {
-    host = host.replace(/^\[|\]$/g, '').toLowerCase();
+  // The person's own network, and nothing that outside DNS can answer:
+  // localhost, a loopback or private IPv4, an IPv6 loopback or unique local
+  // address, or a .local, .home.arpa or .internal name. The browser's URL
+  // parser has already turned any other spelling of an IPv4 address
+  // (0x0a.1, 167772161) into dotted decimal.
+  function atHome(url) {
+    if (url.username || url.password) return false;
+    var host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
     if (host === 'localhost' || host === '::1') return true;
-    if (/^(fc|fd)[0-9a-f]{2}:/.test(host)) return true;
+    if (/^f[cd][0-9a-f]{0,2}:/.test(host)) return true;
     var m = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
     if (m) {
       var a = +m[1], b = +m[2];
       return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
     }
-    if (host.indexOf('.') < 0) return true;
-    return /\.(local|lan|home\.arpa|internal)$/.test(host);
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.(local|home\.arpa|internal)$/.test(host);
   }
 
   if (error) {
@@ -101,14 +108,15 @@
     ['code', 'state', 'error', 'error_description'].forEach(function (k) {
       if (q.get(k)) back.searchParams.set(k, q.get(k));
     });
-    if (atHome(back.hostname)) {
+    if (atHome(back)) {
       location.replace(back.toString());
       return;
     }
-    document.getElementById('title').textContent = 'One more step';
+    // Not a home network: the code goes nowhere, and leaves the address bar.
+    history.replaceState(null, '', location.pathname);
+    document.getElementById('title').textContent = 'Not sent';
     document.getElementById('host').textContent = back.host;
-    document.getElementById('go').href = back.toString();
-    document.getElementById('ask').hidden = false;
+    document.getElementById('refused').hidden = false;
     return;
   }
 
