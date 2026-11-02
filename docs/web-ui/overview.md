@@ -29,13 +29,13 @@ mkdir homecore-data
 docker compose up -d
 ```
 
-Open `http://<host-ip>:3000` and sign in with `admin` and the password in `homecore-data/INITIAL_ADMIN_PASSWORD`.
+Open `http://<host-ip>:3001` and sign in with `admin` and the password in `homecore-data/INITIAL_ADMIN_PASSWORD`.
 
 To run the app on its own, beside an existing homeCore:
 
 ```sh
 docker run -d --name hc-web-svelte --restart unless-stopped \
-  -p 3000:3000 \
+  -p 3001:3000 \
   -e HC_CORE_URL=http://homecore:8080 \
   -v hc-web-svelte-data:/data \
   ghcr.io/homecore-io/hc-web-svelte:latest

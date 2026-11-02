@@ -10,10 +10,10 @@ sidebar_position: 5
 HomeCore runs as two containers.
 
 ```
-browser ─▶ hc-web-svelte:3000 ─┬─ /            the web app
-                               └─ /api/v1/* ──▶ hc-core:8080 ──▶ plugins (child processes)
-                                                   │
-                                                   └─ embedded MQTT broker
+browser ─▶ host:3001 ─▶ hc-web-svelte:3000 ─┬─ /            the web app
+                                            └─ /api/v1/* ──▶ hc-core:8080 ──▶ plugins (child processes)
+                                                                │
+                                                                └─ embedded MQTT broker
 ```
 
 | Image | What it is |
@@ -28,15 +28,15 @@ signature, and runs it as a child process. Adding hardware support never
 means editing a compose file.
 
 The reference compose files live in
-[`homeCore-io/docker`](https://github.com/homeCore-io/docker).
+[`homeCore-io/docker`](https://github.com/homeCore-io/docker); the file
+below is its `compose.yml` with the comments left out. You can clone the
+repository instead of writing the file yourself.
 
-:::caution The docker repository is behind
-The repository's default branch (`main`) still describes an older stack,
-with the Flutter app `hc-web` on port 3000. Its `develop` branch has the
-current layout, but also keeps an `hc-web` service (port 3001). The
-Flutter app is retired and does not work with core v0.1.94 or later, so
-leave that service out. The compose file below is the current two-service
-stack.
+:::note The old Flutter UI
+Before the docker repository's November 2026 update, its stack ran the
+Flutter UI (`hc-web`) on port 3000. That UI is retired and doesn't work
+with core v0.1.94 or later. If your compose file still has an `hc-web`
+service, delete it; the app is on port 3001.
 :::
 
 ---
@@ -71,7 +71,7 @@ services:
       HC_CORE_URL: http://homecore:8080
     networks: [homecore]
     ports:
-      - "${HC_WEB_PORT:-3000}:3000"
+      - "${HC_WEB_PORT:-3001}:3000"
     volumes:
       - app-data:/data
 
@@ -96,7 +96,7 @@ docker compose up -d
 cat homecore-data/INITIAL_ADMIN_PASSWORD
 ```
 
-Open `http://<host-ip>:3000`, sign in as `admin`, change the password,
+Open `http://<host-ip>:3001`, sign in as `admin`, change the password,
 and delete `INITIAL_ADMIN_PASSWORD`. Then go to Plugins → Add.
 
 The network is declared explicitly so the stack behaves the same when a
@@ -144,7 +144,7 @@ Windows runs containers inside a VM, so host networking there doesn't
 reach the LAN's multicast traffic.
 
 With host networking there are no port mappings. The app listens on
-`PORT` (default `3000`, from `HC_WEB_PORT`) and reaches core at
+`PORT` (default `3001`, from `HC_WEB_PORT`) and reaches core at
 `http://127.0.0.1:8080`, because compose service names don't resolve on
 the host network.
 
@@ -304,7 +304,7 @@ For a structured backup that leaves out runtime state, use the API. It
 works through the app's proxy or against core directly:
 
 ```bash
-curl -s -X POST http://localhost:3000/api/v1/system/backup \
+curl -s -X POST http://localhost:3001/api/v1/system/backup \
     -H "Authorization: Bearer $TOKEN" \
     -o homecore-backup.zip
 ```
@@ -337,7 +337,7 @@ upgrade steps.
 ```bash
 docker compose ps            # both services "running"
 
-curl http://localhost:3000/api/v1/health     # through the app's proxy
+curl http://localhost:3001/api/v1/health     # through the app's proxy
 curl http://localhost:8080/api/v1/health     # core directly
 # {"status":"ok","version":"0.1.96"}
 ```
