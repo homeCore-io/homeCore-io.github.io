@@ -30,9 +30,8 @@ at all, use **Can't come back to this page from NuHeat?** on the plugin's
 page: NuHeat opens in a new tab, lands on an address that won't load, and you
 paste that address back.
 
-**NuHeat ends a sign-in after 30 days**, however often it's used. The
-plugin's page shows the date, and five days before it the plugin says so on
-its page. Signing in again takes a minute and starts another 30 days.
+**A sign-in lasts while homeCore keeps running.** NuHeat ends one only if it
+goes unused for 15 days, so sign in again if homeCore was off that long.
 
 ## On Home
 
@@ -53,7 +52,7 @@ indefinitely** is on).
 | `hvac_action` | `heating` or `idle` |
 | `hvac_mode` | always `heat` |
 | `schedule_mode` | `auto` (its schedule), `hold` (for now) or `permanent_hold` |
-| `hold_until` | when a temporary hold ends |
+| `hold_until` | when a temporary hold ends, in UTC |
 | `error_state` | the thermostat's own fault, if any |
 
 Temperatures are °C in homeCore and shown in each person's own units.
