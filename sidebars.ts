@@ -93,6 +93,7 @@ const sidebars = {
         'plugins/roku',
         'plugins/weather',
         'plugins/nuheat',
+        'plugins/mysa',
       ],
     },
     {

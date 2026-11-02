@@ -51,6 +51,7 @@ Plugins can also declare **capability actions**: plugin-specific commands such a
 | [hc-thermostat](./thermostat) | Rust | Virtual thermostats (aggregated sensors → actuator) |
 | [hc-weather](./weather) | Rust | The weather for a place (Open-Meteo), and weather warnings as alerts |
 | [hc-nuheat](./nuheat) | Rust | NuHeat Signature floor-heating thermostats |
+| [hc-mysa](./mysa) | Rust | Mysa smart thermostats |
 
 These plugins live in the homeCore repository. Each one is released as its own
 signed artifact and installed from the registry; none of them is built into
