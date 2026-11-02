@@ -64,25 +64,43 @@ export default function Home(): ReactNode {
           <div className={styles.line}><C># plugins</C></div>
           <div className={styles.line}>&nbsp;</div>
           <div className={styles.line}>
-            <D>hc-lutron</D>  RadioRA2 / Caseta
+            <D>hc-caseta    </D> Lutron Caséta
           </div>
           <div className={styles.line}>
-            <D>hc-hue</D>     Philips Hue
+            <D>hc-ecowitt   </D> Ecowitt weather stations
           </div>
           <div className={styles.line}>
-            <D>hc-zwave</D>   Z-Wave JS
+            <D>hc-hue       </D> Philips Hue
           </div>
           <div className={styles.line}>
-            <D>hc-yolink</D>  YoLink sensors
+            <D>hc-isy       </D> ISY/IoX (Insteon, Z-Wave, Zigbee)
           </div>
           <div className={styles.line}>
-            <D>hc-sonos</D>   Sonos speakers
+            <D>hc-lutron    </D> Lutron RadioRA2
           </div>
           <div className={styles.line}>
-            <D>hc-wled</D>    WLED controllers
+            <D>hc-nuheat    </D> NuHeat floor heating
           </div>
           <div className={styles.line}>
-            <D>hc-isy</D>     ISY/IoX (Insteon)
+            <D>hc-roku      </D> Roku players and TVs
+          </div>
+          <div className={styles.line}>
+            <D>hc-sonos     </D> Sonos speakers
+          </div>
+          <div className={styles.line}>
+            <D>hc-thermostat</D> Software thermostats
+          </div>
+          <div className={styles.line}>
+            <D>hc-weather   </D> Weather and warnings
+          </div>
+          <div className={styles.line}>
+            <D>hc-wled      </D> WLED controllers
+          </div>
+          <div className={styles.line}>
+            <D>hc-yolink    </D> YoLink sensors, locks and plugs
+          </div>
+          <div className={styles.line}>
+            <D>hc-zwave     </D> Z-Wave JS
           </div>
           <div className={styles.line}>&nbsp;</div>
           <div className={styles.line}><C># status</C></div>
