@@ -7,111 +7,147 @@ sidebar_position: 7
 
 # Sonos (`hc-sonos`)
 
-The `hc-sonos` plugin discovers Sonos speakers on your network, registers them as HomeCore `media_player` devices, and keeps transport state in sync through MQTT.
+The `hc-sonos` plugin finds the Sonos speakers on your network, registers each
+one in HomeCore as a `media_player` device, and keeps its playback state in
+sync over MQTT.
 
-It also keeps its own standalone HTTP API. That is intentional. You can use the plugin directly if you want, but once a speaker is registered in HomeCore the preferred automation path is through the HomeCore device ID.
+The plugin also has its own standalone HTTP API, on purpose. You can call it
+directly if you like, but once a speaker is registered in HomeCore, automations
+should address it by its HomeCore device ID.
 
 ## Its screens
 
-All of these come with the plugin itself — update the plugin, and they update.
+All of these ship with the plugin, so updating the plugin updates them.
 
-- **Its page** (Settings › Plugins › Sonos): how many speakers there are and
-  when they were found; speakers that are in no room yet, with a way to place
-  them; the speakers **as the groups they play in** — a group is one card with
-  the music it plays, one volume for the whole group and each speaker's own
-  volume under it, and *Change the group* / *Ungroup*; and your Sonos
-  favourites with their artwork: pick one, tick the speakers it should play on,
-  and press Play.
+- **Its page** (Settings › Plugins › Sonos) shows:
+  - how many speakers there are, how many are answering, and when they were
+    found;
+  - any speaker that isn't answering, with *Forget* for admins;
+  - speakers that aren't in a room yet, with a way to place them;
+  - the speakers **as the groups they play in**. Each group is one card with
+    the music it is playing, one volume for the whole group and each speaker's
+    own volume under it, plus *Change the group* and *Ungroup*;
+  - your Sonos favourites with their artwork. Pick one, tick the speakers it
+    should play on, and press Play;
+  - the household's Sonos **alarms**, each with an on/off switch.
 - **Play together** (*Group speakers…* on the page, or *Change the group*):
   tick the speakers that should play the same music. The one marked *playing
-  from* is where the music comes from; *Play from here* moves it. *All
-  speakers* and *Each on its own* are shortcuts. The plugin makes the whole
-  group in one go and says, speaker by speaker, what happened — *joined*,
-  *left*, or **no answer** for a speaker that is off or asleep, with a button
-  to try it again.
-- **A speaker's panel**: what it plays — a track with its progress (tap the bar
-  to jump), or a radio station, live, with nothing to skip — the transport,
-  mute and volume (and the group's volume, when it is in one); then three tabs:
-  **Favourites** to play one here, **Group** to tick the speakers that play this
-  one's music, and **Sound** for bass, treble and loudness.
-- **A speaker's card** on Home and the rooms: its artwork, what it plays, the
-  track's progress, play/pause and its volume; compact, one row with a play
-  button. A speaker in a group shows the group's music.
-- **Sonos speakers**, a card you add yourself (Edit → Add a card): every
-  speaker, or the ones its settings tick — what each plays, its volume,
-  play/pause.
-- **Sonos favourites**, a card you add yourself: the favourites with their
-  artwork; a tap plays one on the speaker its settings choose (*Play on*), or
-  on whichever speaker is playing.
-- **In automations**, a step on a speaker is *Play a favourite* (optionally at
-  a volume), *Volume*, *Pause* or *Group*, and says so in words: "play Piano for
-  Sleeping on Bathroom at volume 20", "play Bathroom's music on Office-1 and
-  Office-2 too".
+  from* is where the music comes from, and *Play from here* moves that role to
+  another speaker. *All speakers* and *Each on its own* are shortcuts. The
+  plugin builds the whole group in one go and reports back speaker by speaker:
+  *joined*, *left*, *in the group*, or **no answer** for a speaker that is off
+  or asleep. You can try a speaker that didn't answer again.
+- **A speaker's panel** shows what it is playing: a track with its progress
+  (tap the bar to jump), a live radio station (nothing to skip), or an input
+  such as TV or line-in. Below that are the transport controls, mute and
+  volume (and the group's volume when it is in one), then three tabs:
+  - **Favourites**, to play one on this speaker;
+  - **Group**, to tick the speakers that should play this one's music;
+  - **Sound**: bass, treble, loudness, crossfade and the sleep timer. A
+    soundbar also gets night mode and speech enhancement, and a speaker with
+    an input gets *Play from* TV or line-in.
+
+  If the speaker refuses a command, the panel says why.
+- **A speaker's card** on Home and in rooms shows its artwork, what it is
+  playing, the track's progress, play/pause and its volume. The compact form
+  is one row with a play button. A speaker in a group shows the group's music.
+- **Sonos speakers** is a card you add yourself (Edit → Add a card). It lists
+  every speaker, or the ones ticked in its settings, with what each is playing,
+  its volume and play/pause.
+- **Sonos favourites** is another card you add yourself. It shows the
+  favourites with their artwork. Tapping one plays it on the speaker chosen in
+  the card's settings (*Play on*), or otherwise on whichever speaker is
+  playing.
+- **In automations**, a step on a speaker can be *Play a favourite*
+  (optionally at a volume), *Volume*, *Pause* or *Group*. The step reads as a
+  sentence, such as "play Piano for Sleeping on Bathroom at volume 20" or "play
+  Bathroom's music on Office-1 and Office-2 too".
 
 ### What the screens send
 
 | Command | Does |
 |---|---|
-| `{"action": "play_favorite", "favorite": "Piano for Sleeping", "volume": 20}` | sets this speaker's volume, then plays the favourite (on its group, if it is in one) |
-| `{"volume": 20}` | this speaker's own volume |
-| `{"action": "set_group_volume", "volume": 24}` | the whole group's volume, keeping each speaker's balance |
-| `{"action": "pause"}`, `{"action": "play"}` | to the group's coordinator, whichever speaker it is sent to |
-| `{"action": "group", "members": ["sonos_office_1", "sonos_office_2"]}` | makes this speaker's group exactly these — see below |
+| `{"action": "play_favorite", "favorite": "Piano for Sleeping", "volume": 20}` | Sets this speaker's volume, then plays the favourite (on its group, if it is in one). |
+| `{"volume": 20}` | Sets this speaker's own volume. |
+| `{"action": "set_group_volume", "volume": 24}` | Sets the whole group's volume, keeping the balance between speakers. |
+| `{"action": "pause"}`, `{"action": "play"}` | Goes to the group's coordinator, whichever speaker it was sent to. |
+| `{"action": "group", "members": ["sonos_office_1", "sonos_office_2"]}` | Makes this speaker's group exactly these speakers. See [Groups](#groups). |
 
 The page and Play together use the plugin's own `group_speakers` action, which
-does the same as `group` and answers speaker by speaker, and its read-only
-`status` action for when the speakers were last looked for.
+does the same as `group` but answers speaker by speaker. The page also uses the
+read-only `status` action to show when the speakers were last looked for.
 
 ## Groups
 
-A Sonos group plays the music of one speaker, its *coordinator*; the others are
-*members*.
+A Sonos group plays the music of one speaker, its *coordinator*. The other
+speakers are *members*.
 
-- **A new group shows at once.** The plugin listens for Sonos's group-change
-  events and reads the groups again when one arrives, and straight after it
-  groups or ungroups speakers itself.
-- **Play, pause and favourites go to the group.** Sonos refuses transport
-  commands sent to a member, so the plugin sends them to the coordinator: pause
-  any speaker's card in a group, and the group pauses.
-- **A member shows the group's music**: its title, artist, artwork and
-  progress are the coordinator's. Its volume, mute and sound stay its own.
-- **`group_volume`** is the whole group's volume, on every speaker in a group
-  of two or more.
+- A new group shows up straight away. The plugin listens for Sonos's
+  group-change events and reads the groups again when one arrives, and also
+  right after it groups or ungroups speakers itself. A poll every five minutes
+  catches anything the events missed.
+- Transport commands go to the group. Sonos refuses play, pause and similar
+  commands sent to a member, so the plugin sends them to the coordinator
+  instead. That covers `play`, `pause`, `stop`, `toggle_play_pause`, `next`,
+  `previous`, `seek`, `play_favorite`, `play_playlist`, `play_uri`,
+  `set_shuffle`, `set_repeat`, `set_crossfade`, `set_sleep_timer` and
+  `set_group_volume`. Pause any speaker's card in a group and the whole group
+  pauses.
+- A member shows the group's music. Its state, title, artist, artwork,
+  position and duration are the coordinator's. Its volume, mute and sound
+  settings stay its own.
+- `group_volume` is the whole group's volume, published on every speaker in a
+  group of two or more (null for a speaker on its own).
 
-`{"action": "group", "members": [...]}`, sent to the speaker that should lead,
-makes its group **exactly** the speakers listed: they join, everyone else in its
-group leaves, and if the leader was itself in another group it leaves that one
-first. An empty list plays it on its own. Each speaker gets four seconds to
-answer; one that doesn't is skipped and the rest still go ahead.
+Sending `{"action": "group", "members": [...]}` to the speaker that should lead
+makes its group **exactly** the speakers listed. They join, everyone else in
+its group leaves, and if the leader was itself a member of another group it
+leaves that group first. An empty list makes it play on its own. Each speaker
+gets four seconds to answer. One that doesn't is reported as `no_answer`, and
+the rest still go ahead.
 
 ## SDK adoption
 
-hc-sonos is built on the official Rust plugin SDK (`plugin-sdk-rs`) and supports the full management protocol: heartbeat monitoring, remote configuration, and dynamic log level.
+hc-sonos is built on the official Rust plugin SDK (`plugin-sdk-rs`) and
+supports the full management protocol: heartbeat monitoring, remote
+configuration and dynamic log level.
 
 ## What the plugin provides
 
-Each discovered speaker is registered automatically as a `media_player` device. You do not need to pre-create the device in HomeCore.
+Each speaker the plugin finds is registered automatically as a `media_player`
+device. You don't need to create the device in HomeCore first.
 
 For each player, HomeCore can see:
 
-- playback state such as `playing` and `paused`
-- volume and mute state, and the group's volume
-- current track title, artist, album and artwork — or the radio station
-- group coordinator and group members
-- available Sonos favorites
-- available Sonos playlists
+- the playback state, such as `playing` or `paused`
+- volume and mute, and the group's volume
+- the current track's title, artist, album and artwork, or the radio station
+- the input playing, on a speaker that has one
+- the group coordinator and group members
+- the household's Sonos favourites and playlists
 
-This means HomeCore rules can target `sonos_living_room` or `sonos_kitchen` directly instead of calling a hardcoded speaker URL.
+So HomeCore rules can target `sonos_living_room` or `sonos_kitchen` directly
+instead of calling a hardcoded speaker URL.
 
 ## Discovery and automatic registration
 
-`hc-sonos` uses SSDP discovery and registers speakers as they are found.
+`hc-sonos` finds speakers with SSDP and registers them as they are found. It
+looks again every `discovery_interval_secs` (60 seconds by default).
+
+SSDP is multicast, and a Docker **bridge** network does not carry it. Sonos
+also delivers its event callbacks to an address the plugin advertises, and a
+NATed container IP is not one the speakers can reach. If you run the plugin
+in Docker, use host networking.
 
 ### Multicast routing on multi-NIC hosts
 
-SSDP relies on UDP multicast (group `239.255.255.250:1900`). On a host with multiple network interfaces — common in dev setups with separate management and IoT networks — the kernel may route multicast out the wrong interface and discovery silently fails.
+SSDP relies on UDP multicast (group `239.255.255.250:1900`). On a host with
+more than one network interface, such as a dev setup with separate management
+and IoT networks, the kernel may send multicast out of the wrong interface, and
+discovery then fails without any error.
 
-If `hc-sonos` finds zero speakers but the Sonos app on the same network sees them, check your routing table:
+If `hc-sonos` finds no speakers but the Sonos app on the same network sees
+them, check your routing table:
 
 ```bash
 # Confirm where multicast is going
@@ -124,18 +160,28 @@ Force the IoT-side interface as the multicast egress (replace `enp12s0` and the 
 sudo ip route add 239.255.255.250/32 dev enp12s0
 ```
 
-For a more permanent fix, configure your network manager (NetworkManager, systemd-networkd, etc.) to set route metrics so the IoT interface wins for multicast destinations.
+For a permanent fix, configure your network manager (NetworkManager,
+systemd-networkd, and so on) with route metrics that make the IoT interface win
+for multicast destinations.
 
-As a fallback when multicast is genuinely unroutable (firewalled VLAN, container with restricted networking, etc.), `[sonos] manual_hosts = ["192.168.10.5", ...]` lists speaker IPs the plugin should HTTP-probe directly. The probe path bypasses multicast entirely; the trade-off is that adding a new speaker to the network requires a config edit + plugin restart. An address may carry a port (`"192.168.10.5:1400"`); 1400 otherwise.
+If multicast really can't be routed (a firewalled VLAN, a container with
+restricted networking), list the speakers' addresses in `[sonos] manual_hosts
+= ["192.168.10.5", ...]`. The plugin probes those addresses over HTTP
+directly, with no multicast involved. The trade-off is that a new speaker on
+the network needs a config edit and a plugin restart. An address may include a
+port (`"192.168.10.5:1400"`); otherwise the plugin uses 1400.
 
 ### Turning SSDP off
 
-`[sonos] ssdp = false` stops the plugin sending anything to the multicast
-group: it contacts only the `manual_hosts`. Use it where multicast is no use
-anyway, or for a test homeCore that must never find — and so never command —
-the real speakers in the house.
+With `[sonos] ssdp = false` the plugin sends nothing to the multicast group
+and contacts only the `manual_hosts`. Use it where multicast is no use anyway,
+or for a test homeCore that must never find, and so never command, the real
+speakers in the house.
 
-If you have no manual overrides configured, the plugin derives a HomeCore device ID from the room name:
+## Device IDs, renames and speakers that go quiet
+
+Unless a `[[devices]]` entry pins it, the plugin derives a speaker's HomeCore
+device ID from its room name:
 
 | Sonos room | HomeCore device ID |
 |---|---|
@@ -143,14 +189,36 @@ If you have no manual overrides configured, the plugin derives a HomeCore device
 | `Kitchen` | `sonos_kitchen` |
 | `Office` | `sonos_office` |
 
-Manual configuration is still useful when you want to:
+Two speakers with the same name get `sonos_office` and `sonos_office_2`.
 
-- assign a stable custom HomeCore device ID
-- override the display name
-- assign an area
-- pin a specific speaker UUID to specific metadata
+The ID is decided once and stored by Sonos UUID in
+`.sonos-speakers.<plugin_id>.json` beside the config. It doesn't change after
+that:
 
-Manual configuration is **not** required for baseline discovery and use.
+- A speaker renamed in the Sonos app keeps its ID. Its name in HomeCore
+  follows the new Sonos name, unless you set a name override in HomeCore.
+- A speaker that gets a new address from DHCP keeps its ID. The plugin follows
+  it to the new address and subscribes to its events there.
+- A speaker that sleeps for a week keeps its ID too.
+
+A speaker is never removed because it stopped answering. If it misses two
+heartbeats in a row (they are a minute apart), it is marked **offline**, shown
+greyed out, and stays registered with the same ID, room, automations and
+dashboards. It comes back **online** as soon as it answers again, and the
+plugin subscribes to its events afresh, since it may have restarted and lost
+its subscriptions. A known speaker that is asleep when the plugin starts is
+marked offline a minute later, rather than left showing whatever it last
+showed.
+
+Home-theatre surrounds and Subs, and the second speaker of a stereo pair,
+answer on the network like any speaker but belong to another one. Sonos marks
+them as hidden, and the plugin leaves them out. A speaker that is later bonded
+into another is marked offline.
+
+The only way a speaker leaves HomeCore is the `forget_speaker` action: an
+admin uses *Forget …* on the plugin page beside a speaker that isn't
+answering. It is refused while the speaker still answers, since the plugin
+would only find it again.
 
 ## Configuration
 
@@ -165,7 +233,7 @@ password    = ""
 
 [sonos]
 ssdp                    = true   # false: only the manual_hosts are contacted
-discovery_interval_secs = 300
+discovery_interval_secs = 60
 discovery_timeout_secs  = 5
 manual_hosts            = []     # "192.168.1.50" or "192.168.1.50:1400"
 
@@ -176,9 +244,19 @@ port          = 5005
 callback_host = "192.168.1.10"
 ```
 
+| Setting | Default | |
+|---|---|---|
+| `sonos.ssdp` | `true` | Look for speakers with SSDP multicast. |
+| `sonos.manual_hosts` | `[]` | Speakers to probe by address. |
+| `sonos.discovery_interval_secs` | `60` | How often to look again. |
+| `sonos.discovery_timeout_secs` | `5` | How long one look listens, and how long a manual host has to answer. |
+| `api.enabled` | `true` | The plugin's HTTP API, which also receives the speakers' events. |
+| `api.host`, `api.port` | `0.0.0.0`, `5005` | Where the API listens. |
+| `api.callback_host` | | The address the speakers call back to with events. Set it to the server's LAN IP whenever `host` is `0.0.0.0`. |
+
 ## Optional speaker overrides
 
-If you want a speaker to use a specific HomeCore ID, set it explicitly by Sonos UUID:
+To give a speaker a specific HomeCore ID, pin it by Sonos UUID:
 
 ```toml
 [[devices]]
@@ -188,7 +266,14 @@ name  = "Living Room"
 area  = "living_room"
 ```
 
-Without an override, the plugin will still discover and register the speaker automatically.
+Only `hc_id` still takes effect. `name` and `area` are accepted so older
+config files still load, but they are ignored: a speaker's name follows what
+Sonos reports. To fix a speaker's name or room regardless of Sonos, set the
+name or area override on the device in HomeCore, which the plugin never
+touches.
+
+Without an override, the plugin still discovers and registers the speaker
+automatically. You don't need any `[[devices]]` entries for normal use.
 
 ## HomeCore device behavior
 
@@ -206,25 +291,45 @@ curl -s http://localhost:8080/api/v1/devices/sonos_living_room \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-Typical state attributes include:
+Each speaker publishes HomeCore's shared media-player attribute names. Every
+key is always published (null when there is nothing to report), and only when
+something changes.
 
 | Attribute | Meaning |
 |---|---|
 | `state` | `playing`, `paused`, `stopped` or `buffering` |
-| `volume` | Current volume 0-100 |
-| `muted` | Mute state |
-| `media_title` | Current track title |
+| `volume` | This speaker's volume, 0 to 100. Writable. |
+| `muted` | Mute state. Writable. |
+| `media_title` | Current track title, or the station name |
 | `media_artist` | Current artist |
 | `media_album` | Current album |
-| `media_image_url` | Artwork — the track's, or the station's logo |
-| `media_duration` | Track duration in seconds |
-| `media_position` | Current playback position in seconds |
-| `media_kind` | `radio` for a live stream, `track` for anything else, null when nothing is queued |
+| `media_image_url` | Artwork: the track's, or the station's logo |
+| `media_duration` | Track duration in seconds. Null on a radio station. |
+| `media_position` | Playback position in seconds. Null on a radio station. |
+| `media_position_updated_at` | When `media_position` was true. Screens count on from there while it plays, so the position is only published again when it jumps (a seek, a new track, a pause). |
+| `media_kind` | `radio` for a live stream (nothing to skip or seek), `track` for anything else, null when nothing is queued or an input is playing |
+| `source` | `tv` (a soundbar's TV input) or `line_in` while an input plays, otherwise null |
 | `group_coordinator` | HomeCore device ID of the coordinator |
 | `group_members` | Array of grouped player IDs |
-| `group_volume` | The group's volume 0-100, while it is in a group |
-| `available_favorites` | Array of Sonos favorite names |
-| `available_playlists` | Array of Sonos playlist names |
+| `group_volume` | The group's volume, 0 to 100, while in a group; otherwise null |
+| `shuffle`, `repeat`, `crossfade` | Play modes. `repeat` is `none`, `one` or `all`. |
+| `bass`, `treble`, `loudness` | Sound settings. Bass and treble run from −10 to 10. |
+| `night_mode`, `speech_enhancement` | On a soundbar only |
+| `sleep_timer_ends_at` | When the group's sleep timer stops the music (RFC 3339), or null |
+| `available_favorites`, `available_playlists` | Names of the household's Sonos favourites and playlists, read from one speaker every five minutes |
+| `available_favorite_items` | The favourites with title and artwork |
+| `last_command_error` | Why the last command to this speaker failed. Null once one succeeds. |
+
+A speaker's registration also carries its model and firmware (for example
+`Sonos`, `Sonos Five`, `85.0-64110`).
+
+The older names `title`, `artist`, `album`, `position_secs` and
+`duration_secs` are no longer published. They were duplicates of the `media_*`
+attributes.
+
+For a radio stream, Sonos reports the chunk of audio being fetched as the
+"track": its title is a filename and it has no artwork. The plugin publishes
+the **station** instead, with its name and logo, and `media_kind` is `radio`.
 
 ## Controlling Sonos through HomeCore
 
@@ -250,9 +355,38 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
   -d '{"volume": 30}'
 ```
 
+Besides writing `volume` and `muted`, you can send these actions. Volume is
+clamped to 0 to 100, and bass and treble to −10 to 10.
+
+| Action | Params | Notes |
+|---|---|---|
+| `play`, `pause`, `stop`, `toggle_play_pause`, `next`, `previous` | | Sent to the group's coordinator. |
+| `seek` | `position` (seconds) | |
+| `set_volume`, `set_mute` | `volume`, `muted` | This speaker's own. |
+| `volume_up`, `volume_down` | `step` (1 to 100, default 5) | Handy for a keypad button. |
+| `set_group_volume` | `volume` | The whole group's. A speaker on its own takes it as its volume. |
+| `set_shuffle`, `set_repeat`, `set_bass`, `set_treble`, `set_loudness` | | `repeat` must be `none`, `one` or `all`. |
+| `set_crossfade` | `crossfade` | Applies to the group. |
+| `set_sleep_timer` | `minutes` (0 cancels) | Applies to the group. |
+| `set_night_mode`, `set_speech_enhancement` | `night_mode`, `speech_enhancement` | Offered only on a soundbar. |
+| `select_source` | `source`: `tv` or `line_in` | Offered with the inputs the speaker has. |
+| `play_favorite` | `favorite`, optional `volume` | The volume is set on this speaker first, even when the favourite plays on its coordinator. A station starts at once; an album or playlist goes through the queue, from the top. |
+| `play_playlist`, `play_uri` | `playlist`, `uri` | A Sonos playlist, or a container URI, played through the queue. |
+| `join` | `coordinator` (device ID) | Join that speaker's group. |
+| `unjoin` | | Leave the group. |
+| `group` | `members` (device IDs) | Make this speaker's group exactly these. See [Groups](#groups). |
+
+Every command reports how it went. If it fails (the speaker or its group's
+coordinator isn't answering, the action is unknown, a parameter is missing or
+wrong, the favourite doesn't exist, or the speaker refuses), the plugin sets
+the speaker's `last_command_error` and publishes a `plugin_command_result`
+event with `{plugin_id, device_id, operation, success, error, error_code}`.
+`error_code` is one of `no_answer`, `unknown_action`, `invalid_params`,
+`not_found` or `rejected`. A later success clears the error.
+
 ### Named content commands
 
-The Sonos plugin also exposes named content commands through HomeCore. This is the important part for rules.
+Rules usually want named content: play a favourite or a playlist by its name.
 
 ```bash
 # Play a Sonos favorite by name
@@ -274,43 +408,58 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/sonos_living_room/state \
   -d '{"action": "play_media", "media_type": "favorite", "name": "Dinner Jazz"}'
 ```
 
-The plugin resolves the named favorite or playlist internally. Your automation does not need to know the transport URI.
+The plugin looks up the favourite or playlist by name, so your automation
+doesn't need to know its transport URI. `play_media` is still accepted
+(`media_type` is `favorite`, `playlist` or `uri`) but isn't listed among the
+speaker's declared actions; the three specific actions are.
 
 ## Rule example
 
-```toml
-id       = ""
-name     = "Dinner music"
-enabled  = true
-priority = 10
-
-[trigger]
-type      = "device_state_changed"
-device    = "dining_room.music_switch"
-attribute = "on"
-to        = true
-
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.sonos"
-state     = { action = "play_favorite", favorite = "Dinner Jazz" }
+```ron
+Rule(
+    id: "00000000-0000-0000-0000-000000000000",
+    name: "Dinner music",
+    enabled: true,
+    priority: 10,
+    trigger: DeviceStateChanged(
+        device_id: "dining_room.music_switch",
+        attribute: Some("on"),
+        to: Some(true),
+    ),
+    actions: [
+        RuleAction(action: SetDeviceState(
+            device_id: "living_room.sonos",
+            state: { "action": "play_favorite", "favorite": "Dinner Jazz" },
+        )),
+    ],
+)
 ```
 
-This is preferable to an HTTP `CallService` action because:
 
-- the rule references a stable HomeCore canonical device name
-- the plugin remains free to rediscover speakers and change IPs
-- Sonos favorites and playlists stay named content, not embedded transport details
+This is better than an HTTP `CallService` action for three reasons. The rule
+names a stable HomeCore device. The plugin can rediscover speakers and follow
+IP changes without the rule changing. And favourites and playlists stay named
+content instead of embedded transport details.
 
 ## Plugin actions
 
-hc-sonos declares four [capability actions](./capabilities), exposed in the
-homeCore admin UI and surfaced by hc-mcp's `list_plugin_actions`.
+hc-sonos declares these [capability actions](./capabilities). They appear in
+the homeCore admin UI and in hc-mcp's `list_plugin_actions`.
 
-### `group_speakers` (sync, user)
+| Action | Role | Does |
+|---|---|---|
+| `group_speakers` | user | The `group` command, answered speaker by speaker. Play together uses it. |
+| `status` | read-only | Speakers known, how many answer and which don't (`offline`), known speakers not found since the plugin started (`not_found`), when discovery last looked (`last_sweep`), and whether it uses SSDP. |
+| `forget_speaker` | admin | `{"device_id": …}`: removes a speaker that is gone for good. Refused while it answers. |
+| `list_alarms` | read-only | The household's alarms: `{id, time, repeats, enabled, device_id, room, volume, plays}`. |
+| `set_alarm` | user | `{"id": …, "enabled": true}` or `false`: switches one alarm on or off and leaves the rest of it alone. |
+| `rediscover_speakers` | user | Runs a discovery sweep now and registers every speaker found again, restoring anything homeCore lost. |
+| `discover_speakers` | user, streaming | Runs a discovery sweep and streams what it finds. |
+
+### `group_speakers`
 
 `{"leader": "sonos_office_1", "members": ["sonos_office_2", "sonos_bathroom"]}`
-— the `group` device action, answered speaker by speaker:
+answers like this:
 
 ```json
 {"status": "partial", "leader": "sonos_office_1",
@@ -318,48 +467,53 @@ homeCore admin UI and surfaced by hc-mcp's `list_plugin_actions`.
              {"device_id": "sonos_living_room", "name": "Living Room", "result": "no_answer"}]}
 ```
 
-Results are `joined`, `left`, `already`, `no_answer` or `failed`.
+`status` is `ok` or `partial`. Each result is `joined`, `left`, `already`,
+`no_answer` or `failed`.
 
-### `status` (sync, read-only)
+### `discover_speakers`
 
-How many speakers are known, when discovery last looked (`last_sweep`), and
-whether it uses SSDP.
+Runs SSDP and manual-host discovery and sends each speaker as a stream item as
+soon as it is found, so the UI fills in as it goes instead of waiting for the
+whole discovery window.
 
-### `discover_speakers` (streaming, user)
+Each `item_add` carries `{uuid, room_name, host_port, status}`, keyed on
+`uuid`. `status` is `discovered`, or `unreachable` for a speaker that answered
+SSDP but couldn't be read. Speakers it finds are also passed to the plugin's
+normal discovery path, so any new ones are registered exactly as if the
+periodic sweep had found them. The final result is `{discovered, count}`.
 
-Re-runs SSDP discovery and emits each found speaker as a stream item
-as it's discovered. Streaming so the UI updates progressively rather
-than waiting for the whole discovery window to close.
+Manifest: `concurrency: single`, `requires_role: user`, `timeout_ms: 60_000`,
+`item_key: "uuid"`. It cannot be cancelled.
 
-Each `item_add` event carries `{uuid, room_name, host_port, status}`,
-keyed on `uuid`. Found speakers are also forwarded into the bridge's
-discovery channel — the registration / state-publish path runs exactly
-as if the speaker had been picked up by the periodic discovery cycle.
+Use it from the admin UI when a speaker isn't appearing. The live list shows
+whether the speaker was found at all (pointing to a network or multicast
+problem) or was found but failed a later step.
 
-Manifest: `concurrency: single`, `requires_role: user`,
-`timeout_ms: 60_000`, `item_key: "uuid"`. Cancelable.
+### `rediscover_speakers`
 
-Use this from the admin UI when a speaker isn't appearing — the live
-item list tells you whether it was found at all (network / multicast
-issue) versus discovered but failing some downstream step.
+Asks the discovery loop for an immediate sweep, without a stream, and returns
+`{"status": "ok"}` straight away. Use it from rules or scripts when you just
+want to force a discovery now.
 
-### `rediscover_speakers` (sync, user)
+## Notices
 
-Fire-and-forget kick that runs the same discovery scan with no event
-stream. Returns once the scan completes with a brief summary
-(`{count, elapsed_ms}`). Use this from rules or scripts where you
-want a quick "force a discovery now" without the streaming UX.
+Problems show up as **notices** on the plugin's card in the web UI. A notice
+reflects current state, unlike a log line.
 
-Both actions reuse the same `discovery::run_once` core — they're two
-front doors on the same path.
+| Code | Means |
+|---|---|
+| `no_speakers_found` | A discovery sweep finished and found nothing, usually because of the Docker bridge network problem described above. Clears as soon as a speaker appears. |
+| `events_off` | The HTTP API is off, so speakers have nowhere to send their events. State is only as fresh as the one-minute heartbeat. |
+| `callback_host_unset` | The API listens on every interface but no `callback_host` is set, so speakers would be told to call back to 127.0.0.1, which is themselves. |
 
 ## Standalone HTTP API
 
-The plugin's own HTTP API remains available and supported. This is useful for:
+The plugin's own HTTP API is still available and supported. It is useful for:
 
-- standalone operation outside HomeCore
+- running the plugin on its own, outside HomeCore
 - manual testing and debugging
-- advanced Sonos-specific workflows not yet modeled as HomeCore device commands
+- Sonos-specific tasks that HomeCore device commands don't cover yet, such as
+  queue management
 
 Examples:
 
@@ -374,16 +528,18 @@ curl http://localhost:5005/favorites | jq
 curl http://localhost:5005/playlists | jq
 ```
 
-For end-user automation inside HomeCore, prefer the HomeCore device ID path first and use the plugin HTTP API as the escape hatch.
+For everyday automation inside HomeCore, use the HomeCore device ID, and keep
+the plugin's HTTP API for the cases it doesn't cover.
 
 ## Troubleshooting
 
 | Problem | What to check |
 |---|---|
-| Speaker never appears in HomeCore | Confirm the plugin is running and the speaker is visible on the same LAN |
-| Speaker appears but commands do nothing | Check `available = true` on the device and verify the plugin can reach the speaker |
-| Favorites or playlists are empty | Wait for discovery/content refresh, then inspect `available_favorites` and `available_playlists` on the device |
-| Rules still use Sonos URLs | Replace `call_service` actions with `set_device_state` targeting the HomeCore device ID |
-| GENA callbacks fail | Verify `api.callback_host` is reachable from the Sonos speakers |
-| A new group takes minutes to show | Group-change events arrive on the same callback address — check `api.callback_host` |
-| A speaker says "no answer" when grouping | It did not reply within four seconds: off, asleep or unreachable. Try again from Play together |
+| Speaker never appears in HomeCore | Check that the plugin is running and the speaker is on the same LAN. In Docker, use host networking. Run `discover_speakers` to see what the plugin can find. |
+| Speaker appears but commands do nothing | Check that the device is online and that the plugin can reach the speaker. Look at its `last_command_error`. |
+| Speaker shows as offline | It missed two heartbeats. It comes back by itself when it answers again. If it is gone for good, use *Forget* on the plugin page. |
+| Favorites or playlists are empty | Wait for the next content refresh (every five minutes), then check `available_favorites` and `available_playlists` on the device. |
+| Rules still use Sonos URLs | Replace `call_service` actions with `set_device_state` targeting the HomeCore device ID. |
+| GENA callbacks fail | Check that `api.callback_host` is reachable from the Sonos speakers. |
+| A new group takes minutes to show | Group-change events arrive at the same callback address, so check `api.callback_host`. |
+| A speaker says "no answer" when grouping | It didn't reply within four seconds because it is off, asleep or unreachable. Try again from Play together. |
