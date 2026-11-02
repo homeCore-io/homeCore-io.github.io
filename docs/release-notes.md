@@ -25,6 +25,52 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.44, 2026-11-02
+
+**Theme:** adding to a page puts things where you want them.
+
+An app release on its own: homeCore and the plugins are unchanged.
+
+### What you'll notice
+
+- **Add right where you want it.** In Edit or Customise, a **+** sits in
+  the gap before each card, and after the last card of a section. Tap
+  one and Add opens at that spot, with "Goes here" marking it on the
+  page. Before, everything you added went to the end of its section,
+  often below the bottom of the screen, so it looked like nothing
+  happened.
+- **The Add sheet says where things go.** At its top are the section and
+  the spot ("At the start", "After Holiday Lights 1", "At the end").
+  Change either there, or tap another **+** on the page.
+- **Add stays open.** Each thing you add goes after the last one, is
+  marked "Added" in the list, and is brought into view on the page with
+  a brief highlight. **Done adding** closes the sheet. A note, heading
+  or chart still closes it, so its settings can open.
+- **The page stays usable while you add.** On a wide screen the sheet
+  sits beside the page and the page moves over to make room. On a
+  phone it fills the bottom half of the screen, and the page above
+  still scrolls.
+- **One-row bars on a phone.** Edit's and Customise's bars took three
+  rows on a phone. They now take one, with the buttons shown as symbols,
+  and shrink to a single line while Add is open. Wide screens are
+  unchanged.
+- **A change that fails to save is no longer lost.** If saving a page
+  change failed, the change disappeared from the screen even though the
+  message said it was kept. It now stays and is saved with your next
+  change. Edit saves as you press Done, and a failure there is now shown
+  on the page.
+
+### Release matrix
+
+**Tagged:** `hc-web-svelte` v0.1.44 only. No homeCore or plugin release.
+
+### Upgrade notes
+
+- Nothing to change. Pages and their arrangements carry over as they
+  are.
+
+---
+
 ## v0.1.97, 2026-11-02
 
 **Theme:** fixes found while checking the docs against the code.
