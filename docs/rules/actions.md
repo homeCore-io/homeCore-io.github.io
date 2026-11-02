@@ -7,129 +7,278 @@ sidebar_position: 4
 
 # Actions
 
-Actions define **what happens when a rule fires**. Actions run in sequence by default. Use `Parallel` to run a group concurrently.
+Actions are what a rule does when it fires. They run one after another in the order listed. Use `Parallel` to run a group at the same time.
 
-Every action accepts an optional `enabled` field (default `true`). Set `enabled = false` to disable a specific action without removing it — useful for temporary debugging.
+Each entry in a rule's `actions` list is a `RuleAction` that wraps one action and an `enabled` flag:
 
-## Action reference
+```ron
+actions: [
+    RuleAction(
+        enabled: true,
+        action: SetDeviceState(
+            device_id: "living_room.floor_lamp",
+            state: { "on": true, "brightness_pct": 80 },
+        ),
+    ),
+],
+```
+
+```json
+{
+  "actions": [
+    {
+      "enabled": true,
+      "action": {
+        "SetDeviceState": {
+          "device_id": "living_room.floor_lamp",
+          "state": { "on": true, "brightness_pct": 80 }
+        }
+      }
+    }
+  ]
+}
+```
+
+`enabled` defaults to `true`. Set it to `false` to switch one action off without deleting it; the fire history records it as `skipped`. Only top-level actions have this wrapper. Actions nested inside `Parallel`, `Conditional`, the repeat actions and the other containers are written bare, without `RuleAction`.
+
+The examples below show the `action:` part only. As in triggers and conditions, optional fields take `Some(...)` in RON, and actions with no fields are written by name alone (`ExitRule`).
+
+## Device actions
 
 ### `SetDeviceState`
 
-Commands a device by publishing to `homecore/devices/{device_id}/cmd`. The plugin receives the command and applies it.
+Sends a command to a device by publishing to `homecore/devices/{device_id}/cmd`. The device's plugin receives it and applies it.
 
-For authored rules, prefer `device = "canonical.name"` instead of `device_id = "plugin_specific_id"`.
-
-```toml
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.floor_lamp"
-state     = { on = true, brightness_pct = 80 }
-
-# Turn off
-[[actions]]
-type      = "set_device_state"
-device    = "kitchen.coffee_plug"
-state     = { on = false }
-
-# Multiple attributes
-[[actions]]
-type      = "set_device_state"
-device    = "hallway.thermostat"
-state     = { hvac_mode = "heat", heat_setpoint = 20 }   # °C
+```ron
+action: SetDeviceState(
+    device_id: "living_room.floor_lamp",
+    state: { "on": true, "brightness_pct": 80 },
+),
 ```
 
-`device_id` still works and remains supported for backward compatibility. `device` is the preferred field because it can take:
-
-- a canonical device name such as `living_room.floor_lamp`
-- a unique display name such as `Kitchen Speaker`
-- a raw device ID if you need it
-
-If a display name matches more than one device, HomeCore marks the rule invalid instead of guessing.
-
-`SetDeviceState` is also the standard way to send **command-style** payloads to plugins. This is common for scenes, media players, and any device where the payload represents an action rather than a simple state assignment.
-
-### Media player examples
-
-```toml
-# Start playback
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.sonos"
-state     = { action = "play" }
-
-# Pause playback
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.sonos"
-state     = { action = "pause" }
-
-# Set volume
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.sonos"
-state     = { action = "set_volume", volume = 30 }
-
-# Play a Sonos favorite by name
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.sonos"
-state     = { action = "play_favorite", favorite = "Dinner Jazz" }
-
-# Use the generic media command shape
-[[actions]]
-type      = "set_device_state"
-device    = "living_room.sonos"
-state     = { action = "play_media", media_type = "playlist", name = "Dinner" }
+```ron
+// Several attributes at once (°C)
+action: SetDeviceState(
+    device_id: "hallway.thermostat",
+    state: { "hvac_mode": "heat", "heat_setpoint": 20 },
+),
 ```
 
-### Why this matters
+| Field | Required | Description |
+|---|---|---|
+| `device_id` (alias `device`) | yes | A canonical name such as `living_room.floor_lamp`, a unique display name such as `Kitchen Speaker`, or a raw device ID. |
+| `state` | yes | The command, as a JSON object. |
+| `track_event_value` | no | `true` sends the value from the triggering event instead of `state`. Defaults to `false`. |
 
-The rule references the HomeCore canonical device name, not the plugin's private HTTP API, not a speaker IP address, and not a raw Sonos URI. The plugin resolves the named favorite or playlist at execution time.
+If a display name matches more than one device, homeCore marks the rule invalid instead of guessing.
 
-That gives you:
+`track_event_value` makes one device follow another. The trigger's new value is sent under the single key in `state`, so with `state: { "on": true }` a trigger value of `false` sends `{"on": false}`. If the trigger value is itself an object, it is sent as it is. If `state` has more than one key, the trigger's attribute name is used as the key.
 
-- stable rule files when a speaker IP changes
-- one consistent automation pattern across plugins
-- room for plugin-specific capabilities without leaking transport details into rules
+```ron
+// Mirror switch A onto switch B
+action: SetDeviceState(
+    device_id: "switch_b",
+    state: { "on": true },
+    track_event_value: true,
+),
+```
+
+`SetDeviceState` is also how you send command-style payloads to plugins, with an `action` key. This is common for scenes, media players and any device where the payload asks for something to happen instead of setting a value.
+
+```ron
+// Start playback
+action: SetDeviceState(
+    device_id: "living_room.sonos",
+    state: { "action": "play" },
+),
+```
+
+```ron
+// Set the volume
+action: SetDeviceState(
+    device_id: "living_room.sonos",
+    state: { "action": "set_volume", "volume": 30 },
+),
+```
+
+```ron
+// Play a Sonos favorite by name
+action: SetDeviceState(
+    device_id: "living_room.sonos",
+    state: { "action": "play_favorite", "favorite": "Dinner Jazz" },
+),
+```
+
+```ron
+// The generic media command
+action: SetDeviceState(
+    device_id: "living_room.sonos",
+    state: { "action": "play_media", "media_type": "playlist", "name": "Dinner" },
+),
+```
+
+The rule names the homeCore device, not the speaker's IP address, the plugin's internal API or a raw Sonos URI. The plugin resolves the favorite or playlist when the command runs. Rule files keep working when a speaker's address changes, and every plugin is automated the same way.
 
 ---
 
 ### `SetDeviceStatePerMode`
 
-Applies a different state depending on which mode is active. The first matching mode wins. Falls back to `default_state` if no mode matches.
+Sends a different state depending on which mode is on. The first entry whose mode is on wins. If none is on, `default_state` is sent. With no `default_state`, nothing is sent.
 
-```toml
-[[actions]]
-type      = "set_device_state_per_mode"
-device_id = "light_desk"
+```ron
+action: SetDeviceStatePerMode(
+    device_id: "light_desk",
+    modes: [
+        (mode: "mode_night", state: { "on": true, "brightness_pct": 12, "color_temp": 2700 }),
+        (mode: "mode_away", state: { "on": false }),
+    ],
+    default_state: Some({ "on": true, "brightness_pct": 70, "color_temp": 4000 }),
+),
+```
 
-[[actions.modes]]
-mode_name = "mode_night"
-state     = { on = true, brightness_pct = 12, color_temp = 2700 }
+| Field | Required | Description |
+|---|---|---|
+| `device_id` (alias `device`) | yes | The device to command. |
+| `modes` | yes | A list of entries, each with `mode` (a mode device ID) and `state`. |
+| `default_state` | no | The state to send when no listed mode is on. |
 
-[[actions.modes]]
-mode_name = "mode_away"
-state     = { on = false }
+---
 
-[actions.default_state]
-on         = true
-brightness_pct = 70
-color_temp = 4000
+### `FadeDevice`
+
+Moves numeric attributes (`brightness_pct`, `color_temp` and so on) gradually from their current values to a target over `duration_secs`.
+
+```ron
+action: FadeDevice(
+    device_id: "light_living_room",
+    target: { "brightness_pct": 0, "color_temp": 2700 },
+    duration_secs: 30,
+    steps: Some(10),   // optional
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `device_id` (alias `device`) | yes | The device to fade. |
+| `target` | yes | The end state. Numeric fields are interpolated. |
+| `duration_secs` | yes | Total fade time. |
+| `steps` | no | How many commands to send. Defaults to one per second (`duration_secs`). Either way, the count is kept between 2 and 100. |
+
+Starting values come from the device's current state. A numeric attribute the device doesn't report yet jumps straight to its target. Non-numeric fields in `target` (such as `"on": true`) are sent unchanged with every step.
+
+---
+
+### `CaptureDeviceState` / `RestoreDeviceState`
+
+`CaptureDeviceState` saves the current attributes of some devices under a key. `RestoreDeviceState` sends those saved attributes back to the devices as a command.
+
+```ron
+// Before the movie scene
+action: CaptureDeviceState(
+    key: "pre_movie_scene",
+    device_ids: ["light_living_room", "light_kitchen", "light_hallway"],
+),
+```
+
+```ron
+// Afterwards
+action: RestoreDeviceState(
+    key: "pre_movie_scene",
+),
+```
+
+`device_ids` also accepts the spelling `devices`. Captures belong to the rule that made them, so the restore has to run in the same rule. They are kept in memory across firings until they are replaced or homeCore restarts.
+
+---
+
+### `ActivateScenePerMode`
+
+Activates a different homeCore scene depending on which mode is on. The first entry whose mode is on wins. If none is on, `default_scene_id` is used. Scenes are named by their UUID.
+
+```ron
+action: ActivateScenePerMode(
+    modes: [
+        (mode: "mode_night", scene_id: "11111111-0000-0000-0000-000000000001"),
+        (mode: "mode_away", scene_id: "22222222-0000-0000-0000-000000000002"),
+    ],
+    default_scene_id: Some("33333333-0000-0000-0000-000000000003"),
+),
+```
+
+---
+
+### `SetMode`
+
+Turns a mode on or off, or toggles it.
+
+```ron
+action: SetMode(
+    mode_id: "mode_away",
+    command: On,   // On | Off | Toggle
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `mode_id` | yes | The mode's device ID, such as `"mode_away"`. |
+| `command` | yes | `On`, `Off` or `Toggle`. |
+
+The command goes to the mode device, and other rules can react through a `ModeChanged` trigger.
+
+## Messages and integrations
+
+### `Notify`
+
+Sends a notification through a channel configured in `[[notify.channels]]`.
+
+```ron
+action: Notify(
+    channel: "telegram",
+    message: "Front door opened",
+    title: Some("Security Alert"),   // optional, defaults to "HomeCore Alert"
+),
+```
+
+```ron
+// Every configured channel
+action: Notify(
+    channel: "all",
+    message: "Critical alert!",
+),
+```
+
+`channel` is the name you gave a channel in `homecore.toml`, or `all` to send to every one. If sending fails (an unknown channel, a network error), homeCore logs a warning and carries on with the next action.
+
+In a rule an alert started, `{alert.message}`, `{alert.device}`, `{alert.device_id}`, `{alert.reason}`, `{alert.kind}`, `{alert.key}`, `{alert.severity}`, `{alert.raised_at}` and `{alert.id}` in the message or title are replaced with the alert's details. `LogMessage` supports the same placeholders. No other template syntax is substituted.
+
+---
+
+### `LogMessage`
+
+Writes a line to homeCore's log at a given level.
+
+```ron
+action: LogMessage(
+    message: "Motion detected, turning on lights",
+    level: Some(Info),   // Trace | Debug | Info | Warn | Error; defaults to Info
+),
 ```
 
 ---
 
 ### `PublishMqtt`
 
-Publishes a raw MQTT message. Useful for non-device integrations or custom protocols.
+Publishes a raw MQTT message. Use it for integrations that aren't homeCore devices.
 
-```toml
-[[actions]]
-type    = "publish_mqtt"
-topic   = "homecore/events/custom_alert"
-payload = '{"message":"motion detected"}'
-retain  = false
+```ron
+action: PublishMqtt(
+    topic: "homecore/events/custom_alert",
+    payload: r#"{"message":"motion detected"}"#,
+    retain: false,
+),
 ```
+
+All three fields are required. `payload` is sent as written.
 
 ---
 
@@ -137,554 +286,555 @@ retain  = false
 
 Makes an outbound HTTP request.
 
-```toml
-[[actions]]
-type       = "call_service"
-url        = "http://sonos.local:5005/Kitchen/say/Dinner+is+ready"
-method     = "GET"
-timeout_ms = 5000
-
-# POST with JSON body
-[[actions]]
-type   = "call_service"
-url    = "http://external-api.local/v1/lights"
-method = "POST"
-body   = { id = "kitchen", brightness = 200 }
-
-# With retries and response capture
-[[actions]]
-type           = "call_service"
-url            = "http://api.openweathermap.org/data/2.5/weather?q=Washington,DC&appid=KEY"
-method         = "GET"
-retries        = 3        # retry on network errors and 5xx (not 4xx)
-response_event = "weather_update"   # fires CustomEvent with response body
+```ron
+action: CallService(
+    url: "http://sonos.local:5005/Kitchen/say/Dinner+is+ready",
+    method: "GET",
+    timeout_ms: Some(5000),
+),
 ```
 
-Use `CallService` when you genuinely need an external HTTP request. Do **not** use it for normal device control when the target is already represented as a HomeCore device. For example, a Sonos speaker registered as `sonos_living_room` should usually be controlled with `SetDeviceState`, not by calling the plugin's HTTP endpoint directly.
+```ron
+// POST with a JSON body
+action: CallService(
+    url: "http://external-api.local/v1/lights",
+    method: "POST",
+    body: { "id": "kitchen", "brightness": 200 },
+),
+```
 
-**Retry backoff:** 500 ms → 1000 ms → 2000 ms → 4000 ms (on network errors and 5xx only).
+```ron
+// Retries, and the response published for other rules
+action: CallService(
+    url: "http://weather.local/api/current",
+    method: "GET",
+    retries: Some(3),
+    response_event: Some("weather_update"),
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `url` | yes | The URL to call. |
+| `method` | yes | `GET`, `POST`, `PUT`, `PATCH` or `DELETE`. |
+| `body` | no | JSON body, sent with `POST`, `PUT` and `PATCH`. |
+| `timeout_ms` | no | Per-attempt timeout. Defaults to 10000. |
+| `retries` | no | Extra attempts after a network error or a 5xx response. Defaults to 0. A 4xx response is not retried. |
+| `response_event` | no | Publish the JSON response body to the MQTT topic `homecore/events/{response_event}`. |
+
+Retries wait 500 ms, then 1 s, 2 s, and 4 s for every later attempt. A request that still fails counts as an action error.
+
+The response from `response_event` goes out over MQTT only, so a `CustomEvent` trigger won't see it. React to it with an `MqttMessage` trigger on `homecore/events/weather_update`.
+
+Use `CallService` when you really need an outside HTTP request. If the target is already a homeCore device, command it with `SetDeviceState`. A Sonos speaker registered as `sonos_living_room` should be controlled that way, not through the plugin's HTTP endpoint.
 
 ---
 
 ### `FireEvent`
 
-Publishes a custom event to the internal event bus and MQTT. Any rule with `Trigger::CustomEvent` matching the `event_type` fires immediately (same process, no broker round-trip).
+Emits a custom event on homeCore's internal event bus and publishes it to MQTT at `homecore/events/{event_type}`. Rules with a `CustomEvent` trigger for the same `event_type` react straight from the internal bus.
 
-```toml
-[[actions]]
-type       = "fire_event"
-event_type = "morning_routine_started"
-payload    = { source = "bedroom_motion" }
+```ron
+action: FireEvent(
+    event_type: "morning_routine_started",
+    payload: { "source": "bedroom_motion" },
+),
 ```
 
-The event appears in the WebSocket stream and event log.
+Both fields are required. Use `payload: {}` when there's nothing to send. The event shows up in the WebSocket stream and the event log.
 
 ---
 
-### `Notify`
+### `PingHost`
 
-Sends a notification via a configured channel.
+Pings a host with the system `ping` command and runs `then_actions` if it answers or `else_actions` if it doesn't.
 
-```toml
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Front door opened"
-title   = "Security Alert"     # optional; defaults to "HomeCore Alert"
-
-# Log to server output only (no external service)
-[[actions]]
-type    = "notify"
-channel = "log"
-message = "Rule fired: {{rule.name}}"
-
-# Send to ALL configured channels
-[[actions]]
-type    = "notify"
-channel = "all"
-message = "Critical alert!"
+```ron
+action: PingHost(
+    host: "192.168.1.1",
+    count: Some(3),               // optional, defaults to 1
+    timeout_ms: Some(2000),       // optional, defaults to 3000
+    then_actions: [
+        LogMessage(message: "Router is reachable"),
+    ],
+    else_actions: [
+        Notify(channel: "telegram", message: "Router is UNREACHABLE!"),
+    ],
+    response_event: Some("router_ping_result"),   // optional
+),
 ```
 
-A notification failure (channel misconfigured, network error) logs a warning but does NOT abort the rule action sequence.
+`timeout_ms` is rounded up to whole seconds (at least 1) and passed to `ping -W`. With `response_event`, homeCore also fires a custom event carrying `host`, `reachable` and, when `ping` reports it, `rtt_ms`. A `CustomEvent` trigger can pick it up.
 
 ---
+
+### `RunScript`
+
+Runs a Rhai script.
+
+```ron
+action: RunScript(
+    script: r#"
+        let temp = device_state("thermostat_main")["temperature"];
+        if temp > 27 {
+            set_device_state("fan_living_room", #{ "on": true });
+        }
+    "#,
+),
+```
+
+Besides the functions available to conditions (`device_state`, `hub_var`, `current_hour`, `current_minute`, `current_weekday`), a script action can use:
+
+| Function | Description |
+|---|---|
+| `set_device_state(id, map)` | Command a device. |
+| `notify(channel, message)` | Send a notification titled "HomeCore Alert". |
+| `notify_titled(channel, title, message)` | Send a notification with a title. |
+| `http_get(url)` | Make a GET request. |
+| `http_post(url, json_body_string)` | Make a POST request with a JSON body. |
+| `publish_mqtt(topic, payload)` | Publish an MQTT message. |
+| `rule_var(name)` | Read one of this rule's variables. |
+| `trigger_device()`, `trigger_value()` and the other `trigger_*()` functions | Details of the event that started the rule. See [Trigger context in Rhai](./triggers.md#trigger-context-in-rhai). |
+
+Device commands, notifications, HTTP requests and MQTT publishes don't happen while the script is running. homeCore collects them and carries them out after the script finishes, in the order they were made. `device_state()` takes a raw device ID and returns the states as they were when the rule fired (when its turn came, for a `Queued` rule; at the start of the pass, inside a `RepeatUntil` or `RepeatWhile` loop).
+
+## Flow control
 
 ### `Delay`
 
-Non-blocking pause between actions.
+Pauses the action sequence without blocking anything else.
 
-```toml
-[[actions]]
-type          = "delay"
-duration_secs = 5
-
-# Cancellable delay (can be cancelled by cancel_delays action)
-[[actions]]
-type          = "delay"
-duration_secs = 300
-cancelable    = true
-cancel_key    = "motion_off_delay"
+```ron
+action: Delay(
+    duration_secs: 5,
+),
 ```
+
+```ron
+// A delay that can be cut short
+action: Delay(
+    duration_secs: 300,
+    cancelable: true,
+    cancel_key: Some("motion_off_delay"),
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `duration_secs` | yes | How long to wait. |
+| `cancelable` | no | Allow `CancelDelays`, `CancelRuleTimers` or `cancel_on_false` to end the delay early. Defaults to `false`. |
+| `cancel_key` | no | A name for `CancelDelays` to target. A cancelable delay without one gets a generated key. |
+
+When a delay is cancelled, the actions after it still run. Cancelling only ends the wait early. See [Advanced: Cancellable delays](./advanced#cancellable-delays).
+
+---
+
+### `DelayPerMode`
+
+Waits for a duration that depends on which mode is on. The first entry whose mode is on wins. If none is on, `default_secs` is used, and with no `default_secs` there is no wait. A duration of `0` skips the wait.
+
+```ron
+action: DelayPerMode(
+    modes: [
+        (mode: "mode_night", duration_secs: 300),   // 5 minutes at night
+        (mode: "mode_away", duration_secs: 0),      // no wait when away
+    ],
+    default_secs: Some(60),
+),
+```
+
+This delay can't be cancelled.
 
 ---
 
 ### `Parallel`
 
-Runs a group of actions concurrently. Waits for all to complete before continuing.
+Runs a group of actions at the same time and waits for all of them before moving on.
 
-```toml
-[[actions]]
-type = "parallel"
-
-[[actions.actions]]
-type    = "notify"
-channel = "telegram"
-message = "Alert!"
-
-[[actions.actions]]
-type    = "notify"
-channel = "pushover"
-message = "Alert!"
-
-[[actions.actions]]
-type      = "set_device_state"
-device_id = "light_alarm"
-state     = { on = true, color = "red" }
-```
-
----
-
-### `RepeatUntil`
-
-Loops until a Rhai condition returns `true`. Checks condition **after** each iteration (do-while semantics).
-
-```toml
-[[actions]]
-type           = "repeat_until"
-condition      = 'device_state("light.office")["on"] == false'
-max_iterations = 10
-interval_ms    = 2000
-
-[[actions.actions]]
-type    = "notify"
-channel = "log"
-message = "Still on — checking again"
-```
-
----
-
-### `RepeatWhile`
-
-Loops while a Rhai condition is `true`. Checks condition **before** each iteration (while semantics).
-
-```toml
-[[actions]]
-type           = "repeat_while"
-condition      = 'device_state("light.office")["on"] == true'
-max_iterations = 20
-interval_ms    = 5000
-
-[[actions.actions]]
-type      = "set_device_state"
-device_id = "light.office"
-state     = { brightness_pct = 20 }
-```
-
----
-
-### `RepeatCount`
-
-Loops a fixed number of times.
-
-```toml
-[[actions]]
-type     = "repeat_count"
-count    = 3
-delay_ms = 500
-
-[[actions.actions]]
-type    = "notify"
-channel = "pushover"
-message = "Alert! ({{iteration}})"
+```ron
+action: Parallel(
+    actions: [
+        Notify(channel: "telegram", message: "Alert!"),
+        Notify(channel: "pushover", message: "Alert!"),
+        SetDeviceState(device_id: "light_alarm", state: { "on": true, "color": "red" }),
+    ],
+),
 ```
 
 ---
 
 ### `Conditional`
 
-Branches on a Rhai expression.
+Runs one of several branches. The question can be any [condition](./conditions.md) or a Rhai expression written as a string.
 
-```toml
-[[actions]]
-type      = "conditional"
-condition = 'device_state("mode_night")["on"] == true'
-
-[[actions.then_actions]]
-type      = "set_device_state"
-device_id = "light_porch"
-state     = { on = true, brightness_pct = 8 }
-
-[[actions.else_actions]]
-type      = "set_device_state"
-device_id = "light_porch"
-state     = { on = true, brightness_pct = 70 }
+```ron
+action: Conditional(
+    condition: ModeIs(mode_id: "mode_night", on: true),
+    then_actions: [
+        SetDeviceState(device_id: "light_porch", state: { "on": true, "brightness_pct": 8 }),
+    ],
+    else_actions: [
+        SetDeviceState(device_id: "light_porch", state: { "on": true, "brightness_pct": 70 }),
+    ],
+),
 ```
 
-Supports full `else-if` chains with additional `[[actions.elseif_branches]]`.
+```ron
+// A Rhai expression, with an else-if branch
+action: Conditional(
+    condition: r#"device_state("sensor_lux")["illuminance"] < 10"#,
+    then_actions: [
+        SetDeviceState(device_id: "light_porch", state: { "on": true, "brightness_pct": 100 }),
+    ],
+    else_if: [
+        (
+            condition: r#"device_state("sensor_lux")["illuminance"] < 50"#,
+            actions: [
+                SetDeviceState(device_id: "light_porch", state: { "on": true, "brightness_pct": 40 }),
+            ],
+        ),
+    ],
+    else_actions: [
+        SetDeviceState(device_id: "light_porch", state: { "on": false }),
+    ],
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `condition` | yes | A condition, or a Rhai expression as a string. |
+| `then_actions` | yes | Runs when the condition passes. |
+| `else_if` | no | A list of branches, each with its own `condition` and `actions`. The first that passes runs. |
+| `else_actions` | no | Runs when nothing else did. |
+
+A condition here is judged the same way as in the rule's `conditions` list. A Rhai expression reads device states as they were when the rule fired, which matters after a `Delay` (inside a `RepeatUntil` or `RepeatWhile` loop, as they were at the start of that pass), and can use `device_state()` and the time functions but not `hub_var()` or the `trigger_*()` functions.
 
 ---
 
-### `FadeDevice`
+### `RepeatCount`
 
-Gradually interpolates numeric attributes (`brightness_pct`, `color_temp`, etc.) to a target value over a duration.
+Runs a list of actions a fixed number of times.
 
-```toml
-[[actions]]
-type          = "fade_device"
-device_id     = "light_living_room"
-duration_secs = 30
-steps         = 10   # optional; defaults to duration_secs (1 step/sec)
-
-[actions.target]
-brightness_pct = 0
-color_temp = 2700
+```ron
+action: RepeatCount(
+    count: 3,
+    interval_ms: Some(500),   // optional pause between passes
+    actions: [
+        Notify(channel: "pushover", message: "Alert!"),
+    ],
+),
 ```
 
-Non-numeric attributes pass through unchanged.
+The pause comes between passes, not after the last one.
 
 ---
 
-### `CaptureDeviceState` / `RestoreDeviceState`
+### `RepeatWhile`
 
-Snapshots the current state of devices under a named key, and restores it later.
+Runs a list of actions for as long as a Rhai expression stays `true`. The expression is checked before each pass, so the actions may not run at all.
 
-```toml
-# Capture before a scene change
-[[actions]]
-type       = "capture_device_state"
-key        = "pre_movie_scene"
-device_ids = ["light_living_room", "light_kitchen", "light_hallway"]
-
-# ... movie mode actions ...
-
-# Restore when done
-[[actions]]
-type = "restore_device_state"
-key  = "pre_movie_scene"
+```ron
+action: RepeatWhile(
+    condition: r#"device_state("light.office")["on"] == true"#,
+    max_iterations: Some(20),
+    interval_ms: Some(5000),
+    actions: [
+        SetDeviceState(device_id: "light.office", state: { "brightness_pct": 20 }),
+    ],
+),
 ```
 
-Captured state persists across rule firings (in-memory, cleared on restart).
+`max_iterations` defaults to 100 and `interval_ms` (the pause after each pass) to 0.
 
 ---
 
-### `PingHost`
+### `RepeatUntil`
 
-ICMP ping a host. Runs `then_actions` on success, `else_actions` on failure.
+Runs a list of actions until a Rhai expression becomes `true`.
 
-```toml
-[[actions]]
-type       = "ping_host"
-host       = "192.168.1.1"
-count      = 3
-timeout_ms = 2000
-
-[[actions.then_actions]]
-type    = "notify"
-channel = "log"
-message = "Router is reachable"
-
-[[actions.else_actions]]
-type    = "notify"
-channel = "telegram"
-message = "Router is UNREACHABLE!"
-
-# Optionally fire a custom event with result
-response_event = "router_ping_result"
-# → {host, reachable, rtt_ms}
+```ron
+action: RepeatUntil(
+    condition: r#"device_state("light.office")["on"] == false"#,
+    max_iterations: Some(10),
+    interval_ms: Some(2000),
+    actions: [
+        LogMessage(message: "Still on, checking again"),
+    ],
+),
 ```
 
----
+`max_iterations` defaults to 100 and `interval_ms` (the pause after each pass) to 0. The actions run first and the expression is checked after each pass, so the actions run at least once and at most `max_iterations` times, even when the expression is already `true` at the start. Before v0.1.97 the expression was checked before each pass: the actions didn't run at all if it was already `true`, and ran at most `max_iterations - 1` times.
 
-### `SetVariable`
-
-Set a rule-local variable. Variables persist across firings (in-memory; cleared on restart). See [Advanced: Rule-local variables](./advanced#rule-local-variables) for full usage.
-
-```toml
-[[actions]]
-type  = "set_variable"
-name  = "open_count"
-op    = "Add"      # Set | Add | Subtract | Multiply | Divide | Toggle | Append | Clear
-value = 1.0
-```
-
----
-
-### `SetHubVariable`
-
-Write a cross-rule hub variable. Fires a `hub_variable_changed` event.
-
-```toml
-[[actions]]
-type  = "set_hub_variable"
-name  = "door_open_count"
-op    = "Add"    # Set | Add | Subtract | Multiply | Divide | Toggle | Append | Clear
-value = 1
-
-# Set a string
-[[actions]]
-type  = "set_hub_variable"
-name  = "last_motion_room"
-op    = "Set"
-value = "living_room"
-
-# Toggle a boolean
-[[actions]]
-type = "set_hub_variable"
-name = "alarm_armed"
-op   = "Toggle"
-```
-
-Read in conditions via `HubVariableIs` or in Rhai: `hub_var("door_open_count")`.
-
----
-
-### `SetPrivateBoolean`
-
-Set a boolean flag scoped to this rule only.
-
-```toml
-[[actions]]
-type  = "set_private_boolean"
-name  = "already_notified"
-value = true
-```
-
-Read in conditions via `PrivateBooleanIs`.
-
----
-
-### `StopRuleChain`
-
-Stops HomeCore from evaluating any lower-priority rules for the current event. Rules with the same or lower priority are skipped.
-
-```toml
-[[actions]]
-type = "stop_rule_chain"
-```
-
-Typically placed on a high-priority rule that should be exclusive. See [Advanced: StopRuleChain](./advanced#stoprulechain) for full usage.
-
----
-
-### `RunRuleActions`
-
-Invoke another rule's action sequence inline (without evaluating its trigger/conditions).
-
-```toml
-[[actions]]
-type    = "run_rule_actions"
-rule_id = "550e8400-e29b-41d4-a716-446655440000"
-```
-
-Maximum recursion depth: 10. Useful for shared action sequences across multiple rules.
+The expressions in `RepeatWhile` and `RepeatUntil` see device states as they are at each check, and so do the actions inside the loop. A loop can wait for a device to change, for example for a door to close. Before v0.1.97 both loops saw device states as they were when the rule fired, so a loop waiting for a change ran to its limit.
 
 ---
 
 ### `WaitForEvent`
 
-Suspend execution until a matching event arrives on the bus.
+Pauses the sequence until a matching event arrives, or until the timeout runs out.
 
-```toml
-[[actions]]
-type       = "wait_for_event"
-event_type = "device_state_changed"
-device_id  = "door_sensor_front"   # optional filter
-attribute  = "open"                # optional filter
-value      = false                 # optional filter
-timeout_ms = 30000
+```ron
+// Wait up to 30 s for the front door sensor to report "open"
+action: WaitForEvent(
+    device_id: Some("door_sensor_front"),
+    attribute: Some("open"),
+    timeout_ms: Some(30000),
+),
 ```
+
+```ron
+// Wait for a custom event
+action: WaitForEvent(
+    event_type: Some("garage_closed"),
+    timeout_ms: Some(600000),
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `event_type` | no | Resume on a custom event of this type, such as one from `FireEvent`. |
+| `device_id` (alias `device`) | no | Resume on a state update from this device. |
+| `attribute` | no | With `device_id`, only resume on an update that includes this attribute. |
+| `timeout_ms` | no | Give up after this long and continue. Without it, the wait has no limit. |
+
+The wait doesn't look at values, and either kind of event ends it. Whether the event arrived or the time ran out, the sequence carries on with the next action. To wait for a particular value, use `WaitForExpression`.
 
 ---
 
 ### `WaitForExpression`
 
-Suspend execution until a Rhai expression returns `true`.
+Pauses the sequence until a Rhai expression becomes `true`.
 
-```toml
-[[actions]]
-type       = "wait_for_expression"
-expression = 'device_state("door_sensor_front")["open"] == false'
-poll_ms    = 1000
-timeout_ms = 60000
+```ron
+action: WaitForExpression(
+    expression: r#"device_state("door_sensor_front")["open"] == false"#,
+    poll_interval_ms: Some(1000),
+    timeout_ms: Some(60000),
+    hold_duration_ms: Some(5000),
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `expression` | yes | A Rhai expression that reads current device states. |
+| `poll_interval_ms` | no | How often to check. Defaults to 500. |
+| `timeout_ms` | no | Give up after this long and continue. Without it, the wait has no limit. |
+| `hold_duration_ms` | no | The expression must stay `true` this long before the sequence moves on. |
+
+Each check reads the devices' current states. An expression that fails to evaluate counts as `false`.
+
+---
+
+### `ExitRule`
+
+Stops the rest of this rule's actions. It doesn't cancel pending delays or affect other rules.
+
+```ron
+action: ExitRule,
 ```
 
 ---
 
-### `LogMessage`
+### `StopRuleChain`
 
-Emit a log line at a specified level.
+Stops homeCore from evaluating the remaining rules for the current event. Rules are evaluated in priority order, highest first, so this skips the lower-priority rules (and any rules of equal priority that come after this one).
 
-```toml
-[[actions]]
-type    = "log_message"
-level   = "info"   # trace | debug | info | warn | error
-message = "Motion detected, turning on lights"
+```ron
+action: StopRuleChain,
+```
+
+It takes effect when the rule fires, wherever it sits in the top-level `actions` list. Inside a container action it does nothing, and a step switched off with `enabled: false` doesn't stop the chain (before v0.1.97 it still did). It usually goes on a high-priority rule that should be exclusive. See [Advanced: StopRuleChain](./advanced#stoprulechain).
+
+---
+
+### `CancelDelays`
+
+Cancels cancelable delays in the current rule.
+
+```ron
+// One delay, by key
+action: CancelDelays(
+    key: Some("motion_off_delay"),
+),
+```
+
+```ron
+// All of this rule's cancelable delays
+action: CancelDelays(),
+```
+
+---
+
+### `CancelRuleTimers`
+
+Cancels every cancelable delay pending for a rule, the current one or another.
+
+```ron
+action: CancelRuleTimers(
+    rule_id: Some("550e8400-e29b-41d4-a716-446655440000"),   // leave out for the current rule
+),
 ```
 
 ---
 
 ### `Comment`
 
-A no-op for documentation. The executor skips it silently.
+Does nothing. Use it to label parts of a long action list. The text is logged when the rule's `log_actions` is on.
 
-```toml
-[[actions]]
-type = "comment"
-text = "--- Begin motion-triggered sequence ---"
+```ron
+action: Comment(
+    text: "--- Begin motion-triggered sequence ---",
+),
 ```
+
+## Variables and flags
+
+### `SetVariable`
+
+Sets or changes a rule-local variable. Variables keep their values across firings, in memory, until homeCore restarts or the rule is reloaded. See [Advanced: Rule-local variables](./advanced#rule-local-variables).
+
+```ron
+action: SetVariable(
+    name: "open_count",
+    op: Some(Add),   // Set | Add | Subtract | Multiply | Divide | Toggle
+    value: 1,
+),
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | yes | The variable. |
+| `value` | yes | The operand. `Toggle` ignores it, but the field must still be present. |
+| `op` | no | Defaults to `Set`. |
+
+`Add`, `Subtract`, `Multiply` and `Divide` treat a missing or non-numeric variable as 0. Dividing by zero sets the variable to null. `Toggle` flips a boolean, treating a missing one as `false`.
+
+Read variables in a `RunScript` with `rule_var("open_count")`.
+
+---
+
+### `SetHubVariable`
+
+Sets or changes a hub variable, shared by every rule. It takes the same `op` values as `SetVariable`, and each write fires the event that `HubVariableChanged` triggers listen for. Hub variables are kept in memory and start empty after a restart.
+
+```ron
+action: SetHubVariable(
+    name: "door_open_count",
+    op: Some(Add),
+    value: 1,
+),
+```
+
+```ron
+// Set a string
+action: SetHubVariable(
+    name: "last_motion_room",
+    value: "living_room",
+),
+```
+
+```ron
+// Toggle a boolean (value is ignored but required)
+action: SetHubVariable(
+    name: "alarm_armed",
+    op: Some(Toggle),
+    value: false,
+),
+```
+
+Read hub variables with a `HubVariable` condition, or in Rhai with `hub_var("door_open_count")`.
+
+---
+
+### `SetPrivateBoolean`
+
+Sets a boolean flag that belongs to this rule.
+
+```ron
+action: SetPrivateBoolean(
+    name: "already_notified",
+    value: true,
+),
+```
+
+Read it with the `PrivateBooleanIs` condition. Flags are kept in memory and reset when homeCore restarts.
+
+## Other rules
+
+### `RunRuleActions`
+
+Runs another rule's actions here, without checking that rule's trigger, conditions or gates. Use it to share one action sequence between several rules.
+
+```ron
+action: RunRuleActions(
+    rule_id: "550e8400-e29b-41d4-a716-446655440000",
+),
+```
+
+The other rule's own `enabled` flags on its actions are respected. Its actions don't appear in this rule's fire history.
+
+`RunRuleActions` can nest up to 10 levels deep, counted across every rule in the chain. Past that, the step is skipped and homeCore logs a warning (`max call depth reached`), so rules that run each other stop there. Before v0.1.97 the count started again at 0 in each called rule, and two rules that ran each other never stopped.
 
 ---
 
 ### `PauseRule` / `ResumeRule`
 
-Pause or resume a rule at runtime. Paused rules skip evaluation without being disabled.
+Pause or resume a rule while homeCore is running. A paused rule ignores its triggers but stays enabled.
 
-```toml
-# Pause another rule
-[[actions]]
-type    = "pause_rule"
-rule_id = "550e8400-e29b-41d4-a716-446655440000"
-
-# Pause this rule itself (omit rule_id)
-[[actions]]
-type = "pause_rule"
-
-# Resume
-[[actions]]
-type    = "resume_rule"
-rule_id = "550e8400-e29b-41d4-a716-446655440000"
+```ron
+action: PauseRule(
+    rule_id: "550e8400-e29b-41d4-a716-446655440000",
+),
 ```
 
-Pause state is in-memory and clears on restart.
-
----
-
-### `ExitRule`
-
-Stop executing this rule's remaining actions immediately. Does not affect other rules.
-
-```toml
-[[actions]]
-type = "exit_rule"
+```ron
+action: ResumeRule(
+    rule_id: "550e8400-e29b-41d4-a716-446655440000",
+),
 ```
 
----
+`rule_id` is required for both. Pauses are held in memory and clear on restart. `GET /api/v1/automations/paused` lists paused rules, and `DELETE /api/v1/automations/{id}/pause` resumes one.
 
-### `CancelDelays`
+## Alert actions
 
-Cancel a specific named cancellable delay.
+These act on homeCore's alerts. With no `alert_id`, an alert action works on "the alert": the one a surrounding `ForEachAlert` is on, otherwise the one that started the rule. See [Alerts that start automations](./alert-automations.md) for the `AlertFilter` fields.
 
-```toml
-[[actions]]
-type       = "cancel_delays"
-cancel_key = "motion_off_delay"
+```ron
+// Install each waiting WLED update, one at a time
+action: ForEachAlert(
+    filter: AlertFilter(
+        plugin_id: Some("plugin.wled"),
+        topic: Some("firmware_update"),
+    ),
+    actions: [
+        PressAlert(),
+        WaitAlertCleared(
+            timeout_secs: 600,
+            otherwise: [
+                Notify(channel: "all", message: "{alert.device} didn't come back on {alert.key}"),
+                ExitRule,
+            ],
+        ),
+    ],
+),
 ```
 
-### `CancelRuleTimers`
-
-Cancel all cancellable delays for a rule.
-
-```toml
-[[actions]]
-type    = "cancel_rule_timers"
-rule_id = "550e8400-e29b-41d4-a716-446655440000"   # omit for current rule
-```
-
----
-
-### `DelayPerMode`
-
-Delay for a duration that depends on the active mode.
-
-```toml
-[[actions]]
-type         = "delay_per_mode"
-default_secs = 0
-
-[[actions.modes]]
-mode_name = "mode_night"
-duration_secs = 300   # 5 minutes at night
-
-[[actions.modes]]
-mode_name = "mode_away"
-duration_secs = 0     # no delay when away (skip the delayed action)
-```
-
----
-
-### `SetMode`
-
-Set a named mode on or off.
-
-```toml
-[[actions]]
-type  = "set_mode"
-name  = "mode_away"
-value = true
-
-# Turn off a mode
-[[actions]]
-type  = "set_mode"
-name  = "mode_vacation"
-value = false
-```
-
----
-
-### `RunScript`
-
-Execute a Rhai script as an action. The script runs synchronously inside `spawn_blocking` and can collect side effects (device state changes, MQTT publishes, notifications) that are applied asynchronously after the script returns.
-
-```toml
-[[actions]]
-type   = "run_script"
-script = '''
-  let temp = device_state("thermostat_main")["temperature"];
-  if temp > 80 {
-      set_device("fan_living_room", #{"on": true});
-  }
-'''
-```
-
----
-
-### `ActivateScenePerMode`
-
-Activate a different scene depending on which mode is active.
-
-```toml
-[[actions]]
-type             = "activate_scene_per_mode"
-default_scene_id = "scene_daytime_living_room"
-
-[[actions.modes]]
-mode_name = "mode_night"
-scene_id  = "scene_nighttime_living_room"
-
-[[actions.modes]]
-mode_name = "mode_away"
-scene_id  = "scene_away_living_room"
-```
-
----
+| Action | Fields | What it does |
+|---|---|---|
+| `ForEachAlert` | `filter`, `actions` | Runs `actions` once for each active alert matching `filter`, oldest first. |
+| `PressAlert` | `alert_id` (optional) | Presses the alert's button, such as "Update…". Does nothing if the alert has no button. |
+| `WaitAlertCleared` | `alert_id` (optional), `timeout_secs`, `otherwise` (optional) | Waits up to `timeout_secs` for the alert to clear. If it hasn't, runs `otherwise`. Add `ExitRule` there to stop the rule. |
+| `AcknowledgeAlert` | `alert_id` (optional) | Marks the alert seen. |
+| `SkipAlert` | `alert_id` (optional) | Stops showing a plugin's alert about this one thing (this version, for example) while the next of its kind still shows. Only works on plugin alerts that have a key. |
+| `IgnoreAlerts` | `filter`, `minutes` (optional), `note` (optional) | Doesn't raise alerts matching `filter` for `minutes`, or for good when `minutes` is left out. A `min_severity` in the filter is ignored here. |
 
 ## Action trace in fire history
 
-Every action execution is recorded in the rule's fire history:
+Every top-level action is recorded in the rule's fire history, newest firing last:
 
 ```bash
 curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
-  -H "Authorization: Bearer $TOKEN" | jq '.[0].actions'
+  -H "Authorization: Bearer $TOKEN" | jq '.[-1].actions'
 ```
 
-Each entry includes `action_type`, `description`, `outcome.status` (`ok`/`error`/`skipped`), and `duration_ms`.
+Each entry has `index`, `action_type`, `description`, `outcome.status` (`ok`, `error` or `skipped`) and `duration_ms`.

@@ -7,15 +7,16 @@ sidebar_position: 2
 
 # Developing Plugins
 
-Plugins can be written in any language that has an MQTT client library. HomeCore provides first-class SDKs for Rust, Python, Node.js, and .NET Core.
+You can write a plugin in any language that has an MQTT client library.
+HomeCore provides SDKs for Rust, Python, Node.js and .NET.
 
 :::tip The whole process, end to end
 [`docs/plugin-development.md`](https://github.com/homeCore-io/homeCore/blob/main/docs/plugin-development.md)
 in the homeCore repository walks through building a plugin from start to
-release — devices, actions, settings, alerts, its own screens and cards,
-testing and releasing — with pointers to working examples. This page is the
-reference for each part; [Screens and Cards](./plugin-screens) and
-[Alerts from Plugins](./plugin-alerts) cover those two in full.
+release: devices, actions, settings, alerts, its own screens and cards,
+testing and releasing, with pointers to working examples. This page is the
+reference for each part. [Screens and Cards](./plugin-screens) and
+[Alerts from Plugins](./plugin-alerts) cover those two topics in full.
 :::
 
 **The Rust SDK and every Rust plugin live inside the homeCore repository**, at
@@ -24,35 +25,39 @@ repositories, cloned into `sdks/` alongside `core/`.
 
 ## Installing an SDK
 
-**None of the SDKs is published to a package registry** — not crates.io, PyPI,
-npm, or NuGet. So there is no `pip install homecore-plugin-sdk`; installing
-means the local checkout or a git tag.
+**None of the SDKs is published to a package registry** (crates.io, PyPI,
+npm or NuGet). There is no `pip install homecore-plugin-sdk`; you install from
+a local checkout or a git tag.
 
 ### Rust
 
-Nothing to install. Your plugin is a workspace member of the homeCore repo
-beside the SDK, and depends on it by path:
+Nothing to install. Your plugin is a workspace member of the homeCore repo,
+next to the SDK, and depends on it by path:
 
 ```toml
 [dependencies]
 plugin-sdk-rs = { path = "../../sdk/rust" }
+tokio         = { version = "1", features = ["full"] }
+serde_json    = "1"
+anyhow        = "1"
 ```
 
-An SDK edit is live in every plugin on the next `cargo build`, and the repo-root
-`cargo fmt` / `clippy` / `test` cover core, the SDK and all thirteen plugins
-together — so a change that breaks a plugin fails at once rather than at that
+An SDK edit reaches every plugin on the next `cargo build`, and the repo-root
+`cargo fmt` / `clippy` / `test` cover core, the SDK and every plugin together.
+A change that breaks a plugin therefore fails immediately, not at that
 plugin's next release.
 
 :::note This replaced a much more complicated arrangement
 Rust plugins used to be separate repositories, each pinning `hc-plugin-sdk-rs`
 by git tag, redirected to a local checkout by a `[patch]` table in a
-`plugins/Cargo.toml` meta-workspace. That is all gone — the plugin repos are
-archived read-only and the meta-workspace no longer exists. Instructions
-mentioning any of it predate the monorepo.
+`plugins/Cargo.toml` meta-workspace. All of that is gone: the plugin repos are
+archived read-only and the meta-workspace no longer exists. Instructions that
+mention any of it predate the monorepo.
 :::
 
-For a Rust plugin developed *outside* the homeCore repo, pin the core release
-tag — the SDK re-exports `hc-types`, which is the plugin ABI:
+For a Rust plugin developed *outside* the homeCore repo, pin a core release
+tag. The SDK re-exports `hc-types`, which is the plugin ABI, so the tag keeps
+it from changing under you:
 
 ```toml
 plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.29" }
@@ -72,11 +77,11 @@ side by side, point your plugin at the checkout:
 | Node.js | `npm install ../../sdks/hc-plugin-sdk-js` |
 | .NET | `dotnet add reference ../../sdks/hc-plugin-sdk-dotnet/HomeCoreSdk.csproj` |
 
-Python's `-e` and npm's directory install both link rather than copy, so an SDK
-edit is live without a reinstall. .NET builds the SDK from source as part of
-your build.
+Python's `-e` and npm's directory install both link to the checkout rather
+than copying it, so an SDK edit takes effect without a reinstall. .NET builds
+the SDK from source as part of your build.
 
-From a release instead:
+To pin a release instead:
 
 | | |
 |---|---|
@@ -84,16 +89,16 @@ From a release instead:
 | Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.2.0` |
 | .NET | clone at the tag, then `dotnet add reference …/HomeCoreSdk.csproj` |
 
-NuGet has no git-install equivalent, which is why .NET clones.
+NuGet has no equivalent of a git install, which is why .NET clones.
 
 ---
 
 ## Rust SDK (`plugin-sdk-rs`)
 
-The fastest start is `plugins/hc-plugin-template` — a working virtual-light
+The quickest start is `plugins/hc-plugin-template`: a working virtual-light
 plugin, small enough to read in one sitting, with the management protocol, a
-config schema and descriptor, a capability action, and a notice already wired
-up.
+config schema and descriptor, a capability action, a notice and its own
+screens already wired up.
 
 ```sh
 cp -r plugins/hc-plugin-template plugins/hc-mything
@@ -101,20 +106,8 @@ $EDITOR Cargo.toml          # add "plugins/hc-mything" to [workspace] members
 ```
 
 Then rename the package and binary in its `Cargo.toml`, the `plugin_id` in its
-config, and the `Descriptor::new` id in `config.rs`.
-
-### Add to Cargo.toml
-
-The crate is named `plugin-sdk-rs`. See
-[Installing an SDK](#installing-an-sdk).
-
-```toml
-[dependencies]
-plugin-sdk-rs = { path = "../../sdk/rust" }
-tokio         = { version = "1", features = ["full"] }
-serde_json    = "1"
-anyhow        = "1"
-```
+config, and the `Descriptor::new` id in `config.rs`. The dependencies are the
+ones shown under [Installing an SDK](#installing-an-sdk).
 
 ### Minimal plugin
 
@@ -175,30 +168,30 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-A real plugin calls `run_managed` rather than `run`, passing the handle from
-`enable_management`, so core can heartbeat it, restart it, push configuration,
-and render its actions as buttons.
+A real plugin calls `run_managed` instead of `run`, passing the handle from
+`enable_management`. That lets core heartbeat it, restart it, push
+configuration and show its actions.
 
 ### Start the event loop before you register
 
-`run` / `run_managed` is what *drives* the MQTT connection. Until one of them is
-polling, nothing you publish leaves the process — it queues, and the queue holds
-64 messages.
+`run` / `run_managed` is what drives the MQTT connection. Until one of them is
+polling, nothing you publish leaves the process. Publishes queue, and the
+queue holds 64 messages.
 
-Registering one device costs four of them: register, subscribe, state,
+Registering one device costs four of them: register, subscribe, state and
 availability. So a plugin that registers its devices and *then* calls
-`run_managed` works fine with three devices and **hangs at startup with
-seventeen**, never reaching the line that would have drained the queue. There is
-no error and no log line; it simply stops, on a machine that differs from yours
-only in how many devices are configured.
+`run_managed` works with three devices and **hangs at startup with
+seventeen**, because it never reaches the line that would drain the queue.
+There is no error and no log line. It simply stops, on a machine that differs
+from yours only in how many devices are configured.
 
-Measured against a real broker, a plugin registering 40 devices gets through 12
-of them in the register-first order, and all 40 when the loop is spawned first.
+Measured against a real broker, a plugin registering 40 devices gets through
+12 of them when it registers first, and all 40 when it spawns the loop first.
 Every shipped plugin spawns it first.
 
-Nothing is lost by starting early: a command for a device you have not
-registered cannot arrive, because the subscription that would carry it does not
-exist until you make it.
+Starting early loses nothing. A command for a device you have not registered
+can't arrive, because the subscription that would carry it doesn't exist
+until you make it.
 
 ### Publishing state updates
 
@@ -227,9 +220,9 @@ publisher
 ### Handling commands
 
 homeCore never writes device state. A command arrives on
-`homecore/devices/{id}/cmd`, the plugin does whatever the device needs, and the
-plugin publishes what *actually happened*. That is why the UI can correctly
-show a light as off after a command the bulb refused.
+`homecore/devices/{id}/cmd`, the plugin does whatever the device needs, and
+then the plugin publishes what actually happened. That is why the UI can show
+a light as off after a command the bulb refused.
 
 ```rust
 let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, serde_json::Value)>(64);
@@ -260,8 +253,8 @@ client
 
 ### Notices
 
-A notice is how a plugin's problem reaches the operator's screen rather than
-only the log. They render on the plugin's card in the web UI.
+A notice puts a plugin's problem on the operator's screen instead of only in
+the log. The web UI shows notices as banners on the plugin's page.
 
 ```rust
 use plugin_sdk_rs::types::PluginNotice;
@@ -276,26 +269,29 @@ notices.raise(
 notices.clear("bridge_unreachable");   // when it answers again
 ```
 
-**A notice is state, not a log line.** It stays up while the condition holds,
-so re-evaluate after each discovery sweep, reconnect, and config change rather
-than deciding once at startup — a plugin that raises `no_devices_configured` at
-boot and never looks again is still showing it after the user's devices arrive.
+`PluginNotice` also has `warning` and `info` constructors. The SDK sends the
+full set with every heartbeat, and core replaces what it held.
+
+**A notice describes current state.** It stays up while the condition holds,
+so re-evaluate it after each discovery sweep, reconnect and config change
+instead of deciding once at startup. A plugin that raises
+`no_devices_configured` at boot and never checks again is still showing it
+after the user's devices have arrived.
 
 Notices and capability actions are available in every SDK.
 
 :::note Plugin isolation via per-device subscriptions
-Every SDK uses per-device topic subscriptions — not wildcards. A plugin subscribes to `homecore/devices/{device_id}/cmd` for each device it owns, and receives commands for nothing else, which keeps well-behaved plugins from stomping on each other by convention. In Rust that is an explicit `subscribe_commands()` call; in Python, Node.js and .NET registering the device does it for you.
+Every SDK subscribes per device, never to a wildcard. A plugin subscribes to `homecore/devices/{device_id}/cmd` for each device it owns and receives commands for nothing else, so well-behaved plugins don't interfere with each other. In Rust that is an explicit `subscribe_commands()` call; in Python, Node.js and .NET, registering the device does it for you.
 
-**Trust boundary caveat:** on the default embedded rumqttd broker, per-topic ACLs are not enforced. A misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that cannot rely on plugin correctness (containers, third-party code, compliance scenarios) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
+**Trust boundary caveat:** the default embedded rumqttd broker does not enforce per-topic ACLs, so a misbehaving or hostile plugin could subscribe outside its declared patterns. Deployments that can't rely on plugin correctness (containers, third-party code, compliance requirements) should run HomeCore with an external Mosquitto broker, which enforces the same `allow_pub` / `allow_sub` patterns declared in `[[broker.clients]]`. See [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
 :::
 
 ### Cross-restart device cleanup
 
-When a device disappears from a plugin's authoritative source — a Hue
-bulb deleted from the bridge, a Z-Wave node excluded, an entry removed
-from `[[devices]]` — its homeCore record needs to go away too. The SDK
-handles persistence and the diff so plugins only need to declare what's
-live each cycle.
+When a device disappears from a plugin's source of truth (a Hue bulb deleted
+from the bridge, a Z-Wave node excluded, an entry removed from `[[devices]]`),
+its homeCore record should go too. The SDK handles the persistence and the
+diff; the plugin only declares what is live on each cycle.
 
 ```rust
 // 1. Opt in once at startup (typically next to config.toml).
@@ -321,31 +317,29 @@ let report = publisher.reconcile_devices(live).await?;
 //   = ids you passed but never registered (usually empty)
 ```
 
-**What the SDK does:**
+What the SDK does:
 
 - `with_device_persistence(path)` mirrors every `register_device_full` /
-  `unregister_device` call to a JSON file. On startup, the file is
-  loaded so the in-memory tracker isn't blank — that's how a plugin
-  knows about devices it registered in a previous session.
+  `unregister_device` call to a JSON file. On startup it loads the file, so the
+  in-memory tracker starts with the devices registered in a previous session.
 - `reconcile_devices(live)` computes `tracked - live`, calls
-  `unregister_device` for each stale id, and writes the new live set
-  back to disk.
+  `unregister_device` for each stale id, and writes the new live set back to
+  disk.
 
-**What plugins must decide:**
+What the plugin has to decide:
 
-- **When to call.** Only when the upstream sync actually succeeded.
-  Calling reconcile after a partial fetch will wipe live devices behind
-  a temporarily-unreachable upstream. The typical pattern is an
-  `all_bridges_succeeded` (or equivalent) flag tracked across the
-  per-source loop.
-- **Whether to call at all.** Plugins whose upstream has irregular
-  reporting cadence (battery sensors that go quiet for hours, e.g.
-  hc-ecowitt) should opt into persistence but skip auto-reconcile —
-  the false-positive risk is worse than the zombie-device cost.
-  Operators can clean up zombies with the core endpoint
+- **When to call it.** Only when the upstream sync actually succeeded.
+  Reconciling after a partial fetch deletes live devices that sit behind a
+  temporarily unreachable upstream. The usual pattern is an
+  `all_bridges_succeeded` flag (or equivalent) tracked across the per-source
+  loop.
+- **Whether to call it at all.** A plugin whose upstream reports irregularly
+  (battery sensors that go quiet for hours, as with hc-ecowitt) should enable
+  persistence but skip automatic reconciling. There, a false positive costs
+  more than a leftover device. Operators can clear leftovers with
   `DELETE /api/v1/plugins/:id/devices` when needed.
 
-**The same thing in the other SDKs.** Identical semantics, idiomatic names:
+The other SDKs do the same thing under their own naming conventions:
 
 | | Enable | Reconcile |
 |---|---|---|
@@ -354,29 +348,30 @@ let report = publisher.reconcile_devices(live).await?;
 | Node.js | `enableDevicePersistence(path)` | `reconcileDevices(live)` |
 | .NET | `EnableDevicePersistence(path)` | `ReconcileDevicesAsync(live)` |
 
-All four scope the snapshot filename by plugin id
-(`.published-device-ids.plugin.hue.json`), because deployments keep every
-plugin's config in one directory and every plugin derives the path the same way
-— unscoped, two plugins share one file and retire each other's devices.
+All four insert the plugin id into the snapshot's filename
+(`.published-device-ids.plugin.hue.json`). Deployments keep every plugin's
+config in one directory and every plugin derives the path the same way, so
+without the id two plugins would share one file and retire each other's
+devices.
 
-**Manual bulk wipe.** Independent of SDK reconcile, an admin can call:
+**Manual bulk wipe.** Separately from SDK reconciling, an admin can call:
 
 ```text
 DELETE /api/v1/plugins/<plugin_id>/devices
 ```
 
-…to delete every device whose `plugin_id` matches. The plugin stays
-registered; on its next sync cycle it re-registers anything still
-live. Useful for clearing zombies left over from development churn or
-config rearrangements without dropping the whole state DB. It is an
-API-only operation — the web UI does not surface a button for it.
+This deletes every device whose `plugin_id` matches. The plugin stays
+registered, and on its next sync cycle it re-registers anything still live.
+It is useful for clearing leftovers from development or config
+rearrangements without dropping the whole state database. In the web UI it is
+the **Delete all its devices…** button on the plugin's Devices tab.
 
 ### Cross-device consumer plugins
 
-Most plugins own their devices and only observe their own command topics. A
-**cross-device consumer** plugin also needs to *observe state from other
-plugins' devices* — e.g. a virtual thermostat aggregating temperature
-readings from YoLink and Ecowitt sensors.
+Most plugins own their devices and only listen on their own command topics. A
+**cross-device consumer** also needs the state of other plugins' devices. A
+virtual thermostat that aggregates temperature readings from YoLink and
+Ecowitt sensors is one example.
 
 The Rust SDK supports this directly:
 
@@ -384,6 +379,9 @@ The Rust SDK supports this directly:
 // Subscribe to another plugin's device state (tracked for reconnect).
 client.subscribe_state("yolink_sensor_a").await?;
 client.subscribe_state("ecowitt_outdoor_temp").await?;
+
+// Keep a publisher: `run_managed_with_state` consumes the client.
+let publisher = client.device_publisher();
 
 // Drive the event loop with TWO callbacks: own cmd + external state.
 client.run_managed_with_state(
@@ -396,29 +394,33 @@ client.run_managed_with_state(
     mgmt,
 ).await?;
 
-// Later, at runtime:
-client.unsubscribe_state("ecowitt_outdoor_temp").await?;
+// Later, at runtime, from a task holding the publisher:
+publisher.unsubscribe_state("ecowitt_outdoor_temp").await?;
 ```
 
-`run_managed_with_state` is a drop-in replacement for `run_managed`. Use
-`run_managed` when you don't need external state. The corresponding
-`DevicePublisher::subscribe_state` / `unsubscribe_state` methods let
-background tasks adjust subscriptions dynamically (e.g. when a user
-changes the sensor list via a runtime command).
+`run_managed_with_state` is a drop-in replacement for `run_managed`; use
+`run_managed` when you don't need external state. `DevicePublisher` has
+`subscribe_state` / `unsubscribe_state` too, so background tasks can change
+the subscriptions at runtime (when a user edits the sensor list through an
+action, say).
 
-**Broker ACL:** cross-device consumers need `allow_sub = ["homecore/devices/+/state"]`
-— broader than the typical plugin ACL. See the [thermostat plugin](./thermostat)
-Setup section for a complete example.
+To hear whether those devices are online, subscribe with
+`DevicePublisher::subscribe_availability` and handle the updates with
+`ManagementHandle::with_availability_handler`, which is called with
+`(device_id, online)`. This part is Rust-only.
 
-See [`hc-thermostat`](./thermostat) for a reference implementation.
+**Broker ACL:** cross-device consumers need `allow_sub = ["homecore/devices/+/state"]`,
+which is broader than the usual plugin ACL. See the Setup section of the
+[thermostat plugin](./thermostat) for a complete example, and
+[`hc-thermostat`](./thermostat) as a reference implementation.
 
 ---
 
 ## Python SDK (`hc-plugin-sdk-py`)
 
-[Install it](#installing-an-sdk) first. Subclass `PluginBase`, implement `on_command`, call `run()`. The API is
-synchronous — the SDK drives paho-mqtt's loop for you, so background work goes
-in a thread.
+[Install it](#installing-an-sdk) first. Subclass `PluginBase`, implement
+`on_command`, call `run()`. The API is synchronous: the SDK drives paho-mqtt's
+loop for you, so background work goes in a thread.
 
 ```python
 from homecore_plugin_sdk import PluginBase
@@ -479,8 +481,9 @@ complete plugin.
 
 ## Node.js SDK (`hc-plugin-sdk-js`)
 
-[Install it](#installing-an-sdk) first. Extend `PluginBase`, implement `onCommand`, call `run()`. Same shape as the
-Python SDK, on mqtt.js v5.
+[Install it](#installing-an-sdk) first. Extend `PluginBase`, implement
+`onCommand`, call `run()`. It has the same shape as the Python SDK, built on
+mqtt.js v5.
 
 ```javascript
 const { PluginBase } = require('homecore-plugin-sdk');
@@ -532,81 +535,102 @@ Requires Node.js 18+. See `examples/virtual_light.js` in the SDK repo.
 
 ## .NET SDK (`hc-plugin-sdk-dotnet`)
 
-[Install it](#installing-an-sdk) first.
+[Install it](#installing-an-sdk) first. The SDK targets .NET 8.
 
 ```csharp
 using HomeCore.PluginSdk;
 
 var client = new PluginClient(new PluginOptions { PluginId = "plugin.my-device" });
 
-client.OnCommand += (deviceId, payload) => {
+client.OnConnected += async () =>
+{
+    // Register here, not before connecting — this runs again after a reconnect.
+    // Registering also subscribes to the device's commands.
+    await client.RegisterDeviceFullAsync("my_device_001", "My Device", deviceType: "sensor");
+    await client.PublishAvailabilityAsync("my_device_001", true);
+    await client.PublishStateAsync("my_device_001", new { temperature = 22.5 }); // °C
+};
+
+client.OnCommand += async (deviceId, payload) =>
+{
     Console.WriteLine($"Command for {deviceId}: {payload}");
+    // Do whatever the device needs, then publish what actually happened.
+    await client.PublishStateForCommandAsync(deviceId, new { temperature = 22.5 }, payload, "my-plugin");
 };
 
 await client.ConnectAsync();
-await client.RegisterDeviceFullAsync("my_device_001", "My Device", deviceType: "sensor");
-
-// Separate from registration — without it the device appears in homeCore and
-// silently ignores every command.
-await client.SubscribeCommandsAsync("my_device_001");
-
-await client.PublishStateAsync("my_device_001", new { temperature = 22.5 }); // °C
-await client.PublishAvailabilityAsync("my_device_001", true);
 await client.RunAsync();
 ```
 
-Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT`, and
+Configuration falls back to `HC_BROKER_HOST`, `HC_BROKER_PORT` and
 `HC_PLUGIN_PASSWORD` when the options are not set.
 
 ---
 
 ## Choosing a language
 
-All four SDKs do the same job — every feature in the
-[matrix](#sdk-feature-matrix) below is in all of them. Pick the language you
-would rather write the device integration in.
+The four SDKs cover the same core features: devices, state, commands, the
+management protocol, notices, capability actions (including streaming),
+alerts and a plugin's own screens. A few newer features are in the Rust SDK
+only; the [matrix](#sdk-feature-matrix) below lists them. Otherwise, pick the
+language you would rather write the device integration in.
 
-The Rust SDK remains the reference implementation, and new protocol features
-land there first.
+The Rust SDK is the reference implementation, and new protocol features land
+there first.
 
-:::caution Logging secrets in .NET
-Every SDK redacts field *values* whose names look secret. In Rust and Python a
-field passed alongside the message stays out of the message text, so that is
-enough. **.NET renders every template argument into the message**, so
-`LogInformation("connecting with {ApiKey}", key)` would publish the key in the
-text as well — the .NET SDK therefore also scrubs those values out of the
-rendered message. None of it helps with a secret you interpolate yourself, so
-the rule in every language is still: do not log secrets.
+:::caution Secrets in forwarded logs
+Forwarded log lines go to an MQTT topic anything on the broker can subscribe
+to. The Rust and .NET SDKs replace the values of fields whose names look
+secret with `<redacted>`. **.NET renders every template argument into the
+message**, so `LogInformation("connecting with {ApiKey}", key)` would put the
+key in the text as well; the .NET SDK therefore also scrubs those values out
+of the rendered message. The Python and Node.js SDKs forward log lines as
+they are, without redaction. None of this helps with a secret you interpolate
+into a message yourself, so in every language the rule is the same: don't log
+secrets.
 :::
 
 ---
 
 ## Management protocol
 
-Plugins built with the official SDKs can opt into the management protocol, which enables:
+Plugins built with the SDKs can opt into the management protocol, which gives
+them:
 
-- **Heartbeat monitoring** — the plugin publishes to `homecore/plugins/{id}/heartbeat` every 30-60 seconds. HomeCore marks the plugin offline after 90 seconds without a heartbeat.
-- **Remote configuration** — HomeCore can push config changes via `homecore/plugins/{id}/manage/cmd` with `set_config`.
-- **Dynamic log level** — change the plugin's log verbosity at runtime via `set_log_level` without restarting.
-- **Health checks** — `ping` command with `pong` response.
-- **Log forwarding** — plugin logs are published to `homecore/plugins/{id}/logs` over MQTT, making them visible in the admin UI Activity page alongside core logs. Configurable minimum level via `log_forward_level` in the plugin's `[logging]` config.
+- **Heartbeat monitoring.** The plugin publishes to
+  `homecore/plugins/{id}/heartbeat` at the interval it chose (60 seconds in
+  the first-party plugins). HomeCore marks the plugin offline after 90 seconds
+  without a heartbeat.
+- **Remote configuration.** HomeCore reads and writes the plugin's config file
+  with `get_config` / `set_config` on `homecore/plugins/{id}/manage/cmd`.
+- **Dynamic log level.** `set_log_level` changes the plugin's log verbosity at
+  runtime, without a restart.
+- **Health checks.** A `ping` command, answered with `status: "ok"`.
+- **Log forwarding.** Plugin log lines are published to
+  `homecore/plugins/{id}/logs`, so they show up in the web UI's log
+  (Settings › Logs, and the plugin's Log tab) next to core's own. The minimum
+  level forwarded is `log_forward_level` in the `[logging]` section for
+  plugins that use the SDK's logging config (the template names its own
+  setting `forward_level`).
 
-All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol automatically when enabled.
+All four SDKs (Rust, Python, Node.js, .NET) handle the management protocol
+automatically once it is enabled.
 
 ## Configuration: schema and descriptor
 
 An operator configures your plugin from its page in the web UI. What they see
-there is decided by two documents you publish on the capability manifest — and
-if you publish neither, they get a raw TOML textarea.
+there comes from two documents you publish on the capability manifest. If you
+publish neither, they get a raw TOML textarea.
 
 | | What it is | Who writes it |
 |---|---|---|
 | **Config schema** | JSON Schema of your config: what fields exist, of what type | Derived from your config structs |
 | **Config descriptor** | How to *present* them: sections, units, help text, secrets, conditionals | You, by hand |
 
-Publish both. The schema stays authoritative for existence and for core-side
-validation; the descriptor annotates intent. Core serves them at
-`GET /plugins/{id}/config/schema` and `GET /plugins/{id}/config/descriptor`.
+Publish both. The schema stays authoritative for which fields exist and for
+core-side validation; the descriptor adds how to present them. Core serves
+them at `GET /plugins/{id}/config/schema` and
+`GET /plugins/{id}/config/descriptor`.
 
 ```rust
 let mgmt = match config::config_schema() {
@@ -616,8 +640,11 @@ let mgmt = match config::config_schema() {
 let mgmt = mgmt.with_config_descriptor(config::config_descriptor());
 ```
 
+Both ride on the capability manifest, so the plugin must call
+`with_capabilities` as well (an empty manifest is fine).
+
 The descriptor is built with typed builders, so a mistyped field kind is a
-compile error rather than a field that silently never renders:
+compile error instead of a field that silently never renders:
 
 ```rust
 use plugin_sdk_rs::config_descriptor::{Cond, Descriptor, Field, Section};
@@ -643,19 +670,20 @@ Descriptor::new("plugin.example")
 ```
 
 Field kinds include `toggle`, `text`, `host`, `port`, `url`, `secret`, `int`,
-`number`, `duration`, `enumeration`, `select`, `list`, `table`, `note` and
-`link`. A `table` can bind to a live core resource (`Source::core_resource`) so
-a form edits the device registry rather than your TOML.
+`number`, `duration`, `enumeration`, `select`, `list`, `map`, `table`,
+`note`, `link` and `import`. A field can draw its values from a live source:
+`Source::core_resource` (so a form edits the device registry rather than your
+TOML) or `Source::plugin_action`.
 
 :::warning A published descriptor is authoritative
 The editor renders your descriptor **instead of** deriving a form from the
-schema. So a config field the descriptor omits is not merely unlabelled — it is
-uneditable, while the schema still declares it and your plugin still reads it.
-hc-sonos shipped a descriptor missing its logging section once, and those
-settings simply vanished from the page.
+schema. A config field the descriptor leaves out is therefore not just
+unlabelled; it can't be edited at all, even though the schema still declares
+it and your plugin still reads it. hc-sonos once shipped a descriptor missing
+its logging section, and those settings vanished from the page.
 
-Guard it with a test. Every shipped plugin has this one, and
-`missing_schema_coverage` is in the SDK for it:
+Guard against it with a test. Every shipped plugin has this one, and the SDK
+provides `missing_schema_coverage` for it:
 
 ```rust
 #[test]
@@ -670,14 +698,14 @@ fn descriptor_covers_every_schema_field() {
 ```
 
 The third argument is an explicit allow-list, so an intentional omission is a
-line someone had to write and can be reviewed, rather than an oversight.
+line someone had to write and a reviewer can see.
 :::
 
-Hiding a section (`.hidden()`) still counts as covering its fields — use that
-for values core writes at install, like the broker host and password, rather
-than leaving them out.
+A hidden section (`.hidden()`) still counts as covering its fields. Use it for
+values core writes at install, like the broker host and password, rather than
+leaving them out.
 
-Schema derivation is behind a cargo feature in every Rust plugin, so it can be
+Every Rust plugin puts schema derivation behind a cargo feature, so it can be
 compiled out:
 
 ```toml
@@ -686,34 +714,33 @@ default = ["schema"]
 schema  = ["dep:schemars", "plugin-sdk-rs/schema"]
 ```
 
-**In the other SDKs**, both documents ride the capability manifest exactly the
-same way — `config_schema` / `config_descriptor` on the Python `Capabilities`
-dataclass, `configSchema` / `configDescriptor` in the Node.js constructor
-options, `ConfigSchema` / `ConfigDescriptor` on the .NET record. What is
-Rust-only is the *typed authoring*: the `Descriptor` / `Section` / `Field`
-builders and `missing_schema_coverage`. Elsewhere you hand over a plain
-dict/object, so a mistyped field kind is caught by the editor not rendering it
-rather than by the compiler — which makes the coverage habit more important
-there, not less.
+**In the other SDKs**, both documents ride on the capability manifest in the
+same way: `config_schema` / `config_descriptor` on the Python `Capabilities`
+dataclass, `configSchema` / `configDescriptor` in the options of the Node.js
+`Capabilities` constructor, and `ConfigSchema` / `ConfigDescriptor` on the
+.NET record. Only the typed authoring is Rust-only: the `Descriptor` /
+`Section` / `Field` builders and `missing_schema_coverage`. Elsewhere you pass
+a plain dict or object, so a mistyped field kind shows up only as a field the
+editor doesn't render. The coverage habit matters even more there.
 
 ## Capability manifest
 
-Plugins declare plugin-specific actions in a typed manifest; the admin
-UI renders Actions buttons from it and hc-mcp exposes the entries as
-tools. Adding a new action **doesn't require any changes** to core,
-the SDKs, the web UI, or hc-mcp — the framework is fully
-data-driven.
+Plugins declare plugin-specific actions in a typed manifest. The web UI lists
+them on the plugin's page and hc-mcp exposes them as tools. Adding an action
+needs no change to core, the SDKs, the web UI or hc-mcp.
 
-See the dedicated [Plugin Capabilities & Actions](./capabilities) page
-for the full spec, manifest fields, stage vocabulary, and protocol.
-The short version below shows how to wire it up from the Rust SDK.
+See [Plugin Capabilities & Actions](./capabilities) for the full spec,
+manifest fields, stage vocabulary and protocol. The examples below show how to
+wire actions up with the Rust SDK.
 
 ### Sync (non-streaming) action
 
-For a fire-and-forget command. Add a `with_capabilities` arm and
-handle the action through `with_custom_handler`:
+For an action that replies once. Declare it with `with_capabilities` and
+answer it in `with_custom_handler`:
 
 ```rust
+use plugin_sdk_rs::types::{Action, Capabilities, Concurrency, RequiresRole};
+
 let mgmt = client
     .enable_management(
         60,
@@ -722,10 +749,10 @@ let mgmt = client
         Some(log_level_handle),
     )
     .await?
-    .with_capabilities(hc_types::Capabilities {
+    .with_capabilities(Capabilities {
         spec: "1".into(),
         plugin_id: String::new(),  // SDK fills from configured plugin_id
-        actions: vec![hc_types::Action {
+        actions: vec![Action {
             id: "rescan_devices".into(),
             label: "Rescan devices".into(),
             description: Some("Refresh inventory from the cloud.".into()),
@@ -733,14 +760,17 @@ let mgmt = client
             result: None,
             stream: false,
             cancelable: false,
-            concurrency: hc_types::Concurrency::default(),
+            concurrency: Concurrency::default(),
             item_key: None,
             item_operations: None,
-            requires_role: hc_types::RequiresRole::User,
+            requires_role: RequiresRole::User,
             // Always declare one. Core's default window is 5000ms, which
             // fails any action that talks to hardware — and an inherited
             // default is not a decision anybody can see.
             timeout_ms: Some(20_000),
+            // true for an action that can't be undone or interrupts the
+            // house (a reboot, forgetting devices): screens ask first.
+            danger: false,
         }],
     })
     .with_custom_handler(move |cmd| match cmd["action"].as_str()? {
@@ -752,11 +782,17 @@ let mgmt = client
     });
 ```
 
+`with_custom_handler` runs synchronously and must not block. An action that
+has to wait on a device should be answered with `with_async_handler`
+instead: return `Some(future)` for the actions it handles, and the future's
+value becomes the reply. Each request already runs on its own task, so a slow
+one holds up nothing else.
+
 ### Streaming action
 
-Long-running flows that emit live progress, accept user prompts, and
-handle cancel. Use `with_streaming_action` and the `StreamContext`'s
-helper methods:
+For long-running flows that emit live progress, ask the user questions and
+can be cancelled. Use `with_streaming_action` and the helper methods on
+`StreamContext`:
 
 ```rust
 use plugin_sdk_rs::{StreamContext, StreamingAction};
@@ -781,31 +817,33 @@ let mgmt = mgmt.with_streaming_action(StreamingAction::new(
         // Always end with a terminal stage.
         ctx.complete(json!({ "nodes_added": [14] })).await
     },
-)));
+));
 ```
 
-The stage helpers (`progress`, `item_add` / `item_update` /
-`item_remove`, `awaiting_user`, `warning`, `complete`, `error`,
-`canceled`) handle the envelope shape and the
-`stream_topic` for you. Check `ctx.is_canceled()` in cooperative
-loops; pair `emit_awaiting_user_with_schema` with `await_respond`
-when the closure also needs to process other async work concurrently.
+The stage helpers (`progress`, `item_add` / `item_update` / `item_remove`,
+`awaiting_user`, `warning`, `complete`, `error`, `canceled`) build the
+envelope and publish it on the stream topic for you. Check `ctx.is_canceled()`
+in cooperative loops (or await `ctx.wait_canceled()` inside a
+`tokio::select!`), and call `ctx.canceled()` yourself once you have stopped.
+`awaiting_user_with_schema` emits the prompt and waits for the answer; use
+`emit_awaiting_user_with_schema` with `await_respond` when the closure has
+other async work to do while it waits.
 
-The Z-Wave plugin's `inclusion.rs` is a comprehensive worked example
-covering all the patterns; the `hc-captest` plugin in
-`plugins/hc-captest/` has six minimal-but-complete demos exercising
-every convention.
+The Z-Wave plugin's `inclusion.rs` is a thorough worked example covering all
+of these patterns. `plugins/hc-captest/` has six small but complete demos,
+one per convention.
 
 ### Files sent to an action
 
 `POST /api/v1/plugins/{id}/upload/{action}` sends a file (up to 32 MiB) to one
-of your manifest actions — a firmware image, a backup to restore. homeCore
-checks the action's role, sends the file to the plugin in pieces over the
-management channel, then runs the action as usual: the SDK hands it a
-`file_path` param — a local file, removed once the action has replied (copy it
-first if a streaming action keeps working). Query parameters arrive as params,
-as strings. From a plugin's own screen: `host.upload(action, file, params)`.
-Rust SDK only, today.
+of your manifest actions, such as a firmware image or a backup to restore.
+homeCore checks the action's role, sends the file to the plugin in pieces
+over the management channel, and then runs the action as usual. The SDK
+passes the action a `file_path` param: a local file, which it removes once the
+action has replied (copy it first if a streaming action keeps working with
+it). Query parameters arrive as params, as strings. From a plugin's own
+screen, use `host.upload(action, file, params)`. This is Rust SDK only for
+now.
 
 ```rust
 "install_firmware_file" => {
@@ -817,19 +855,21 @@ Rust SDK only, today.
 
 ## Alerts
 
-Alerts about your devices — a firmware update, a device that restarted by
-itself — join the house's alert list, can be sent to a notification channel and
-can drive automations. Declare the kinds with `with_alert_kinds`, then say
-which are true now with `set_alerts(device_id, [...])`: the whole list each
-time, so one you stop sending has cleared. See
+Alerts about your devices (a firmware update, a device that restarted by
+itself) join the house's alert list, can be sent to a notification channel
+and can drive automations. Declare the kinds with `with_alert_kinds`, then
+report which are true now with `set_alerts(device_id, [...])`. Send the whole
+list each time; one you stop sending has cleared. See
 [Alerts from Plugins](./plugin-alerts).
 
 ## Its own screens and cards
 
 A plugin can carry web components for its page, its devices' panel, the
-automation editor's form for a step on its devices, its devices' cards on Home
-and the rooms, and cards of its own a household adds to a page — serving them
-itself with `with_ui_dir`. See [Screens and Cards](./plugin-screens).
+automation editor's form for a step on its devices, its devices' cards on
+Home and the rooms, and cards of its own that a household adds to a page. It
+serves them itself with `with_ui_dir`. Pictures it fetches while running
+(channel icons, say) are served with `with_files_dir`. See
+[Screens and Cards](./plugin-screens).
 
 ## SDK feature matrix
 
@@ -854,7 +894,10 @@ itself with `with_ui_dir`. See [Screens and Cards](./plugin-screens).
 | Device persistence + reconcile | ✅ | ✅ | ✅ | ✅ |
 | Alerts (alert kinds, `set_alerts`) | ✅ | ✅ | ✅ | ✅ |
 | Own screens and cards (`with_ui_dir`) | ✅ | ✅ | ✅ | ✅ |
-| Files sent to actions | ✅ | — | — | — |
+| Files sent to actions | ✅ | ❌ | ❌ | ❌ |
+| Pictures it keeps (`with_files_dir`) | ✅ | ❌ | ❌ | ❌ |
+| Actions answered asynchronously (`with_async_handler`) | ✅ | ❌ | ❌ | ❌ |
+| Other devices' availability (`subscribe_availability`) | ✅ | ❌ | ❌ | ❌ |
 
 See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol) for the full MQTT topic reference and API endpoints.
 
@@ -862,7 +905,8 @@ See [Plugin Overview: Management Protocol](./overview#plugin-management-protocol
 
 ## Raw MQTT (any language)
 
-You can write a plugin in any language using any MQTT client library. Follow the topic protocol directly:
+You can write a plugin in any language with any MQTT client library by
+following the topic protocol directly.
 
 ### 1. Connect to broker
 
@@ -908,7 +952,7 @@ Publish to `homecore/devices/my_device_001/availability` with `retain=true`:
 online
 ```
 
-or when disconnecting (use MQTT Last Will):
+or, when disconnecting (use an MQTT Last Will):
 
 ```
 offline
@@ -918,8 +962,8 @@ offline
 
 Subscribe to `homecore/devices/my_device_001/cmd`.
 
-An incoming payload is one of two shapes: a write to a writable attribute,
-`{"on": true}`, or a declared action, `{"action": "toggle"}` — never
+An incoming payload has one of two shapes: a write to a writable attribute,
+`{"on": true}`, or a declared action, `{"action": "toggle"}`. It is never
 `{"command": …}`. Apply it to the physical device, then publish the new state
 back.
 
@@ -941,12 +985,13 @@ plugins/hc-my-plugin/
 
 Add `"plugins/hc-my-plugin"` to `[workspace] members` in the repo-root
 `Cargo.toml`. That is the only registration step: CI, formatting, clippy and
-tests already run over every member, and the release workflow derives everything
-it needs from the directory name.
+tests already run over every member, and the release workflow derives
+everything it needs from the directory name. A plugin with its own screens
+also has a `ui/` folder (see [Screens and Cards](./plugin-screens)).
 
-In a real install you never place `config.toml` yourself — core seeds it at
-`config/plugins/<plugin_id>.toml`, hands the path to your process as `argv[1]`,
-and restarts the plugin when an operator edits it. The committed
+In a real install you never place `config.toml` yourself. Core seeds it at
+`config/plugins/<plugin_id>.toml`, passes the path to your process as
+`argv[1]`, and restarts the plugin when an operator edits it. The committed
 `config.toml.example` is for running the binary by hand during development.
 
 `config.toml` structure:
@@ -967,49 +1012,51 @@ password = "change-me"
 
 ## Distributing a plugin
 
-Plugins do **not** ship as container images. They ship as signed `.tar.zst`
+Plugins don't ship as container images. They ship as signed `.tar.zst`
 artifacts in the [plugin registry](https://github.com/homeCore-io/registry):
 a `plugin.toml` manifest plus the binary, ed25519-signed, indexed at
 `https://homecore.io/registry/index.json`.
 
 Core downloads the artifact, verifies the signature against the public key in
-its `[registry]` config, unpacks it to
-`$HOMECORE_HOME/plugins/<id>/<version>/`, seeds a config with generated MQTT
-credentials, and runs the binary as a child process it supervises and
-restarts. Users install with Plugins → Add in the web UI.
+its `[registry]` config, and unpacks it to
+`$HOMECORE_HOME/plugins/<id>/<version>/`. It then seeds a config with
+generated MQTT credentials and runs the binary as a child process that it
+supervises and restarts. Users install with Plugins → Add in the web UI.
 
-A plugin with its own screens has them in the same package: when your plugin
-has `ui/package.json`, the release builds it and packs `ui/dist` as `ui/`
-beside the binary (`ui = "ui"` in `plugin.toml`), and homeCore installs it
-there for the plugin to serve. Commit `ui/package-lock.json`.
+A plugin's own screens go in the same package. When your plugin has
+`ui/package.json`, the release builds it and packs `ui/dist` as `ui/` beside
+the binary (`ui = "ui"` in `plugin.toml`), and homeCore installs it there for
+the plugin to serve. Commit `ui/package-lock.json`.
 
-Releasing is one tag on the homeCore repo. Bump your plugin's `Cargo.toml` on
-`develop`, merge to `main`, and push `hc-my-plugin-v0.1.0`. The shared workflow
-recognises the `hc-<name>-v<version>` shape, builds a static musl binary,
-packages the `.tar.zst`, attaches it to the GitHub Release, notifies the
-registry, and then polls the *served* index until the entry appears — so a green
-release means an installable plugin, not just a successful build. A plain
+Releasing takes one tag on the homeCore repo. Bump the version in your
+plugin's `Cargo.toml` on `develop`, merge to `main`, wait for CI to pass, and
+push `hc-my-plugin-v0.1.0`. The shared workflow recognises the
+`hc-<name>-v<version>` shape. It builds a static musl binary, packages the
+`.tar.zst`, attaches it to the GitHub Release and notifies the registry. It
+then polls the *served* index until the entry appears, so a green release
+means an installable plugin, not just a successful build. A plain
 `v<version>` tag releases the server instead.
 
 There is no per-plugin workflow to copy, and no SDK tag to push first.
 
 There used to be a `plugins/Dockerfile.plugin` template for building a plugin
 into its own container, run with `network_mode: host` against core's broker.
-That shape is retired and the template is gone. If you need a plugin on a
-different host, the SDK still supports it — point `broker_host` /
-`broker_port` in the plugin's `[homecore]` config at core's broker, and expose
-the broker accordingly.
+That approach is retired and the template is gone. If you need a plugin on a
+different host, the SDK still supports it: point `broker_host` /
+`broker_port` in the plugin's `[homecore]` config at core's broker, and
+expose the broker accordingly.
 
 ## Declaring a device
 
 Registering a device tells homeCore it exists. The **device schema** tells
-every client what to draw for it, and it is the half most plugins skip.
+every client what to draw for it, and it is the part most plugins skip.
 
-A client will not offer a control the plugin has not promised. So a device
-without a schema still works — state flows, commands arrive — and appears as a
-row of raw JSON that nobody can operate. Measured on the reference house before
-this was taken seriously: **77 of 184 devices published no schema**, including
-every scene, fan and timer. Each one was a plugin that registered and stopped.
+A client won't offer a control the plugin has not declared. A device without
+a schema still works (state flows, commands arrive), but it appears as a row
+of raw JSON that nobody can operate. On the reference house, before schemas
+were taken seriously, **77 of 184 devices published no schema**, including
+every scene, fan and timer. Each came from a plugin that registered the
+device and stopped there.
 
 ```rust
 use plugin_sdk_rs::types::schema::{
@@ -1042,26 +1089,26 @@ publisher.register_device_schema(&device_id, &DeviceSchema {
 }).await?;
 ```
 
-The schema is published **retained**, so it survives the plugin being down and
-a client connecting later still knows what the device means. Republish it when
-the set of attributes changes — a sensor that gains a reading gains an
+The schema is published **retained**, so it survives the plugin being down,
+and a client that connects later still knows what the device means. Republish
+it when the set of attributes changes; a sensor that gains a reading gains an
 attribute.
 
 ### Typed registration writes the same slot
 
 Registering with a `device_type` can resolve a **built-in** schema for that
 type, if the operator has a `config/profiles/device-types.toml`. That catalog
-exists for the topic-mapper — so a Tasmota or Shelly device with no plugin
-behind it can name a type instead of hand-writing a schema — but the resolution
-runs on every registration that carries a `device_type`, yours included, and
-stores the result where your own schema goes. The two are not additive: the
-last write wins.
+exists for the topic mapper, so that a Tasmota or Shelly device with no
+plugin behind it can name a type instead of hand-writing a schema. The
+resolution runs on every registration that carries a `device_type`, yours
+included, and stores the result where your own schema goes. The two are not
+merged: the last write wins.
 
-Publish your schema **after** the registration it belongs to, which is what the
-template does. And know that a *re*-registration re-resolves the built-in one:
-a plugin that re-registers periodically (to refresh a device's identity, say)
-against a core with a type registry will overwrite its own schema each time
-unless it republishes alongside.
+Publish your schema **after** the registration it belongs to, as the template
+does. Also note that a *re*-registration resolves the built-in schema again. A
+plugin that re-registers periodically (to refresh a device's identity, say)
+against a core with a type catalog overwrites its own schema each time unless
+it republishes the schema alongside.
 
 Your own schema is the better path for anything with attributes worth
 describing. The built-in resolution exists so a plugin that says only
@@ -1072,20 +1119,20 @@ describing. The built-in resolution exists so a plugin that says only
 | Field | What it is for |
 |---|---|
 | `kind` | `bool`, `integer`, `float`, `string`, `enum`, `color_xy`, `color_rgb`, `color_temp`, `json`. This is what picks the control. |
-| `writable` | Whether a write reaches the device. **A read-only attribute rendered as a slider is a lie the user discovers by dragging it.** |
-| `display_name` | What a person reads. Absent falls back to the attribute name. |
-| `unit` | `%`, `°C`, `lux`, `W`. Must be *true* — see below. |
+| `writable` | Whether a write reaches the device. **A read-only attribute rendered as a slider misleads the user until they drag it.** |
+| `display_name` | What a person reads. When absent, the attribute name is used. |
+| `unit` | `%`, `°C`, `lux`, `W`. Must be *true*; see below. |
 | `min` / `max` / `step` | The range the command path actually clamps to. |
-| `options` | For `enum`: the values, optionally with a label and an icon each. |
-| `states` | For `bool`: what both of its states are called. |
-| `category` | `diagnostic` or `config` — what a reading is *for*, when it is not what the device is for. |
+| `options` | For `enum`: the values, optionally with a label and an icon each. Also used to [name the numbers](#name-your-numbers) of an integer. |
+| `states` | For `bool`: what each of its two states is called. |
+| `category` | `diagnostic` or `config`: what a reading is *for*, when it is not what the device is for. |
 
 ### Both names of a boolean
 
-A boolean attribute is **two events, not one**. A client given only `open`
-offers one row, and catching the door closing needs a Not gate wrapped round
-the trigger — so `closed` reads as "open, but Not", a logic gate standing in
-for a word the device already has.
+A boolean attribute stands for **two events**. A client given only `open`
+offers one row, and catching the door closing then needs a Not gate wrapped
+around the trigger. `closed` ends up as "open, but Not", a logic gate standing
+in for a word the device already has.
 
 ```rust
 states: Some(BoolStates {
@@ -1094,25 +1141,25 @@ states: Some(BoolStates {
 })
 ```
 
-Two forms because English will not derive one from the other: `open` → "opens",
-but `locked` → "locks" and `motion` → "detects motion". A condition reads the
-adjective ("while the door is open"), a trigger reads the verb ("when the door
-opens").
+Each state has two forms because English won't derive one from the other:
+`open` gives "opens", but `locked` gives "locks" and `motion` gives "detects
+motion". A condition reads the adjective ("while the door is open"); a trigger
+reads the verb ("when the door opens").
 
 ### Which readings are the point of the device
 
 A door lock reports whether it is locked. It also reports battery, signal
-strength and firmware. Rendering all four the same way buries the one an
+strength and firmware. Showing all four the same way buries the one the
 operator came for.
 
-- **`category: diagnostic`** — health and identity: battery, RSSI, firmware,
-  ip, model, a `*_unit` sibling, anything `supports_*`.
-- **`category: config`** — a setting that shapes behaviour rather than
+- **`category: diagnostic`**: health and identity, such as battery, RSSI,
+  firmware, IP address, model, a `*_unit` sibling, anything `supports_*`.
+- **`category: config`**: a setting that shapes behaviour rather than
   reporting it.
-- **Absent** — primary. The ordinary case.
+- **Absent**: a primary reading. The ordinary case.
 
-Do not repeat the list by hand. `AttributeCategory::for_name` holds the
-cross-plugin lexicon and fills the common names for you:
+Don't repeat the list by hand. `AttributeCategory::for_name` holds the
+cross-plugin list and fills in the common names for you:
 
 ```rust
 for (name, attr) in attributes.iter_mut() {
@@ -1122,20 +1169,20 @@ for (name, attr) in attributes.iter_mut() {
 }
 ```
 
-Set it explicitly for anything only your plugin can know — an ISY sensor's
-`unit` is metadata about its `value`, and no shared list can tell.
+Set it explicitly for anything only your plugin can know. An ISY sensor's
+`unit` is metadata about its `value`, and no shared list can tell that.
 
-`DeviceSchema.primary` ranks what is left, most important first. **You usually
-do not set it**: homeCore derives it from the device's `device_type` when it
-serves the schema, so a `temperature_sensor` leads with `temperature` and a
-multi-sensor reporting motion leads with `motion`. Declare it only when you
-know better than the type does.
+`DeviceSchema.primary` ranks the remaining readings, most important first.
+**You usually don't set it**: homeCore derives it from the device's
+`device_type` when it serves the schema, so a `temperature_sensor` leads with
+`temperature` and a multi-sensor reporting motion leads with `motion`. Declare
+it only when you know better than the type does.
 
 ### Things a device *does*
 
 An attribute write is `{"source": "Netflix"}`. An action is
-`{"action": "launch_app", "app": "Netflix"}`. Both reach the plugin on the same
-`cmd` topic, so declaring actions costs no new transport:
+`{"action": "launch_app", "app": "Netflix"}`. Both reach the plugin on the
+same `cmd` topic, so declaring actions needs no new transport:
 
 ```rust
 use plugin_sdk_rs::device_actions::{with_actions, Action, Param};
@@ -1150,57 +1197,58 @@ let schema = with_actions(&schema, vec![
 publisher.register_device_schema_json(&device_id, &schema).await?;
 ```
 
-`sentence` is load-bearing rather than decoration: a client that cannot phrase
-a payload shows the user raw JSON in their rule list. `icon` is a semantic name
-(`scene`, `remote`, `snowflake`), not a font codepoint — each client maps it to
-its own set.
+`sentence` matters: a client that can't phrase a payload shows the user raw
+JSON in their rule list. `icon` is a semantic name (`scene`, `remote`,
+`snowflake`), not a font codepoint; each client maps it to its own icon set.
+An action can also declare its params (`Param`), the attribute it writes
+(`writes`), a `confirm` prompt and a `requires_role`.
 
-**Declare an action only if the command dispatcher really takes it.** The
-mirror of the promise is a test: every arm of your dispatcher is either
-declared or deliberately excluded. Without it the declaration drifts and a
-client renders a control that does nothing — worse than not offering it.
+**Declare an action only if the command dispatcher really accepts it.** Back
+the declaration with a test: every arm of your dispatcher is either declared
+or deliberately excluded. Without one, the declaration drifts and a client
+shows a control that does nothing, which is worse than not offering it.
 
 ### Publishing state without deleting your own work
 
 `publish_state` **replaces** the retained document. `publish_state_partial`
 merges into it.
 
-If anything else publishes to the same device — a slow info refresher, a second
-task, a facet compacted onto a primary — a full publish deletes what the other
-one wrote, and the next refresh puts it back. That churn is not theoretical:
-one WLED controller produced a `device_state_changed` listing sixteen
-attributes, in both directions, forever, because its light state was published
-whole every WebSocket push while sixteen hardware facts were merged on a
-five-minute tick.
+If anything else publishes to the same device (a slow info refresher, a
+second task, a facet merged into a primary device), a full publish deletes
+what the other one wrote, and the next refresh puts it back. This has
+happened: one WLED controller kept producing `device_state_changed` events
+listing sixteen attributes, in both directions, indefinitely. Its light state
+was published whole on every WebSocket push while sixteen hardware facts were
+merged in on a five-minute tick.
 
-Use a partial for anything that is one publisher's half of a device.
+Use a partial for anything that is one publisher's share of a device.
 
 ### Never publish a value that changes by itself
 
-An `uptime` counter makes **every poll a state change** for a device that did
-nothing. Two Rokus reporting that time had passed accounted for 111 of the last
-200 events in the whole house.
+An `uptime` counter turns **every poll into a state change** for a device that
+did nothing. Two Rokus reporting that time had passed once accounted for 111
+of the last 200 events in the whole house.
 
-Drop them. A reboot is already visible as availability dropping, and homeCore
-records `last_seen` for every device. The same applies to an on-device clock,
-and to any field that ticks on its own between reads.
+Leave such values out. A reboot already shows up as availability dropping, and
+homeCore records `last_seen` for every device. The same goes for an on-device
+clock and any field that ticks on its own between reads.
 
 ### An action that repairs must repair the declaration
 
-Most plugins gate publication on first sighting — a `registry.ensure_*` that
-returns false for a device this process has already seen. That is right for a
-periodic loop and wrong for the button an operator presses when a device looks
-wrong, because it means *Rescan devices* re-reads the bridge and republishes
-nothing.
+Most plugins publish a device only the first time they see it, through
+something like a `registry.ensure_*` that returns false for a device this
+process has already seen. That is right for a periodic loop and wrong for the
+button an operator presses when a device looks wrong: *Rescan devices* re-reads
+the bridge and republishes nothing.
 
 **homeCore can lose a schema while your plugin still believes it published
 one.** An unregister deletes the device *and* its schema, a restore from an
 older backup predates it, and a typed registration can overwrite it. If your
-repair action does not republish, the only repair is restarting the plugin —
-which is what empties the in-memory registry.
+repair action doesn't republish, the only fix left is restarting the plugin,
+which is what empties its in-memory registry.
 
-Five of homeCore's own plugins had this. The fix in each was the same shape:
-an operator-initiated pass forgets what it published, so the next pass says
+Five of homeCore's own plugins had this bug. Each was fixed the same way: an
+operator-initiated pass forgets what it published, so the next pass publishes
 everything again exactly once.
 
 ```rust
@@ -1210,18 +1258,18 @@ if force_republish {
 }
 ```
 
-Do **not** republish on the periodic path. Everything published is an upsert
-against a retained topic, so saying it again costs nothing when nothing is
-wrong — but on a timer it is churn, and one `device_schema_changed` event per
+Don't republish on the periodic path. Everything published is an upsert
+against a retained topic, so publishing again costs nothing when nothing is
+wrong, but on a timer it is churn: one `device_schema_changed` event per
 device per tick.
 
-If your plugin is a receiver rather than a poller, the honest version is a
-flag your next inbound report reads, and an action description that says so:
-there is nothing to describe until the hardware speaks.
+If your plugin receives reports rather than polling, set a flag that the next
+inbound report reads, and say so in the action's description: there is
+nothing to describe until the hardware reports.
 
 ### Name your numbers
 
-A number that is a choice — a preset, an effect, a scene slot — is said by name
+A number that is a choice (a preset, an effect, a scene slot) is shown by name
 everywhere when its attribute has `options`:
 
 ```json
@@ -1230,9 +1278,10 @@ everywhere when its attribute has `options`:
 ```
 
 Pickers offer "Halloween 1", triggers read "preset becomes “Halloween 1”", and
-no screen of yours is needed. Options may differ per device and change: build
-each device's schema with its own names and republish it when they change (and
-only then). hc-wled's `schema_named` does exactly this.
+you need no screen of your own for it. Options may differ per device and
+change over time: build each device's schema with its own names and republish
+it when they change (and only then). hc-wled's `schema_named` does exactly
+this.
 
 ### Read and write the same name
 
@@ -1249,42 +1298,43 @@ rules, accept both and declare the one you publish.
 
 ### Names and units
 
-**One name, one meaning, one unit**, for everything a device reports or takes.
-The table is `hc_types::device_vocabulary::TERMS` in the homeCore repository;
-read it before naming an attribute.
+**One name, one meaning, one unit** for everything a device reports or
+accepts. The table is `hc_types::device_vocabulary::TERMS` in the homeCore
+repository; read it before naming an attribute.
 
 - **Use a name from the table when the idea matches**, in its unit and range:
-  `on`, `brightness_pct` (0–100, decimals allowed), `color_temp` (kelvin),
+  `on`, `brightness_pct` (0 to 100, decimals allowed), `color_temp` (kelvin),
   `color_xy`, `color_rgb`, `transition_ms`, `position` (100 = open), `locked`,
   `open` (`true` = open), `motion`, `occupied`, `temperature`, `humidity`,
   `illuminance` (lux), `setpoint` / `heat_setpoint` / `cool_setpoint`,
   `hvac_mode`, `hvac_action`, `fan_mode`, `power_w`, `energy_kwh`,
   `battery_pct`, `volume`, `muted`, `media_title`, `media_position`, and the
   rest of the table.
-- **Your own idea gets your own name**, never one of these with another
-  meaning. A WLED preset is `preset_id`; a raw 0–255 level is not
+- **Your own idea gets your own name**, never one of these with a different
+  meaning. A WLED preset is `preset_id`; a raw 0 to 255 level is not
   `brightness`.
-- **Convert at the edge.** Publish in the table's unit and convert back when
-  commanding. Temperatures are **°C**, rain **mm**, pressure **hPa**, wind
-  **m/s** — whatever the device reports or the person prefers. Showing °F is
-  the app's job, from each person's setting; a plugin has no unit setting.
-  Write the conversion as a function with a test at each end of the scale: a
-  dimmer's lowest step must not read as 0 % (off), and 100 % must reach the
-  device's maximum (99 on Z-Wave, 254 on Zigbee and Matter, 255 on WLED).
-  The Rust template's `pct_from_level` / `level_from_pct` show how.
-- **Units in names.** A number names its unit as a suffix — `_pct`, `_ms`,
-  `_secs`, `_w`, `_kwh` — unless it is a term whose unit the table sets
+- **Convert at the edge.** Publish in the table's unit, and convert back when
+  commanding the device. Temperatures are **°C**, rain **mm**, pressure
+  **hPa** and wind **m/s**, whatever the device reports or the person
+  prefers. Showing °F is the app's job, based on each person's setting; a
+  plugin has no unit setting. Write each conversion as a function with a test
+  at each end of the scale: a dimmer's lowest step must not read as 0 % (off),
+  and 100 % must reach the device's maximum (99 on Z-Wave, 254 on Zigbee and
+  Matter, 255 on WLED). The Rust template's `pct_from_level` /
+  `level_from_pct` show how.
+- **Units in names.** A number names its unit as a suffix (`_pct`, `_ms`,
+  `_secs`, `_w`, `_kwh`) unless it is a term whose unit the table sets
   (`temperature`, `humidity`, `volume`, `position`, …). Fades are `_ms`.
 - **Two command shapes, no others.** A write to a writable attribute,
   `{"on": true}`, or a declared action, `{"action": "start", …}`. Read
-  `action`; never `command`.
+  `action`, never `command`.
 - **`{"on": true}` restores the last level** where the device can. `0` %
   means off; a light that is on never reports `0` %.
 
 ## Let the build check it for you
 
-Most of the checklist below is not a thing to remember. It is
-`plugin_sdk_rs::conformance`, and a plugin that skips it fails `cargo test`:
+Most of the checklist below doesn't need remembering. It is
+`plugin_sdk_rs::conformance`, and a plugin that breaks it fails `cargo test`:
 
 ```rust
 #[cfg(test)]
@@ -1305,17 +1355,18 @@ mod conformance_tests {
 }
 ```
 
-`hc-plugin-template` ships with both, so a plugin copied from it starts
-conformant.
+`hc-plugin-template` ships with both, so a plugin copied from it starts out
+conformant. For a schema built as JSON (with `with_actions`, say),
+`check_device_schema_json` applies the same rules.
 
 What the checks catch, each of which has been a real bug in a shipped plugin:
 
 | Check | What it catches |
 | --- | --- |
 | `check_device_schema` | a boolean naming one state or neither; an enum with no options; a dotted or non-snake_case name; housekeeping declared as a reading; `min` above `max`; an action with no sentence, or one that never names the device; an action claiming to write an attribute the schema does not declare |
-| `check_manifest` | an action with no label, or no `timeout_ms` — core's 5 s default fails anything that talks to hardware |
+| `check_manifest` | an action with no label, or no `timeout_ms` (core's 5 s default fails anything that talks to hardware) |
 | `check_actions_routed` | an action advertised but not routed (a button that does nothing) and one routed but not advertised (a capability nobody can find) |
-| `check_writables` | an attribute declared writable that your command path ignores — the control a user discovers is fake by using it |
+| `check_writables` | an attribute declared writable that your command path ignores, a control the user only discovers is fake by using it |
 
 `check_writables` takes your dispatcher as a closure, since only your plugin
 knows what a payload does:
@@ -1327,79 +1378,78 @@ plugin_sdk_rs::conformance::check_writables(&device_schema(), |name| {
 .assert_ok();
 ```
 
-This is the same arrangement `config_descriptor::missing_schema_coverage`
-already uses for the config half: the SDK holds the rule, your test calls it,
-and the rule cannot rot in a document nobody re-reads.
+This works the same way as `config_descriptor::missing_schema_coverage` does
+for configuration: the SDK holds the rule and your test calls it, so the rule
+can't go stale in a document nobody re-reads.
 
 ## Before you release a plugin
 
-Each of these has been a real bug in a shipped homeCore plugin. **The ones
-marked ✓ are checked by `conformance` above** — the rest are things only you
-can know.
+Each of these has been a real bug in a shipped homeCore plugin. **The items
+marked ✓ are checked by `conformance` above**; the rest only you can check.
 
 **The device**
 
 - [ ] Every device registers a `device_type`. A WLED controller had none for
       its whole life, so every client filtering by type skipped it.
-- [ ] Every device publishes a schema — including the ones that feel too
-      simple to need one. A scene that takes `activate` and reports nothing
-      still declares that: an empty attribute set is a statement, and "no
-      schema" is a different one.
+- [ ] Every device publishes a schema, including the ones that seem too simple
+      to need one. A scene that takes `activate` and reports nothing still
+      declares that. An empty attribute set says something, and "no schema"
+      says something different.
 
 **The attributes**
 
 - [ ] Every attribute you publish is declared, under the name you publish it.
 - [ ] Every attribute you declare is one you publish, or one the command path
       accepts.
-- [ ] ✓ Every boolean has `states`, both sides named.
+- [ ] ✓ Every boolean has `states`, with both sides named.
 - [ ] Every `unit` is true of the value. A 0-5 battery level declared `%`
-      rendered a healthy sensor as "2%".
+      showed a healthy sensor as "2%".
 - [ ] Shared ideas use the [shared names and units](#names-and-units),
-      converted inside the plugin (temperatures °C, `brightness_pct` 0–100,
+      converted inside the plugin (temperatures °C, `brightness_pct` 0 to 100,
       `color_temp` kelvin), with a test at each end of every conversion.
 - [ ] Commands are read as an attribute write or `{"action": …}`, never
       `{"command": …}`.
-- [ ] ✓ Every `min`/`max` is a range, and matches what the command path clamps to.
+- [ ] ✓ Every `min`/`max` is a valid range, and matches what the command path clamps to.
 - [ ] ✓ Housekeeping carries `category`; ask `AttributeCategory::for_name`
       before writing your own list.
-- [ ] ✓ Names are `snake_case`, no dots. Nothing treats a dot specially, but
-      no other plugin uses one and a client humanising `led.count` renders
+- [ ] ✓ Names are `snake_case`, with no dots. Nothing treats a dot specially,
+      but no other plugin uses one, and a client humanising `led.count` shows
       "Led.count".
 
 **The publishing**
 
 - [ ] Your repair action republishes declarations, not only state.
-- [ ] Partial publishes for anything that is one publisher's half of a device.
-- [ ] No self-changing values in state — no uptime, no device clock.
+- [ ] Partial publishes for anything that is one publisher's share of a device.
+- [ ] No self-changing values in state: no uptime, no device clock.
 - [ ] The schema is republished when the set of attributes changes.
 - [ ] Availability is published, and set false when the device is unreachable.
 
 **The plugin**
 
-- [ ] Config section is `#[serde(default)]` with a `Default` impl, or a
-      freshly installed plugin crash-loops on "missing field" before it can
-      publish its config schema.
-- [ ] `config_schema` and `config_descriptor` both published; the descriptor
-      covers every schema field (`missing_schema_coverage` tests it).
-- [ ] Commands are subscribed as well as registered — forgetting
+- [ ] The config section is `#[serde(default)]` with a `Default` impl.
+      Otherwise a freshly installed plugin crash-loops on "missing field"
+      before it can publish its config schema.
+- [ ] `config_schema` and `config_descriptor` are both published, and the
+      descriptor covers every schema field (`missing_schema_coverage` tests it).
+- [ ] Commands are subscribed as well as registered. Forgetting
       `subscribe_commands` gives a device whose state updates and whose
       commands go nowhere.
 
 **Its screens**, if it has any
 
-- [ ] They use `host` for everything — not the app's own modules or its API
-      paths — and fall back cleanly (the app shows its generic screens when a
-      plugin's won't load).
-- [ ] Cards list the `forms` they can be, use `hc-tile`, and look right at a
-      phone's half width.
-- [ ] Checked in light and dark, on a test homeCore — never the real house.
-- [ ] `ui/` builds from a clean checkout (`npm ci && npm run build`) and writes
-      `dist/manifest.json`.
+- [ ] They use `host` for everything (not the app's own modules or its API
+      paths) and fall back cleanly; the app shows its generic screens when a
+      plugin's won't load.
+- [ ] Cards list the `forms` they support, use `hc-tile`, and look right at
+      half a phone's width.
+- [ ] Checked in light and dark, on a test homeCore, never the real house.
+- [ ] `ui/` builds from a clean checkout (`npm ci && npm run build`) and
+      writes `dist/manifest.json`.
 
 **The check that catches most of it**
 
-Read the device back off a running homeCore. Every defect above is invisible in
-the source and obvious here:
+Read the device back from a running homeCore. Every defect above is invisible
+in the source and obvious here:
 
 ```bash
 curl -s "$CORE/api/v1/devices?include_schema=true" \
@@ -1416,30 +1466,31 @@ that does nothing.
 
 ## Device type field
 
-Register a `device_type` string to help UIs categorize devices correctly and filter scenes from device lists.
+Register a `device_type` string so UIs can categorize devices correctly and
+keep scenes out of device lists.
 
-**Publish what the device *is*, not the protocol you reach it over.** Every
-Z-Wave node in homeCore registered as `device_type: "zwave"` until recently, so
-a lock, four outlets, a door sensor and a motion sensor arrived
-indistinguishable and every client filtering or ranking by type had nothing to
-work with.
+**Publish what the device *is*, not the protocol you reach it over.** Until
+recently every Z-Wave node in homeCore registered as `device_type: "zwave"`,
+so a lock, four outlets, a door sensor and a motion sensor arrived
+indistinguishable, and every client filtering or ranking by type had nothing
+to work with.
 
-**Ask the bridge — it usually knows.** zwave-js had been sending
-`deviceClass.generic` / `.specific` on every node the whole time. Hue, Lutron
-and Caséta all report a device kind of their own. Reading it is nearly always
+**Ask the bridge; it usually knows.** zwave-js had been sending
+`deviceClass.generic` / `.specific` on every node all along. Hue, Lutron and
+Caséta all report a device kind of their own. Reading it is nearly always
 better than a config field somebody has to fill in.
 
-**Where the bridge's answer is ambiguous, read what the device reports.** Z-Wave
-describes a door sensor and a motion sensor identically — both are
-"Notification Sensor" — and the only thing separating them is that one
-publishes a contact and the other publishes motion.
+**Where the bridge's answer is ambiguous, look at what the device reports.**
+Z-Wave describes a door sensor and a motion sensor identically (both are
+"Notification Sensor"); the only difference is that one publishes a contact
+and the other publishes motion.
 
-**Say nothing rather than guessing.** Omitting `device_type` leaves whatever
-homeCore already stored alone, so a device that has not finished interviewing
-can register bare now and be typed on the next registration, with no special
-path. The same is true of any registration that does not know: a rename
-handler knows the new name and nothing else, and re-asserting a type there
-undoes whatever the informed registration worked out.
+**Say nothing rather than guess.** Omitting `device_type` leaves whatever
+homeCore already stored alone. A device that has not finished its interview
+can register without a type now and be typed on the next registration, with
+no special handling. The same applies to any registration that doesn't know
+the type: a rename handler knows the new name and nothing else, and
+re-asserting a type there undoes what the informed registration worked out.
 
 The common values:
 
@@ -1458,19 +1509,22 @@ The common values:
 
 ## Testing your plugin
 
-`plugins/hc-plugin-template` is the reference for the full SDK lifecycle — it
+`plugins/hc-plugin-template` is the reference for the full SDK lifecycle. It
 publishes virtual lights and needs no hardware:
 
 ```bash
+cp plugins/hc-plugin-template/config/config.toml.example \
+   plugins/hc-plugin-template/config/config.toml
 cargo run -p hc-plugin-template -- plugins/hc-plugin-template/config/config.toml
 ```
 
 Run it against a homeCore whose broker is on `127.0.0.1:1883`, or point
-`[homecore] broker_host`/`broker_port` at one elsewhere. Copy in extra
+`[homecore] broker_host`/`broker_port` at one elsewhere. Add more
 `[[template.devices]]` entries to see how your plugin behaves with a realistic
-device count — that is how the event-loop ordering above shows itself.
+device count; that is where the event-loop ordering problem described above
+shows up.
 
-Test that your plugin's devices appear:
+Check that your plugin's devices appear:
 
 ```bash
 curl -s http://localhost:8080/api/v1/devices \
@@ -1478,4 +1532,9 @@ curl -s http://localhost:8080/api/v1/devices \
   | jq '[.[] | select(.plugin_id == "plugin.my-device") | .name]'
 ```
 
-Write a rule that reacts to your device's state changes and verify it fires in the event stream.
+Then write a rule that reacts to your device's state changes and check that
+it fires in the event stream.
+
+Test on a sandbox homeCore (its own `--home`, `--config` and broker port),
+with small stand-ins for the real devices, never against a real house. Don't
+run discovery from a sandbox, since it would find real devices.

@@ -7,20 +7,11 @@ sidebar_position: 4
 
 # Battery monitoring
 
-Battery-powered devices (door sensors, motion sensors, leak detectors,
-thermostats, locks, …) silently fail if their batteries die before
-anyone notices. HomeCore's battery watcher turns every report a plugin
-publishes into a structured **low-battery alert** with hysteresis, so
-you find out *once* per crossing and can react however you like — visual
-indicator, push notification, scripted action.
+Battery-powered devices (door sensors, motion sensors, leak detectors, thermostats, locks) stop working quietly when their batteries run out. HomeCore's battery watcher turns the battery levels plugins report into a **low-battery event** with hysteresis, so you hear about each drop below the line once, and can react however you like: a notification, a rule, or just the alert in the app.
 
 ## How it works
 
-Plugins normalize battery levels to a `battery_pct` attribute on the
-device's state, expressed as a percentage (0–100). Every time a
-`DeviceStateChanged` event touches that attribute, the watcher consults
-a persisted per-device latch and decides whether the change crosses the
-configured threshold:
+Plugins publish battery level as `battery_pct`, a percentage from 0 to 100. Each time a `device_state_changed` event changes that attribute, the watcher checks a saved per-device latch and decides whether the new reading crosses the configured threshold:
 
 ```
 clear ──── battery_pct ≤ threshold_pct ────► engaged → emit DeviceBatteryLow
@@ -29,15 +20,11 @@ clear ──── battery_pct ≤ threshold_pct ────► engaged → emi
 engaged ── battery_pct ≥ threshold + recover_band ─► clear → emit DeviceBatteryRecovered
 ```
 
-The latch is stored in `state.redb` so a restart while a device is
-already low does **not** re-emit on the next reading. Devices are
-"first-sighting silent" if healthy: a fresh device that reports 80%
-on first observation produces no event. A fresh device that reports
-15% on first observation produces a single `DeviceBatteryLow`.
+The latch is stored in `state.redb`, so a restart while a device is already low doesn't send the event again on its next reading. A device seen for the first time with a healthy level produces no event: one that first reports 80% stays silent. One that first reports 15% produces a single `DeviceBatteryLow`.
 
 ## Configuration
 
-Add a `[battery]` section to `homecore.toml`:
+The `[battery]` section of `homecore.toml`:
 
 ```toml
 [battery]
@@ -47,44 +34,39 @@ recover_band_pct    = 5.0       # clear at threshold + recover_band
 # notify_on_recovered  = false   # opt-in for recovery notifications
 ```
 
-Defaults are sensible for most installs (latch at ≤ 20%, recover at
-≥ 25%). You can confirm the live values via:
+The defaults (low at 20% or below, recovered at 25% or above) suit most homes. The same four settings are in the web app under **Settings → Configuration → Battery alerts**. A change applies after HomeCore restarts. To see the values in effect:
 
 ```bash
 curl -s http://localhost:8080/api/v1/system/battery_settings \
   -H "Authorization: Bearer $TOKEN" | jq
+# → {"threshold_pct": 20.0, "recover_band_pct": 5.0, "notify_channel": null, "notify_on_recovered": false}
 ```
 
-## The three usage paths
+## Low-battery alerts
 
-Pick the simplest one that meets your need:
+HomeCore also raises a **low battery** alert for each device below the line, using the same threshold and recovery band, and for any device that reports `battery_low: true` on its own. These alerts show in the web app's **Alerts**, and **Settings → Devices** can filter to devices whose battery is low. An admin can ignore low-battery alerts for one device or for every device; an ignored low battery is also left out of the notification shortcut below.
+
+## Three ways to react
+
+Pick the simplest one that does what you need.
 
 ### 1. Built-in notify shortcut
 
-The fastest path. Set `notify_channel` in `[battery]`, and the watcher
-will fire `hc-notify` directly on each low edge with a fixed message
-format:
+Set `notify_channel` in `[battery]` (a channel name, or `all`), and the watcher sends a notification itself each time a device goes low, titled "Battery low", with a fixed message:
 
 ```
 Battery low: Front door sensor at 18%
 ```
 
-No rules required. Recovery notifications are off by default
-(they're typically less actionable); set `notify_on_recovered = true`
-to opt in.
+No rules needed. Recovery notifications are off by default, since they are rarely something you act on; set `notify_on_recovered = true` to get them as well.
 
-### 2. Rule with `RunScript` action
+### 2. A rule with a `RunScript` action
 
-Use this when you want a custom message, multiple channels, or
-conditional logic. Until template substitution lands for literal action
-params, `RunScript` is the way to read trigger context inside an
-action. Rhai's built-in `trigger_device()` returns the firing device's
-id; pair it with `device_state(id)` to read the name and current
-battery level:
+Use a rule when you want your own message, several channels, or conditions. Rule actions don't fill in device values in their text, so a `RunScript` action reads the trigger context instead. In a `DeviceBatteryLow` rule, `trigger_device()` returns the device's ID and `trigger_value()` its battery percentage:
 
 ```ron
 Rule(
-    id: "",
+    id: "00000000-0000-0000-0000-000000000000",
     name: "Notify on any battery low",
     enabled: true,
     priority: 0,
@@ -93,76 +75,53 @@ Rule(
     actions: [
         RuleAction(action: RunScript(script: r#"
             let id = trigger_device();
-            let dev = device_state(id);
-            notify("all", "Battery low",
-                "Battery low: " + dev["name"] + " at " + dev["attributes"]["battery_pct"] + "%");
+            let pct = trigger_value();
+            notify_titled("all", "Battery low",
+                "Battery low: " + id + " at " + pct + "%");
         "#)),
     ],
 )
 ```
 
-A reference rule lives at `core/rules/examples/battery_low_notify.ron`
-in the source tree.
+`notify(channel, message)` sends with the default title; `notify_titled(channel, title, message)` sets one. `device_state(id)` returns a device's current attributes, so `device_state(id)["battery_pct"]` reads the level too. A rule file with the all-zero `id` gets a fresh one when HomeCore first loads it.
 
-### 3. Any non-notification reaction
+### 3. Any other reaction
 
-The same trigger pairs with any rule action. A few examples:
+The same trigger works with any rule action. For example:
 
-- Log to a custom event for downstream tooling
-- Set a hub variable that other rules can react to
-- Activate a scene that puts the home in "battery audit" mode
-- Fire a webhook to your own alerting system
+- fire a custom event for other tooling
+- set a hub variable that other rules react to
+- activate a scene that puts the house in a "battery check" state
+- call a webhook on your own alerting system
 
-In all cases, identify the device via `trigger_device()` from a
-`RunScript`, or by setting `device_id` on the trigger to scope the
-rule to a specific device.
+To know which device fired, use `trigger_device()` in a `RunScript`, or set `device_id` on the trigger to scope the rule to one device.
 
 ## When to set `device_id` on the trigger
 
-By default `device_id: None` matches any battery-powered device — the
-common case. Set it when you want a *per-device* rule, e.g. one rule
-per critical lock with different priorities or actions.
+`device_id: None` matches any battery-powered device, which is the usual case. Set it when you want a rule for one device, for example one rule per important lock, each with its own actions.
 
 ```ron
 trigger: DeviceBatteryLow(device_id: Some("yolink_front_door_lock")),
 ```
 
-## House Status hero tile
-
-The bundled web admin's overview dashboard surfaces low-battery
-devices on its **House Status** hero with a single live tile. The
-count comes from the same `battery_pct` attribute the watcher reads,
-and the threshold is fetched from the same `[battery]` config —
-edits to `homecore.toml` are reflected on the next restart. Click the
-tile to drop into a filtered devices view showing only the offenders.
-
-See [Web UI overview](../web-ui/overview.md) for details on the dashboard.
-
 ## Events emitted
 
-The watcher publishes two new event variants on the public event bus,
-visible to rules, the WebSocket event stream, and the REST event log:
+The watcher publishes two events, which rules, the WebSocket event stream and the REST event log all see:
 
 - [`device_battery_low`](../events/event-stream.md#device_battery_low)
 - [`device_battery_recovered`](../events/event-stream.md#device_battery_recovered)
 
-Both carry the device id, optional name, current battery percentage,
-and (for `device_battery_low`) the threshold value that was crossed.
+Both carry the device ID, the device name when known, and the current battery percentage. `device_battery_low` also carries the threshold that was crossed.
 
 ## Triggers
 
 - [`DeviceBatteryLow`](../rules/triggers.md#devicebatterylow)
 - [`DeviceBatteryRecovered`](../rules/triggers.md#devicebatteryrecovered)
 
+Rules can also start from the low-battery alert itself; see [Alerts that start automations](../rules/alert-automations.md).
+
 ## Implementation notes
 
-- The watcher reads `battery_pct`, the shared name every plugin publishes
-  (the retired `battery` and `battery_level` are still read, in that order,
-  after it). YoLink's 0–4 scale is converted to 0–100
-  in the plugin layer; Z-Wave reports continuous values. Either format
-  works without per-plugin tuning.
-- Hysteresis state lives in the `battery_state` redb table inside
-  `state.redb`. Backups include it; deleting a device removes its entry.
-- Threshold edits in `homecore.toml` require a restart today. A future
-  PATCH endpoint on `/system/battery_settings` will allow runtime
-  changes without restart.
+- The watcher reads `battery_pct`, the shared name every plugin publishes. It still reads the retired `battery` and `battery_level`, in that order, after it. Plugins convert their device's own scale (YoLink reports 0 to 4) to 0 to 100 before publishing, so no per-plugin tuning is needed.
+- The latch lives in the `battery_state` table in `state.redb`, so backups include it. Deleting a device does not remove its entry today.
+- Threshold changes need a restart. A future PATCH on `/system/battery_settings` is planned to allow changing them at runtime.

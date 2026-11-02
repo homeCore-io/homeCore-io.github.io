@@ -1,17 +1,13 @@
 ---
 id: hc-mcp
-title: hc-mcp — MCP Server
+title: "hc-mcp: MCP Server"
 sidebar_label: hc-mcp (MCP Server)
 sidebar_position: 1
 ---
 
 # hc-mcp
 
-`hc-mcp` is the [Model Context Protocol](https://modelcontextprotocol.io)
-server for HomeCore. It exposes typed tools an MCP-aware LLM client
-(Claude Desktop, Claude Code, etc.) can call to **inspect a running
-HomeCore instance, command devices, edit automations, and invoke plugin
-actions**.
+`hc-mcp` is the [Model Context Protocol](https://modelcontextprotocol.io) server for HomeCore. It gives an MCP-aware LLM client (Claude Desktop, Claude Code and others) typed tools to **inspect a running HomeCore, command devices, edit automations and run plugin actions**.
 
 The repo lives at [homeCore-io/hc-mcp](https://github.com/homeCore-io/hc-mcp).
 
@@ -19,69 +15,64 @@ The repo lives at [homeCore-io/hc-mcp](https://github.com/homeCore-io/hc-mcp).
 
 ## Tool surface
 
-27 tools across read-only inspection, device commands, rule edits, and
-plugin action dispatch. Read tools are always on; write tools are
-opt-in per category via `HC_MCP_ALLOW_WRITE`.
+There are 27 tools. The 18 read-only tools are always available; the 9 that change things are each switched on by category with `HC_MCP_ALLOW_WRITE`.
 
-### Read-only (always on, 20 tools)
+### Read-only (always on, 18 tools)
 
 | Tool | Endpoint | Purpose |
 |---|---|---|
-| `system_health` | `GET /system/status` | First-stop overall health |
-| `broker_diagnose` | aggregated | MQTT broker + plugin heartbeat sanity check |
+| `system_health` | `GET /system/status` | First stop for overall health |
+| `broker_diagnose` | aggregated | Broker and plugin-heartbeat check: active and offline plugins, and any with a heartbeat older than 120 seconds |
 | `list_plugins` | `GET /plugins` | Status of every plugin |
 | `plugin_status(plugin_id)` | `GET /plugins/:id` | One plugin in detail |
-| `plugin_capabilities(plugin_id)` | `GET /plugins/:id/capabilities` | Declared actions + device schemas |
-| `list_devices` | `GET /devices` | All registered devices + state |
-| `device_state(device_id)` | `GET /devices/:id` | Single device + schema |
-| `device_history(device_id, ...)` | `GET /devices/:id/history` | Time-series for an attribute |
+| `plugin_capabilities(plugin_id)` | `GET /plugins/:id/capabilities` | Declared actions and device schemas |
+| `list_plugin_actions` | capabilities of every plugin | Every plugin's declared actions in one flat list |
+| `list_devices` | `GET /devices` | All registered devices and their state |
+| `device_state(device_id)` | `GET /devices/:id` | One device's current state |
+| `device_history(device_id, ...)` | `GET /devices/:id/history` | Time series, optionally for one attribute and time window |
 | `list_rules` | `GET /automations` | All automations |
-| `get_rule(rule_id)` | `GET /automations/:id` | One automation full body |
-| `rule_firings(rule_id, limit)` | `GET /automations/:id/history` | Recent fire history |
+| `get_rule(rule_id)` | `GET /automations/:id` | One automation's full body |
+| `rule_firings(rule_id, limit)` | `GET /automations/:id/history` | Recent firing history |
 | `rule_test(rule_id)` | `POST /automations/:id/test` | Dry-run a rule against current state |
-| `recent_events(limit, ...)` | `GET /events` | Tail of the event ring buffer |
-| `correlation_trace(correlation_id)` | client-side filter | Walk a single command's lifecycle |
-| `core_logs(lines, level, grep)` | `WS /logs/stream` | Tail homeCore's structured logs |
-| `plugin_logs(plugin_id, lines, ...)` | `WS /logs/stream` | Same, filtered to one plugin |
-| `find_recent_errors(lines)` | `WS /logs/stream` | WARN/ERROR across core + every plugin |
-| `list_plugin_actions` | (caps fanout) | Flatten every plugin manifest into one list |
-| (read-side of `invoke_plugin_action`) | — | The dispatcher itself is write-gated; discovery is free |
+| `recent_events(limit, ...)` | `GET /events` | Tail of the event ring buffer, optionally by type or device |
+| `correlation_trace(correlation_id)` | `GET /events`, filtered here | Follow one command through its state changes and rule firings |
+| `core_logs(lines, level, grep)` | `WS /logs/stream` | Tail HomeCore's structured logs |
+| `plugin_logs(plugin_id, lines, ...)` | `WS /logs/stream` | The same, for one plugin |
+| `find_recent_errors(lines)` | `WS /logs/stream` | WARN and ERROR lines from core and every plugin |
+
+`correlation_trace` filters on the client side, so it only sees what is still in the event ring buffer (the last 1000 events).
 
 ### Device commands (gate: `device_commands`)
 
 | Tool | Endpoint | Effect |
 |---|---|---|
-| `command_device(device_id, command)` | `PATCH /devices/:id/state` | Turn things on/off, set brightness, lock doors, etc. |
-| `bulk_command(commands)` | fan-out | Apply many commands in parallel; per-device success reported |
+| `command_device(device_id, command)` | `PATCH /devices/:id/state` | Turn things on or off, set brightness, lock doors, and so on |
+| `bulk_command(commands)` | one call per device | Send many commands in parallel, with success reported per device |
 
 ### Rule mutations (gate: `rule_mutations`)
 
 | Tool | Endpoint | Effect |
 |---|---|---|
-| `enable_rule(rule_id)` | `PATCH /automations/:id` | Flip enabled to true (idempotent) |
-| `disable_rule(rule_id)` | `PATCH /automations/:id` | Flip enabled to false — rule stays on disk |
-| `delete_rule(rule_id)` | `DELETE /automations/:id` | Permanently remove; affects referenced rules |
-| `create_rule(rule)` | `POST /automations` | Add a new rule from a full body |
-| `update_rule(rule_id, rule)` | `PUT /automations/:id` | Full replace of an existing rule |
+| `enable_rule(rule_id)` | `PATCH /automations/:id` | Set enabled to true (safe to repeat) |
+| `disable_rule(rule_id)` | `PATCH /automations/:id` | Set enabled to false; the rule stays on disk |
+| `delete_rule(rule_id)` | `DELETE /automations/:id` | Remove the rule for good |
+| `create_rule(rule)` | `POST /automations` | Add a rule from a full body |
+| `update_rule(rule_id, rule)` | `PUT /automations/:id` | Replace an existing rule entirely |
 
 ### Plugin actions (gate: `plugin_actions`)
 
 | Tool | Endpoint | Effect |
 |---|---|---|
-| `invoke_plugin_action(plugin_id, action, params)` | `POST /plugins/:id/command` | Non-streaming manifest action |
-| `await_streaming_plugin_action(plugin_id, action, params)` | POST + SSE | Streaming action; returns aggregated terminal payload |
+| `invoke_plugin_action(plugin_id, action, params)` | `POST /plugins/:id/command` | Run a non-streaming action |
+| `await_streaming_plugin_action(plugin_id, action, params)` | POST, then SSE | Run a streaming action and return its final result |
 
-`await_streaming_plugin_action` consumes events along the way (progress,
-item, warning) and stops on a terminal stage (`complete | error |
-canceled | timeout`) — see
-[Capabilities → In hc-mcp](../plugins/capabilities#in-hc-mcp) for the
-full result shape.
+`await_streaming_plugin_action` collects the progress, item and warning events along the way and stops at a terminal stage (`complete`, `error`, `canceled` or `timeout`). It waits up to `timeout_secs` (default 90, at most 600). See [Capabilities → In hc-mcp](../plugins/capabilities#in-hc-mcp) for the full result shape.
 
 ---
 
 ## Install
 
-### From source (recommended)
+### From source
 
 ```bash
 git clone https://github.com/homeCore-io/hc-mcp
@@ -90,35 +81,42 @@ python3 -m venv .venv
 .venv/bin/pip install -e .
 ```
 
-Python ≥ 3.11 (for the stdlib `tomllib` + modern type syntax).
+It needs Python 3.11 or newer.
 
 ### Configure with `hc-mcp setup`
 
-The packaged setup subcommand provisions an API key against a running
-homeCore and writes the config file at `~/.config/hc-mcp/config.toml`
-(0600). Two auth paths into homeCore:
+The `setup` subcommand creates an API key on a running HomeCore and writes the config file to `~/.config/hc-mcp/config.toml` with mode 0600. It needs admin rights for that one call, by either of two routes:
 
 ```bash
-# Option A: use an existing admin JWT
+# Option A: an existing admin JWT (or set HC_ADMIN_TOKEN)
 .venv/bin/hc-mcp setup --base-url http://127.0.0.1:8080 \
     --admin-token "$(cat ~/admin-jwt.txt)"
 
-# Option B: log in with username + password (issues a JWT, then a key)
+# Option B: sign in with a username; the password is prompted if you leave it out
 .venv/bin/hc-mcp setup --base-url http://127.0.0.1:8080 \
-    --username admin --password '...'
+    --username admin
 ```
 
-Re-running with `--rotate` issues a fresh key; `--force` overwrites
-without rotating (useful for manual paste flows).
+The JWT is used only to create the key and isn't stored. Other options:
 
-### Manual config fallback
+| Option | Default | Description |
+|---|---|---|
+| `--label` | `hc-mcp` | Label for the new key |
+| `--scopes` | see below | Comma-separated scopes for the key |
+| `--expires-days` | no expiry | Key lifetime in days |
+| `--config-path` | `~/.config/hc-mcp/config.toml` | Where to write the config |
+| `--rotate` | | Issue a new key and overwrite an existing config. The old key is not revoked; do that in the web app or with `DELETE /api/v1/auth/api-keys/{id}`. |
+| `--force` | | Overwrite an existing config without prompting |
 
-If you'd rather provision the key yourself:
+By default the key gets `areas:read`, `automations:read`, `audit:read`, `devices:read`, `plugins:read`, `plugins:write` and `scenes:read`: enough for the read-only tools and plugin actions. To use the other write tools, add the scopes they need with `--scopes`: `devices:command` for device commands and `automations:write` for rule changes.
+
+### Manual config
+
+To provision the key yourself, create one in the web app (**Me → API keys**, or **Settings → People & access**) or with `hc-cli` on the HomeCore host:
 
 ```bash
-# On the homeCore host:
-hc-cli api-key issue --owner mcp-service --role observer
-# Add --role user (or higher) if you intend to enable write categories.
+hc-cli api-key create --label hc-mcp \
+    --scopes areas:read,automations:read,audit:read,devices:read,plugins:read,plugins:write,scenes:read
 ```
 
 Then write `~/.config/hc-mcp/config.toml`:
@@ -130,15 +128,13 @@ api_key      = "hc_sk_..."   # from above
 timeout_secs = 5
 ```
 
-`HC_MCP_BASE_URL` / `HC_MCP_API_KEY` env vars override the config file.
+hc-mcp looks for its config at `--config`, then `HC_MCP_CONFIG`, then the default path. `HC_MCP_BASE_URL`, `HC_MCP_API_KEY` and `HC_MCP_TIMEOUT_SECS` override individual values.
 
 ---
 
 ## Enable write tools
 
-Each write category opts in independently — for example,
-`device_commands` lets Claude turn on lights without permitting rule
-edits.
+Each write category is switched on separately. For example, `device_commands` lets Claude turn on lights without letting it edit rules.
 
 ```jsonc
 "env": {
@@ -147,11 +143,7 @@ edits.
 }
 ```
 
-Calling a gated tool without the category enabled returns a
-`PermissionError` explaining what to set. The API key issued in setup
-must also carry sufficient core role for the operation — Observer can
-only read; User can act on devices/plugins; Admin can mutate auth +
-restart things.
+Calling a gated tool without its category enabled returns a `PermissionError` that says what to set. Both checks apply: the category must be enabled in hc-mcp, and the API key must hold the scope HomeCore requires for the call.
 
 ---
 
@@ -159,7 +151,7 @@ restart things.
 
 ### Claude Code
 
-`~/.claude.json` (or per-project `.claude/settings.json`):
+For yourself, in `~/.claude.json`, or for one project, in `.mcp.json` at the project root:
 
 ```json
 {
@@ -172,42 +164,27 @@ restart things.
 }
 ```
 
-Drop the `env` line for read-only access.
+Leave out the `env` line for read-only access.
 
 ### Claude Desktop
 
-Same shape at
-`~/Library/Application Support/Claude/claude_desktop_config.json`
-(macOS) or the platform equivalent.
+The same shape goes in `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, or the equivalent file on other platforms.
 
 ---
 
-## How `invoke_plugin_action` and `await_streaming_plugin_action` interact with capabilities
+## How the plugin action tools use capabilities
 
-`hc-mcp` doesn't hard-code what actions exist — it discovers them at
-call time by reading each plugin's [capability manifest](../plugins/capabilities).
-The flow:
+hc-mcp doesn't hard-code which actions exist. It reads each plugin's [capability manifest](../plugins/capabilities) when asked:
 
-1. Claude calls `list_plugin_actions`. Result is a flat list of every
-   declared action with `plugin_id`, `action_id`, `label`,
-   `description`, `params` schema, `requires_role`, `stream` flag, etc.
-2. Claude picks an action and calls the appropriate dispatcher:
+1. Claude calls `list_plugin_actions`. The result lists every declared action with `plugin_id`, `action_id`, `label`, `description`, `params`, `requires_role`, `stream`, `cancelable` and `timeout_ms`.
+2. Claude picks an action and calls the matching tool:
    - `invoke_plugin_action` for actions whose manifest sets `stream: false`.
-   - `await_streaming_plugin_action` for actions whose manifest sets
-     `stream: true`. The tool POSTs the action, then consumes the SSE
-     stream at `/plugins/:id/command/:request_id/stream`, aggregating
-     progress / item / warning events and stopping on a terminal stage.
-3. Each dispatcher checks the `plugin_actions` write gate, looks up the
-   action in the manifest to short-circuit shape mismatches with a clear
-   error, and surfaces the response.
+   - `await_streaming_plugin_action` for actions whose manifest sets `stream: true`. It POSTs the action, reads the SSE stream at `/plugins/:id/command/:request_id/stream`, gathers the progress, item and warning events, and stops at a terminal stage.
+3. Each tool checks the `plugin_actions` gate and looks the action up in the manifest, so a call of the wrong kind fails with a clear error before anything is sent.
 
-When you ship a new plugin action, **no hc-mcp changes are needed** —
-it appears in the next `list_plugin_actions` call automatically.
+A new plugin action needs no change to hc-mcp: it shows up in the next `list_plugin_actions` call.
 
-`awaiting_user` events from streaming actions surface as warnings —
-hc-mcp can't currently respond to them mid-stream. If your action gates
-on user input, expose it as params on the action manifest instead so
-the dispatcher can accept the choice up-front.
+hc-mcp can't answer an `awaiting_user` prompt from a streaming action; it reports the prompt as a warning. If an action needs a choice from the user, declare it as a parameter in the manifest so the choice can be passed up front.
 
 ---
 
@@ -219,36 +196,22 @@ Outside an MCP client:
 .venv/bin/hc-mcp --help
 ```
 
-The server speaks MCP over stdio; you can drive it with the MCP
-inspector or any conformant client. A 401 against a running core with
-a dummy key proves your transport, base URL, and auth header are
-wired correctly.
+The server speaks MCP over stdio, so you can drive it with the MCP inspector or any conformant client. Without an API key it exits with a message telling you to run `hc-mcp setup`.
 
 ---
 
 ## Current limitations
 
-- **stdio transport only.** HTTP/SSE (so Claude Desktop on a different
-  machine can connect over Tailscale or a sidecar container can serve
-  long-running) is on the roadmap but not yet shipped.
-- **No install-aware substrate.** Tools that would need direct host
-  access (`journalctl`, `docker logs`, config-file reads, service
-  restarts) are not implemented. The substrate-aware design is parked
-  pending scope review — see the roadmap.
-- **No live MQTT tap.** A persistent MQTT client tool (`mqtt_tap`) is a
-  Phase 4 advanced item.
+- **stdio transport only.** An HTTP/SSE transport, so a client on another machine or a long-running sidecar could connect, is planned but not built.
+- **The log tools need an admin credential sent as `?token=`.** `/logs/stream` is admin-only and reads its credential from the `token` query parameter, while hc-mcp sends its API key as an `Authorization` header. As a result `core_logs`, `plugin_logs` and `find_recent_errors` currently work only when hc-mcp's address is on HomeCore's `[auth].whitelist`.
+- **No host access.** Tools that would need the host itself (`journalctl`, `docker logs`, reading config files, restarting services) don't exist; that design is on hold.
+- **No live MQTT tap.** A tool that subscribes to MQTT for a while (`mqtt_tap`) is deferred to a later phase.
 
 ## Roadmap
 
-- **Phase 3** — plugin scaffolding (`scaffold_plugin`, `check_plugin`).
-- **Phase 4 (advanced)** — `mqtt_tap`, `rule_graph`, anomaly detection,
-  audit/migration helpers.
-- **Install-aware substrate** — DEFERRED; would route tools across
-  local / docker / remote installs by detecting install method and
-  using subprocess (systemctl, docker) where appropriate. Pending scope
-  revision before resuming.
-- **HTTP/SSE transport** — would unlock long-running sidecar topology
-  and remote-LLM-client connections.
+- **Phase 3:** plugin scaffolding (`scaffold_plugin`, `check_plugin`).
+- **Phase 4:** `mqtt_tap`, `rule_graph`, anomaly detection, and audit and migration helpers.
+- **Install-aware tools:** deferred. These would detect how HomeCore is installed (local, Docker, remote) and use `systemctl` or `docker` where appropriate; the scope is being revised first.
+- **HTTP/SSE transport:** for long-running sidecars and remote clients.
 
-The full design spec lives at
-[`clients/hc-mcp/DESIGN.md`](https://github.com/homeCore-io/hc-mcp/blob/develop/DESIGN.md).
+The full design lives in [`DESIGN.md`](https://github.com/homeCore-io/hc-mcp/blob/develop/DESIGN.md).

@@ -9,7 +9,9 @@ sidebar_position: 6
 
 ## GET /api/v1/system/status
 
-Returns current system health, counts, and database sizes. Requires `devices:read` scope.
+Returns the running version, uptime, counts, database sizes and the time
+of the last backup. Any authenticated caller can read it; no particular
+scope is needed.
 
 ```bash
 curl -s http://localhost:8080/api/v1/system/status \
@@ -20,31 +22,47 @@ Example response:
 
 ```json
 {
-  "version": "0.1.0",
-  "uptime_secs": 86400,
-  "devices_total": 142,
+  "version": "0.1.96",
+  "uptime_seconds": 86400,
+  "started_at": "2026-11-01T08:00:00Z",
   "rules_total": 67,
   "rules_enabled": 61,
+  "devices_total": 142,
   "plugins_active": 4,
   "state_db_bytes": 4194304,
-  "history_db_bytes": 52428800
+  "history_db_bytes": 52428800,
+  "timezone": "America/New_York",
+  "last_backup_at": "2026-11-02T03:00:00Z"
 }
 ```
 
 | Field | Description |
 |---|---|
-| `version` | HomeCore binary version |
-| `uptime_secs` | Seconds since last start |
-| `devices_total` | Total devices in the registry |
-| `rules_total` | Total rules loaded (enabled + disabled) |
+| `version` | homeCore binary version |
+| `uptime_seconds` | Seconds since the last start |
+| `started_at` | When homeCore last started (UTC) |
+| `rules_total` | Rules loaded (enabled and disabled) |
 | `rules_enabled` | Rules currently enabled and evaluating |
-| `plugins_active` | Plugins with a registered, non-expired heartbeat |
+| `devices_total` | Devices in the registry |
+| `plugins_active` | Plugins whose status is `active` |
 | `state_db_bytes` | Size of `data/state.redb` in bytes |
 | `history_db_bytes` | Size of `data/history.db` in bytes |
+| `timezone` | The time zone homeCore is using |
+| `last_backup_at` | Time of the most recent backup in the audit log, or `null` |
+
+`last_backup_at` is read from the audit log, which is pruned after
+`[auth].audit_retention_days`. So `null` means no backup has been recorded
+in that window, which isn't the same as never having had one.
+
+Two public endpoints need no token: `GET /api/v1/health` returns
+`{"status":"ok","version":"..."}`, and `GET /api/v1/system/versions`
+lists the versions of the installed components.
 
 ## Stale device reference detection
 
-`GET /api/v1/automations/stale-refs` returns rules that reference devices no longer in the registry. This helps catch broken automations after device removal or plugin changes.
+`GET /api/v1/automations/stale-refs` returns rules that reference devices
+no longer in the registry. Use it to find broken automations after
+removing a device or changing a plugin.
 
 ```bash
 curl -s http://localhost:8080/api/v1/automations/stale-refs \
@@ -55,13 +73,13 @@ curl -s http://localhost:8080/api/v1/automations/stale-refs \
 
 ## Dynamic log level
 
-Change the server's log level at runtime without restart:
+You can change the server's log filter at runtime without a restart:
 
 ```bash
-curl -s -X POST http://localhost:8080/api/v1/system/log-level \
+curl -s -X PUT http://localhost:8080/api/v1/system/log-level \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"target": "hc_core", "level": "debug"}'
+  -d '{"level": "info,hc_core=debug"}'
 ```
 
 See [Logging: Log level API](./logging#log-level-api) for details.
@@ -70,19 +88,31 @@ See [Logging: Log level API](./logging#log-level-api) for details.
 
 ## Graceful shutdown
 
-HomeCore handles `SIGINT` and `SIGTERM` with a graceful shutdown sequence:
+homeCore handles `SIGINT` and `SIGTERM` with a graceful shutdown:
 
-1. Signal received — log the event
-2. Rule engine stops accepting new events — waits for in-flight action tasks to complete
-3. Drain timeout: if in-flight tasks don't complete within `drain_timeout_secs`, force-stop
-4. HTTP server stops accepting new connections — drains existing ones
-5. Process exits
+1. The signal is received and logged.
+2. The rule engine stops taking new events and waits for in-flight action
+   tasks to finish.
+3. If those tasks don't finish within `drain_timeout_secs`, it stops
+   anyway.
+4. The HTTP server stops accepting new connections and drains existing
+   ones.
+5. The process exits.
+
+A stop by signal exits with code 0.
+
+`POST /api/v1/system/restart` (admin only) runs the same shutdown and
+exits with code 75 (`EX_TEMPFAIL`), leaving it to the supervisor to start
+homeCore again. systemd's `Restart=on-failure`, launchd's `KeepAlive` and
+Docker's restart policies all restart on that code; see
+[Systemd Deployment](./systemd-deployment). Before v0.1.97 it exited with
+code 0, which `Restart=on-failure` treats as a clean stop.
 
 ### Configuration
 
 ```toml
 # homecore.toml
-[engine]
+[shutdown]
 drain_timeout_secs = 10   # default: 10 seconds
 ```
 
@@ -99,7 +129,7 @@ kill -SIGTERM $(pgrep homecore)
 sudo systemctl stop homecore
 ```
 
-### Verifying clean shutdown in logs
+### Checking for a clean shutdown in the logs
 
 ```
 INFO homecore: Received SIGINT — initiating graceful shutdown
@@ -109,13 +139,7 @@ INFO hc_core::engine: Rule engine stopped
 INFO hc_api: API server: shutdown signal received — draining connections
 ```
 
-If you see `drain timed out — forcing stop`, it means an in-flight action (e.g. a slow HTTP call) didn't complete within the drain window. This is generally harmless but increase `drain_timeout_secs` if you have rules with long-running external calls.
-
-### In-flight tasks metric
-
-```bash
-# Check via metrics endpoint while HomeCore is running
-curl http://localhost:8080/metrics | grep in_flight
-```
-
-A count > 0 means rules are currently executing actions. Wait for this to drop before force-killing.
+If you see `shutdown drain timed out — forcing stop`, an in-flight action
+(a slow HTTP call, for example) didn't finish within the drain window.
+That is usually harmless. If you have rules with long-running external
+calls, increase `drain_timeout_secs`.

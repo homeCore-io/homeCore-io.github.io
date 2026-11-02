@@ -7,36 +7,56 @@ sidebar_position: 3
 
 # Conditions
 
-Conditions are optional checks that must **all pass** (AND logic) for a rule's actions to execute. The rule can have zero conditions — it fires on every matching trigger event.
+Conditions are optional checks that all have to pass before a rule's actions run. A rule with no conditions (`conditions: []`) acts on every matching trigger event.
 
-Conditions are evaluated in order. The first failure short-circuits — remaining conditions are not evaluated.
+homeCore evaluates conditions in order and stops at the first one that fails. The rest are not evaluated.
+
+Conditions are written in the same RON and JSON shapes as triggers: the type name, then its fields. Optional fields take `Some(...)` in RON.
+
+```ron
+conditions: [
+    DeviceState(
+        device_id: "entryway.front_door",
+        attribute: "open",
+        op: Eq,
+        value: false,
+    ),
+],
+```
+
+```json
+{
+  "conditions": [
+    { "DeviceState": { "device_id": "entryway.front_door", "attribute": "open", "op": "Eq", "value": false } }
+  ]
+}
+```
+
+The same condition types can also be the question in a `Conditional` action. See [Actions](./actions.md#conditional).
 
 ## Condition reference
 
 ### `DeviceState`
 
-Checks the current value of a device attribute in the database.
+Compares a device attribute's current value with a fixed value.
 
-```toml
-[[conditions]]
-type      = "device_state"
-device    = "entryway.front_door"
-attribute = "open"
-op        = "Eq"
-value     = false   # door must be closed
+```ron
+DeviceState(
+    device_id: "entryway.front_door",
+    attribute: "open",
+    op: Eq,
+    value: false,   // the door must be closed
+),
 ```
 
 | Field | Description |
 |---|---|
-| `device` | Preferred device reference: canonical name, unique display name, or raw device ID |
-| `device_id` | Backward-compatible alias for `device` |
-| `attribute` | Attribute name |
-| `op` | Comparison operator |
-| `value` | Expected value |
+| `device_id` (alias `device`) | The device: a canonical name, a unique display name, or a raw device ID. |
+| `attribute` | The attribute to read. |
+| `op` | The comparison (below). |
+| `value` | The value to compare against. |
 
-**Operators (`op`):**
-
-| Operator | Meaning |
+| `op` | Meaning |
 |---|---|
 | `Eq` | Equal to |
 | `Ne` | Not equal to |
@@ -45,408 +65,457 @@ value     = false   # door must be closed
 | `Lt` | Less than |
 | `Lte` | Less than or equal to |
 
-**Examples:**
+`Eq` and `Ne` compare any JSON value exactly. `Gt`, `Gte`, `Lt` and `Lte` only work on numbers: if either side isn't a number, the condition fails. The condition also fails when the device or the attribute is missing.
 
-```toml
-# Light is off
-[[conditions]]
-type      = "device_state"
-device    = "living_room.main_light"
-attribute = "on"
-op        = "Eq"
-value     = false
+Examples:
 
-# Temperature above 27 °C (temperatures are always °C; the app shows °F)
-[[conditions]]
-type      = "device_state"
-device    = "hallway.thermostat"
-attribute = "temperature"
-op        = "Gt"
-value     = 27
+```ron
+// The light is off
+DeviceState(
+    device_id: "living_room.main_light",
+    attribute: "on",
+    op: Eq,
+    value: false,
+),
+```
 
-# Motion was detected (any truthy state)
-[[conditions]]
-type      = "device_state"
-device    = "hallway.motion"
-attribute = "motion"
-op        = "Eq"
-value     = true
+```ron
+// Above 27 °C (temperatures are always °C; the app can show °F)
+DeviceState(
+    device_id: "hallway.thermostat",
+    attribute: "temperature",
+    op: Gt,
+    value: 27,
+),
+```
 
-# Battery level below 20%
-[[conditions]]
-type      = "device_state"
-device    = "entryway.door_sensor"
-attribute = "battery_pct"
-op        = "Lt"
-value     = 20
+```ron
+// Battery below 20 %
+DeviceState(
+    device_id: "entryway.door_sensor",
+    attribute: "battery_pct",
+    op: Lt,
+    value: 20,
+),
 ```
 
 ---
 
 ### `TimeWindow`
 
-Checks whether the current wall-clock time falls within a window. `between` is accepted as an alias for `time_window`.
+Passes when the current time, in the configured timezone, falls between `start` and `end`. Both ends are included.
 
-```toml
-[[conditions]]
-type  = "time_window"
-start = "08:00"
-end   = "22:00"
-
-# Alias form
-[[conditions]]
-type  = "between"
-start = "08:00"
-end   = "22:00"
+```ron
+TimeWindow(
+    start: "08:00:00",
+    end: "22:00:00",
+),
 ```
 
-Handles midnight wrap: `start = "22:00"`, `end = "06:00"` correctly covers 10 PM to 6 AM.
+Times can be written `"HH:MM:SS"` or `"HH:MM"`. A window that crosses midnight works as expected: `start: "22:00:00", end: "06:00:00"` covers 10 PM to 6 AM.
 
 ---
 
 ### `TimeElapsed`
 
-Checks how long an attribute has held its current value. Uses an in-memory per-attribute timestamp cache — zero database I/O.
+Passes when an attribute has held its current value for at least `duration_secs` seconds. homeCore keeps the time of each attribute's last change in memory, so the check does no database work.
 
-```toml
-[[conditions]]
-type          = "time_elapsed"
-device        = "garage.main_door"
-attribute     = "open"
-duration_secs = 600   # 10 minutes
+```ron
+TimeElapsed(
+    device_id: "garage.main_door",
+    attribute: "open",
+    duration_secs: 600,   // 10 minutes
+),
 ```
 
-Passes if the attribute has been in its current value for at least `duration_secs` seconds.
+The usual pattern is a door left open. Run a check every minute and notify once both conditions pass:
 
-**Common pattern — alert if door has been open for 10 minutes:**
-
-```toml
-[trigger]
-type      = "cron"
-expression = "0 * * * * *"   # every minute
-
-[[conditions]]
-type      = "device_state"
-device_id = "yolink_garage_door"
-attribute = "open"
-op        = "Eq"
-value     = true
-
-[[conditions]]
-type          = "time_elapsed"
-device_id     = "yolink_garage_door"
-attribute     = "open"
-duration_secs = 600
-
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Garage door has been open for 10+ minutes!"
+```ron
+trigger: Cron(
+    expression: "0 * * * * *",   // every minute
+),
+conditions: [
+    DeviceState(
+        device_id: "yolink_garage_door",
+        attribute: "open",
+        op: Eq,
+        value: true,
+    ),
+    TimeElapsed(
+        device_id: "yolink_garage_door",
+        attribute: "open",
+        duration_secs: 600,
+    ),
+],
+actions: [
+    RuleAction(
+        enabled: true,
+        action: Notify(
+            channel: "telegram",
+            message: "Garage door has been open for 10+ minutes!",
+        ),
+    ),
+],
 ```
 
-**Startup behavior:** At startup, the timestamp cache is pre-populated from `device.last_seen` as a conservative baseline. `TimeElapsed` may fire sooner than expected on the first evaluation after restart for attributes that have been in their current state for a long time.
+As written, this notifies every minute while the door stays open. Add a `PrivateBooleanIs` guard if you want one message.
+
+After a restart, the change times come from what the device record saved (`attributes_changed_at`), so a door that has been open for an hour still counts as open for an hour. For an attribute with no saved change time, homeCore uses the device's `last_seen` time instead. An attribute homeCore has never seen makes the condition fail.
 
 ---
 
 ### `ScriptExpression`
 
-Evaluates a Rhai script expression that must return `true` or `false`.
+Runs a Rhai expression that must return `true` or `false`.
 
-```toml
-[[conditions]]
-type   = "script_expression"
-script = 'device_state("thermostat")["temperature"] > 75 && hour() < 22'
+```ron
+ScriptExpression(
+    script: r#"device_state("thermostat")["temperature"] > 24 && current_hour() < 22"#,
+),
 ```
 
-**Available Rhai functions:**
+RON raw strings (`r#"..."#`) save you from escaping the quotes inside the script.
+
+Functions available in a condition script:
 
 | Function | Returns | Description |
 |---|---|---|
-| `device_state("device_id")` | map | Current attributes of a device |
-| `hour()` | int | Current hour (0-23, local time) |
-| `minute()` | int | Current minute (0-59) |
-| `weekday()` | int | Day of week (0=Sun, 1=Mon, …, 6=Sat) |
-| `is_weekday()` | bool | True if Mon-Fri |
-| `is_weekend()` | bool | True if Sat-Sun |
+| `device_state("device_id")` | map | The device's current attributes. Use the raw device ID here. |
+| `hub_var("name")` | any | A hub variable's value, or nothing if it isn't set. |
+| `current_hour()` | int | The current hour, 0 to 23, in the configured timezone. |
+| `current_minute()` | int | The current minute, 0 to 59. |
+| `current_weekday()` | string | The day as `"Mon"`, `"Tue"` … `"Sun"`. |
 
-**Examples:**
+The `trigger_*()` functions exist here but return empty values, because conditions don't receive trigger context. To test something about the triggering event, use the rule's `trigger_condition`. See [Triggers: Trigger context in Rhai](./triggers.md#trigger-context-in-rhai).
 
-```toml
-# Complex multi-device condition
-[[conditions]]
-type   = "script_expression"
-script = '''
-  let garage = device_state("yolink_garage_door");
-  let motion = device_state("motion_garage");
-  garage["open"] == true && motion["motion"] == false
-'''
+Examples:
 
-# Time-based logic not expressible as TimeWindow
-[[conditions]]
-type   = "script_expression"
-script = 'hour() >= 22 || hour() < 6'   # after 10 PM or before 6 AM
+```ron
+// Two devices at once
+ScriptExpression(
+    script: r#"
+        let garage = device_state("yolink_garage_door");
+        let motion = device_state("motion_garage");
+        garage["open"] == true && motion["motion"] == false
+    "#,
+),
+```
+
+```ron
+// Weekend mornings
+ScriptExpression(
+    script: r#"(current_weekday() == "Sat" || current_weekday() == "Sun") && current_hour() < 11"#,
+),
 ```
 
 ---
 
 ### `Not`
 
-Inverts the result of any wrapped condition.
+Inverts the result of the condition inside it.
 
-```toml
-[[conditions]]
-type = "not"
-
-[conditions.condition]
-type      = "device_state"
-device_id = "virtual_switch_away_mode"
-attribute = "on"
-op        = "Eq"
-value     = true
+```ron
+// Away mode is NOT on
+Not(
+    condition: DeviceState(
+        device_id: "virtual_switch_away_mode",
+        attribute: "on",
+        op: Eq,
+        value: true,
+    ),
+),
 ```
 
-This reads: "away mode is NOT active."
-
-**Nesting:** `Not` can wrap any condition type, including `ScriptExpression`, `TimeWindow`, or another `Not` (double-negation, unusual but valid).
+`Not` can wrap any condition, including `And`, `Or` and another `Not`.
 
 ---
 
 ### `ModeIs`
 
-Checks whether a named mode is currently on or off.
+Passes when a mode is on (or off).
 
-```toml
-[[conditions]]
-type    = "mode_is"
-mode_id = "mode_night"
-on      = true   # "is mode_night active?"
+```ron
+ModeIs(
+    mode_id: "mode_night",
+    on: true,   // is night mode on?
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `mode_id` | yes | Mode device id (e.g. `"mode_night"`). |
-| `on` | yes | `true` to require the mode is on, `false` to require it's off. |
+| `mode_id` | yes | The mode's device ID, such as `"mode_night"`. |
+| `on` | yes | `true` to require the mode to be on, `false` to require it to be off. |
 
-Equivalent to a `DeviceState` check on the mode's virtual device, but more readable.
+This reads the mode device's `on` attribute, so it does the same job as a `DeviceState` check on that device with less to write. A mode that doesn't exist counts as off.
 
 ---
 
 ### `PrivateBooleanIs`
 
-Checks a rule-local boolean flag set by `SetPrivateBoolean` action.
+Checks one of this rule's private booleans, which only `SetPrivateBoolean` actions in the same rule can set. A boolean that was never set reads as `false`. They are kept in memory and reset when homeCore restarts.
 
-```toml
-[[conditions]]
-type  = "private_boolean_is"
-name  = "already_notified"
-value = false
+```ron
+PrivateBooleanIs(
+    name: "already_notified",
+    value: false,
+),
 ```
 
-Used with `SetPrivateBoolean` to prevent duplicate notifications:
+Together with `SetPrivateBoolean`, this stops a rule from repeating itself:
 
-```toml
-# Only notify once; set the flag to prevent repeated notifications
-[[conditions]]
-type  = "private_boolean_is"
-name  = "already_notified"
-value = false
-
-[[actions]]
-type    = "notify"
-channel = "telegram"
-message = "Alert!"
-
-[[actions]]
-type  = "set_private_boolean"
-name  = "already_notified"
-value = true
+```ron
+// Notify once, then set the flag so later firings stop here
+conditions: [
+    PrivateBooleanIs(
+        name: "already_notified",
+        value: false,
+    ),
+],
+actions: [
+    RuleAction(
+        enabled: true,
+        action: Notify(
+            channel: "telegram",
+            message: "Alert!",
+        ),
+    ),
+    RuleAction(
+        enabled: true,
+        action: SetPrivateBoolean(
+            name: "already_notified",
+            value: true,
+        ),
+    ),
+],
 ```
+
+Clear the flag again (`value: false`) from another branch or another trigger of the same rule when the situation is over.
 
 ---
 
 ### `HubVariable`
 
-Checks a hub variable's value. Hub variables are shared across all rules and persist for the lifetime of the running process (set via `SetHubVariable` action or REST).
+Compares a hub variable with a value. Hub variables are shared by all rules. They are set by `SetHubVariable` actions and kept in memory until homeCore restarts. `GET /api/v1/automations/variables` lists their current values.
 
-```toml
-[[conditions]]
-type  = "hub_variable"
-name  = "alarm_armed"
-op    = "Eq"
-value = true
+```ron
+HubVariable(
+    name: "alarm_armed",
+    op: Eq,
+    value: true,
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | yes | Hub variable name. |
-| `op` | yes | A `CompareOp` value: `Eq`, `Ne`, `Gt`, `Gte`, `Lt`, `Lte`, `Contains`, `In`. |
-| `value` | yes | Comparison value (any JSON type). |
+| `name` | yes | The hub variable. |
+| `op` | yes | `Eq`, `Ne`, `Gt`, `Gte`, `Lt` or `Lte`. |
+| `value` | yes | The value to compare against (any JSON type). |
+
+A variable that isn't set fails the condition, whatever the operator.
 
 ---
 
 ### `DeviceLastChange`
 
-Passes when the most recent change to a device matches the supplied
-provenance filters. Useful for "was this triggered by a person, by a
-rule, or by a plugin?" patterns.
+Passes when the most recent change to a device matches the given provenance. Use it to ask whether a person, a rule or a plugin made the change.
 
-```toml
-[[conditions]]
-type   = "device_last_change"
-device = "living_room.lamp"
-kind   = "physical"     # optional — homecore | physical | external | unknown
-# source     = "plugin.lutron"   # optional — exact match on the source label
-# actor_id   = "..."             # optional — exact match on the actor id
-# actor_name = "..."             # optional — exact match on the actor name
+```ron
+DeviceLastChange(
+    device_id: "living_room.lamp",
+    kind: Some(physical),        // optional: homecore | physical | external | unknown
+    // source: Some("rule"),     // optional: exact source label
+    // actor_id: Some("..."),    // optional: exact actor ID
+    // actor_name: Some("..."),  // optional: exact actor name
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `device_id` (alias `device`) | yes | Device whose last change to inspect. |
-| `kind` | no | Filter on change kind. |
-| `source` | no | Exact match on the source label (plugin id, rule id, etc.). |
-| `actor_id` / `actor_name` | no | Exact match on actor metadata when present. |
+| `device_id` (alias `device`) | yes | The device whose last change to inspect. |
+| `kind` | no | The kind of change. |
+| `source` | no | Exact match on the source label, such as `api`, `rule`, `scene`, `script`, `timer_manager`, or a label a plugin reports. |
+| `actor_id` | no | Exact match on the actor ID (a user ID, rule ID or scene ID, when known). |
+| `actor_name` | no | Exact match on the actor's name (a username, rule name or scene name, when known). |
 
-Common pattern — only fire if a light was turned on by a person (not by a rule):
-
-```toml
-[[conditions]]
-type   = "device_last_change"
-device = "living_room.lamp"
-kind   = "physical"
-```
+Fields you leave out aren't checked. The condition fails if the device has no recorded change.
 
 ---
 
 ### `CalendarActive`
 
-Passes when a calendar event is currently active (start ≤ now < end).
-Reads from the loaded `.ics` calendars in `[calendars].dir`.
+Passes while an event in a loaded `.ics` calendar is in progress (it has started and not yet ended). Calendars load from `[calendars] dir`.
 
-```toml
-[[conditions]]
-type           = "calendar_active"
-calendar_id    = "us_holidays"   # optional — stem of the .ics filename
-title_contains = "Holiday"       # optional — case-insensitive substring
+```ron
+CalendarActive(
+    calendar_id: Some("us_holidays"),   // optional: .ics filename without the extension
+    title_contains: Some("Holiday"),    // optional: case-insensitive
+),
 ```
 
 | Field | Required | Description |
 |---|---|---|
-| `calendar_id` | no | Stem of the `.ics` filename. Omit to match any calendar. |
-| `title_contains` | no | Case-insensitive substring match on the event title. Omit to match any event. |
+| `calendar_id` | no | The `.ics` filename without its extension. Leave it out to match any calendar. |
+| `title_contains` | no | Case-insensitive text to look for in the event title. Leave it out to match any event. |
 
-Combine with a time-based trigger to gate rule execution by calendar
-state — e.g. "only run the morning lighting routine on workdays" by
-loading a workdays calendar and adding `CalendarActive` with
-`title_contains = "Workday"`.
+Pair it with a time trigger to make a routine depend on the calendar. For example, load a workdays calendar and add `CalendarActive` with `title_contains: Some("Workday")` so the morning lighting only runs on workdays.
+
+---
+
+### `AlertActive`, `NoAlertActive`, `TriggerAlertActive`
+
+Conditions on homeCore's active alerts. `filter` takes the same `AlertFilter` as the alert triggers (see [Alerts that start automations](./alert-automations.md)). An empty filter matches any alert.
+
+```ron
+conditions: [
+    // At least one firmware update is waiting
+    AlertActive(
+        filter: AlertFilter(topic: Some("firmware_update")),
+    ),
+    // ...and the controller has no warning or worse
+    NoAlertActive(
+        filter: AlertFilter(
+            device_ids: ["wled_1"],
+            min_severity: Some(warning),
+        ),
+    ),
+    // ...and the alert that started this rule hasn't cleared yet
+    TriggerAlertActive,
+],
+```
+
+| Condition | Passes when |
+|---|---|
+| `AlertActive` | At least `at_least` active alerts match `filter`. `at_least` is optional and defaults to 1. |
+| `NoAlertActive` | No active alert matches `filter`. |
+| `TriggerAlertActive` | The alert that started this rule is still active. It fails for a rule an alert didn't start. |
+
+Ignored alerts don't count, because they were never raised.
 
 ---
 
 ### `And`
 
-Explicitly groups conditions with AND logic. All wrapped conditions must pass. This is equivalent to listing conditions at the top level (which also AND together), but useful for nesting inside `Or` or `Xor`.
+Groups conditions that must all pass. The top-level list already works this way. `And` is for nesting inside `Or`, `Xor` or `Not`.
 
-```toml
-[[conditions]]
-type = "and"
-
-[[conditions.conditions]]
-type      = "device_state"
-device_id = "mode_night"
-attribute = "on"
-op        = "Eq"
-value     = true
-
-[[conditions.conditions]]
-type  = "time_window"
-start = "22:00"
-end   = "06:00"
+```ron
+And(
+    conditions: [
+        ModeIs(
+            mode_id: "mode_night",
+            on: true,
+        ),
+        TimeWindow(
+            start: "22:00:00",
+            end: "06:00:00",
+        ),
+    ],
+),
 ```
 
 ---
 
 ### `Or`
 
-At least one of the wrapped conditions must pass.
+Passes when at least one of the conditions inside passes. It stops at the first one that does.
 
-```toml
-[[conditions]]
-type = "or"
-
-[[conditions.conditions]]
-type      = "device_state"
-device_id = "yolink_front_door"
-attribute = "open"
-op        = "Eq"
-value     = true
-
-[[conditions.conditions]]
-type      = "device_state"
-device_id = "yolink_back_door"
-attribute = "open"
-op        = "Eq"
-value     = true
+```ron
+Or(
+    conditions: [
+        DeviceState(
+            device_id: "yolink_front_door",
+            attribute: "open",
+            op: Eq,
+            value: true,
+        ),
+        DeviceState(
+            device_id: "yolink_back_door",
+            attribute: "open",
+            op: Eq,
+            value: true,
+        ),
+    ],
+),
 ```
 
 ---
 
 ### `Xor`
 
-Exactly one of the wrapped conditions must pass (exclusive or).
+Passes when exactly one of the conditions inside passes.
 
-```toml
-[[conditions]]
-type = "xor"
-
-[[conditions.conditions]]
-type      = "device_state"
-device_id = "switch_away_mode"
-attribute = "on"
-op        = "Eq"
-value     = true
-
-[[conditions.conditions]]
-type      = "device_state"
-device_id = "switch_vacation_mode"
-attribute = "on"
-op        = "Eq"
-value     = true
+```ron
+Xor(
+    conditions: [
+        DeviceState(
+            device_id: "switch_away_mode",
+            attribute: "on",
+            op: Eq,
+            value: true,
+        ),
+        DeviceState(
+            device_id: "switch_vacation_mode",
+            attribute: "on",
+            op: Eq,
+            value: true,
+        ),
+    ],
+),
 ```
 
-This fires only if exactly one of away mode or vacation mode is active, but not both.
+This passes if away mode or vacation mode is on, but not both.
 
 ---
 
 ## Combining conditions
 
-All top-level conditions AND together by default. Use `Or`, `And`, and `Xor` for compound logic, or use a `ScriptExpression` for complex expressions:
+Top-level conditions are combined with AND. For other logic, nest `And`, `Or`, `Xor` and `Not`, or write the whole test as one `ScriptExpression`:
 
-```toml
-# OR: fire if EITHER door is open
-[[conditions]]
-type   = "script_expression"
-script = '''
-  device_state("yolink_front_door")["open"] == true ||
-  device_state("yolink_back_door")["open"] == true
-'''
+```ron
+// Night, and too warm or too cold
+And(
+    conditions: [
+        ModeIs(
+            mode_id: "mode_night",
+            on: true,
+        ),
+        Or(
+            conditions: [
+                DeviceState(
+                    device_id: "thermostat",
+                    attribute: "temperature",
+                    op: Gt,
+                    value: 26,
+                ),
+                DeviceState(
+                    device_id: "thermostat",
+                    attribute: "temperature",
+                    op: Lt,
+                    value: 18,
+                ),
+            ],
+        ),
+    ],
+),
+```
 
-# Complex AND/OR mix
-[[conditions]]
-type   = "script_expression"
-script = '''
-  let night = device_state("mode_night")["on"] == true;
-  let temp  = device_state("thermostat")["temperature"];
-  night && (temp > 78 || temp < 65)
-'''
+```ron
+// The same test as a script
+ScriptExpression(
+    script: r#"
+        let night = device_state("mode_night")["on"] == true;
+        let temp  = device_state("thermostat")["temperature"];
+        night && (temp > 26 || temp < 18)
+    "#,
+),
 ```
 
 ## Condition trace in fire history
 
-Every condition evaluation is recorded in the rule's fire history. For debugging, check:
+Every condition evaluation is recorded in the rule's fire history, which keeps the last 20 attempts, newest last. To see the conditions of the most recent attempt:
 
 ```bash
 curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
-  -H "Authorization: Bearer $TOKEN" | jq '.[0].conditions'
+  -H "Authorization: Bearer $TOKEN" | jq '.[-1].conditions'
 ```
 
-Each condition entry includes `passed`, `actual`, `expected`, and a human-readable `reason`.
+Each entry has `condition_type`, `passed`, `actual`, `expected` and a readable `reason`. Evaluation stops at the first failure, so later conditions don't appear.

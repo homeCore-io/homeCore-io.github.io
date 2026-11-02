@@ -7,194 +7,182 @@ sidebar_position: 5
 
 # Migration & Fresh Install
 
-This guide covers moving homeCore from one machine to another — including all data, rules, plugin configs, and running state. The same steps work for a clean VM install without migrating data; just skip the backup/restore sections.
+This guide covers moving homeCore from one machine to another, with its
+devices, rules, users, history and plugin settings. For a clean install
+with nothing to migrate, follow the same steps and skip the backup and
+restore.
+
+The move is built on homeCore's own backup and restore. You take a
+backup on the old machine, install homeCore on the new one, and hand it
+the backup to put in place on its next start.
 
 ---
 
 ## Overview
 
-| What | How |
+| What | How it moves |
 |---|---|
-| Binary + plugins | Rebuilt from source on the new machine |
-| Config (`homecore.toml`, `modes.toml`) | Copied from backup or source repo |
-| Rules (`rules/*.ron`) | Included in the system backup archive |
-| Device state (`state.redb`) | Included in the system backup archive |
-| Device history (`history.db`) | Included in the system backup archive |
-| Plugin configs (credentials) | Copied manually — **not** included in the backup |
+| Core binary | Installed fresh on the new machine |
+| Plugins | Reinstalled on the new machine, before the restore |
+| Device registry, users, scenes, areas (`state.redb`) | In the backup archive |
+| History (`history.db`) | In the backup archive |
+| `homecore.toml`, `modes.toml`, `mode_definitions.json` | In the backup archive |
+| Rules (`rules/*.ron`) | In the backup archive |
+| Calendars (`config/calendars/`) | In the backup archive |
+| Plugin settings (including credentials) | In the backup archive, one per plugin |
+| JWT signing secret (`data/jwt_secret`) | Not in the backup. Copy it by hand if you want old access tokens to stay valid. |
+| Audit log | Not in the backup |
+| The web app's own data (pages, layouts, displays) | Not in homeCore's backup. Save it from the app (Settings → Data & backups). |
+
+The archive also contains the plugin settings files, so treat it as a
+secret.
 
 ---
 
-## Step 1 — Back up the running system
+## Step 1: Back up the old machine
 
-With homeCore running on the source machine, trigger a backup via the API. The backup is a zip archive containing `state.redb`, `history.db`, `config/`, and `rules/`.
+With homeCore running on the old machine, take a backup through the API
+(or from the web app, Settings → Data & backups). This needs an admin
+token:
 
 ```bash
-# On the SOURCE machine
+# On the OLD machine
 TOKEN="your-admin-token"
 
 curl -s -X POST http://localhost:8080/api/v1/system/backup \
   -H "Authorization: Bearer $TOKEN" \
   --output homecore-backup-$(date +%Y%m%d).zip
 
-# Verify the archive
+# Check what's inside
 unzip -l homecore-backup-$(date +%Y%m%d).zip
 ```
 
-Also copy the plugin configs manually — these contain credentials and are not included in the system backup:
+homeCore also makes backups on its own, daily by default, in `backups/`
+under its home directory. The newest of those works too.
+
+Optionally, copy the JWT secret from the old machine's data directory
+(`data/jwt_secret`, or `homecore-data/data/jwt_secret` under Docker).
+
+Note which plugins are installed (the Plugins page in the web app, or
+`GET /api/v1/plugins`). You'll install the same ones on the new machine.
+
+Transfer the archive to the new machine:
 
 ```bash
-# On the SOURCE machine — adjust path to your install location
-INSTALL_DIR="/var/tmp/homeCore"   # or wherever deploy.sh installed to
-
-tar -czf plugin-configs-$(date +%Y%m%d).tar.gz \
-  "$INSTALL_DIR/plugins/hc-yolink/config/config.toml" \
-  "$INSTALL_DIR/plugins/hc-lutron/config/config.toml" \
-  "$INSTALL_DIR/plugins/hc-sonos/config/config.toml" \
-  "$INSTALL_DIR/plugins/hc-hue/config/config.toml" \
-  "$INSTALL_DIR/plugins/hc-zwave/config/config.toml" \
-  "$INSTALL_DIR/plugins/hc-wled/config/config.toml" \
-  "$INSTALL_DIR/plugins/hc-isy/config/config.toml"
-```
-
-Transfer both archives to the new machine:
-
-```bash
-scp homecore-backup-*.zip plugin-configs-*.tar.gz user@new-machine:~/
+scp homecore-backup-*.zip user@new-machine:~/
 ```
 
 ---
 
-## Step 2 — Prepare the new VM
+## Step 2: Install homeCore on the new machine
 
-### Install system dependencies
+Use whichever install path suits the new machine:
 
-**Debian / Ubuntu:**
-```bash
-sudo apt update && sudo apt install -y \
-  build-essential pkg-config libssl-dev git curl jq
-```
+- **[Binary release](./binary-releases)**: extract the core archive and
+  copy `config/homecore.toml.example` to `config/homecore.toml`. A good
+  location is `/opt/homecore`.
+- **[Docker](./docker)**: create the compose file and an empty
+  `homecore-data` directory.
+- **[Build from source](./installation#build-from-source)**: for running
+  an unreleased build.
 
-**RHEL / Fedora / Rocky:**
-```bash
-sudo dnf install -y gcc pkg-config openssl-devel git curl jq
-```
-
-### Install Rust
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
-rustup update stable
-```
-
-**Node.js** (required only for `hc-matter`):
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-```
+The restore brings back `homecore.toml` from the old machine, so there
+is no need to tune the new config yet.
 
 ---
 
-## Step 3 — Clone the workspace
+## Step 3: First start and plugins
 
-Set up SSH access to GitHub, then use the workspace clone script to pull all repos in one step:
+Start homeCore once. Because it has no users yet, it creates an `admin`
+account and writes the password to `INITIAL_ADMIN_PASSWORD` in its home
+directory (and prints it in the log). Sign in with that.
 
-```bash
-# Clone hc-scripts first — it contains the workspace manifest and tools
-git clone git@github.com:homeCore-io/hc-scripts.git
-cd hc-scripts
+Then install the same plugins the old machine had, from the web app
+(Plugins → Add). You can also install them after the restore. A restore
+puts the settings of a plugin the new machine doesn't list in
+`[[plugins]]` at `config/plugins/<plugin_id>.toml`, and an install keeps
+a settings file it finds there. Before v0.1.97 a restore skipped those
+settings, so on older versions install the plugins first and expect to
+re-enter the settings of registry-installed plugins (see step 4).
 
-# Clone all repos (core + all plugins + clients) into the workspace
-./workspace-clone.sh --dest ~/homeCore
-```
-
-This creates the full workspace layout:
-
-```
-~/homeCore/
-  core/                     ← the server, its crates, the Rust SDK and every Rust plugin
-  plugins/hc-matter/        ← plugins that are not Rust
-  clients/hc-web/  hc-tui/  hc-mcp/  ...
-  sdks/hc-plugin-sdk-py/  hc-plugin-sdk-js/  hc-plugin-sdk-dotnet/
-```
+For a plugin you installed by hand (an unpacked tarball or your own
+build), copy its directory under `plugins/` from the old machine. Its
+`[[plugins]]` block comes back with `homecore.toml` in the restore.
 
 ---
 
-## Step 4 — Build and install
+## Step 4: Restore the backup
 
-Use `deploy.sh` to build all components and install them to the destination directory:
+Get a token on the new machine (with the temporary admin password), then
+ask homeCore what the archive would restore, without changing anything:
 
 ```bash
-cd ~/homeCore/hc-scripts
+# On the NEW machine
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<temporary password>"}' | jq -r '.token')
 
-# Build everything and install to /opt/homecore
-./deploy.sh --all --dest /opt/homecore --sync-config
-
-# Or install to the default location (/var/tmp/homeCore) for testing first
-./deploy.sh --all --sync-config
+curl -s -X POST "http://localhost:8080/api/v1/system/restore?check=true" \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-binary @homecore-backup-YYYYMMDD.zip | jq
 ```
 
-`deploy.sh --sync-config` copies the example configs on first run. The destination layout will be:
+The response lists what would be `restored` and what would be
+`skipped`, and it matches what the restore does at the next start.
 
+Then stage the restore:
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/system/restore \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-binary @homecore-backup-YYYYMMDD.zip
 ```
-/opt/homecore/
-  bin/homecore
-  config/
-    homecore.toml        ← populated from .example; needs your credentials
-    modes.toml
-    profiles/
-  rules/                 ← copied from source by --sync-config
-  data/                  ← restored in Step 5
-  logs/
-  plugins/
-    hc-yolink/bin/  config/  logs/
-    hc-lutron/bin/  config/  logs/
-    ...
+
+The request body is the raw zip file. homeCore doesn't overwrite its
+live databases while it runs. It stages the archive as
+`restore-pending.zip` next to the state database and puts the files in
+place on its next start, before it opens anything. Restart it to finish:
+
+- **Docker:** `docker compose restart homecore`
+- **systemd:** `sudo systemctl restart homecore`
+- **Run by hand:** stop it (Ctrl-C) and start it again.
+
+`POST /api/v1/system/restart` also works under Docker and under the
+systemd unit described below: it exits with code 75, which the unit's
+`Restart=on-failure` restarts on. Before v0.1.97 it exited with code 0,
+and the systemd unit left homeCore stopped.
+
+If you copied `jwt_secret`, do the restart as a stop and a start, and put
+the file in the new `data/` directory while homeCore is stopped.
+
+After the restart, sign in with your old accounts. The temporary admin
+password no longer applies, because the restored `state.redb` brings
+back the old machine's users. Delete `INITIAL_ADMIN_PASSWORD`.
+
+homeCore prints the `restored` and `skipped` lists to stderr (the
+journal, or `docker logs`) when it applies the restore.
+
+Before v0.1.97, the restore applied at startup matched plugin settings
+against the `[[plugins]]` blocks in the config that was in place before
+the restore, so settings for registry-installed plugins (and for any
+plugin not declared there) were skipped, even when the `?check=true`
+response listed them as restored. On those versions, check each
+plugin's page and re-enter any missing settings. The archive keeps a
+copy of each at `plugins/<id>/config.toml`:
+
+```bash
+unzip -p homecore-backup-YYYYMMDD.zip plugins/plugin.hue/config.toml
 ```
+
+See [Backup & Restore](../administration/backup-restore) for the details
+of both endpoints.
 
 ---
 
-## Step 5 — Restore data
+## Step 5: Review the config for the new machine
 
-### Restore the system backup
-
-```bash
-INSTALL_DIR="/opt/homecore"
-
-# Extract the backup archive
-unzip ~/homecore-backup-*.zip -d /tmp/homecore-restore
-
-# Copy the databases
-cp /tmp/homecore-restore/data/state.redb   "$INSTALL_DIR/data/"
-cp /tmp/homecore-restore/data/history.db   "$INSTALL_DIR/data/"
-
-# Copy rules (skip examples)
-rsync -av --exclude='examples/' \
-  /tmp/homecore-restore/rules/ \
-  "$INSTALL_DIR/rules/"
-
-# Copy config (review before overwriting credentials)
-cp /tmp/homecore-restore/config/homecore.toml "$INSTALL_DIR/config/homecore.toml"
-cp /tmp/homecore-restore/config/modes.toml    "$INSTALL_DIR/config/modes.toml" 2>/dev/null || true
-```
-
-### Restore plugin configs
-
-```bash
-INSTALL_DIR="/opt/homecore"
-tar -xzf ~/plugin-configs-*.tar.gz -C /
-
-# Or manually copy each one
-cp /tmp/plugin-configs/hc-yolink/config/config.toml \
-   "$INSTALL_DIR/plugins/hc-yolink/config/config.toml"
-# repeat for each plugin
-```
-
----
-
-## Step 6 — Update config for the new machine
-
-Open `$INSTALL_DIR/config/homecore.toml` and review:
+The restored `config/homecore.toml` is the old machine's. Check it
+against the new one:
 
 ```toml
 [server]
@@ -206,28 +194,38 @@ latitude  = 38.9072    # confirm this is still correct
 longitude = -77.0369
 timezone  = "America/New_York"
 
-[auth]
-# Change the JWT secret if you want to invalidate all old tokens
-jwt_secret = "your-long-random-secret"
+[broker]
+host = "127.0.0.1"     # 0.0.0.0 only with [[broker.clients]] credentials
 
 [[plugins]]
 id      = "plugin.yolink"
 binary  = "plugins/hc-yolink/bin/hc-yolink"    # relative to HOMECORE_HOME
 config  = "plugins/hc-yolink/config/config.toml"
 enabled = true
-# repeat for each plugin...
+# one block per hand-installed plugin
 ```
 
-Key things to verify:
-- `jwt_secret` — migrate as-is to keep existing tokens valid, or change to invalidate them
-- Plugin `binary` and `config` paths — must be relative to `HOMECORE_HOME` (`/opt/homecore`)
-- Plugin credentials inside each `plugins/hc-*/config/config.toml` — IP addresses and API keys may need updating if the new machine is on a different network segment
+Things to verify:
+- Any `[[plugins]]` blocks: the `binary` and `config` paths must exist
+  on the new machine, relative to `HOMECORE_HOME` (for example
+  `/opt/homecore`). Plugins installed from the registry don't appear
+  here.
+- Absolute paths elsewhere in the file (storage, logs, TLS certificates)
+  must exist on the new machine.
+- Plugin settings: hub IP addresses and similar values may need changing
+  if the new machine is on a different network segment. Edit them from
+  each plugin's page in the web app.
+
+Restart homeCore after editing `homecore.toml`.
 
 ---
 
-## Step 7 — Install as a systemd service
+## Step 6: Install as a systemd service
 
-A service unit template is included in the repo at `core/scripts/service-templates/homecore.service`. Install it:
+Skip this step under Docker. For a binary install, use the unit template
+in the core archive at `scripts/service-templates/homecore.service`. From
+a source checkout, `scripts/install-service.sh` fills in the same
+template for you. By hand:
 
 ```bash
 INSTALL_DIR="/opt/homecore"
@@ -258,31 +256,32 @@ sudo systemctl status homecore
 sudo journalctl -u homecore -f
 ```
 
+If you started homeCore by hand for steps 3 and 4, stop it before
+starting the service. See
+[systemd deployment](../administration/systemd-deployment) for more.
+
 ---
 
-## Step 8 — Verify
+## Step 7: Verify
 
 ```bash
-INSTALL_DIR="/opt/homecore"
-
 # Health check (no auth required)
 curl http://localhost:8080/api/v1/health
 
-# Get a token (admin password printed to journal on first run if no state was restored)
-# If state.redb was restored, your existing credentials work
+# Sign in with an account from the old machine
 TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"your-password"}' | jq -r '.token')
 
-# Confirm device count matches the source system
+# Compare device and rule counts with the old machine
 curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8080/api/v1/system/status | jq '{devices, rules, plugins}'
+  http://localhost:8080/api/v1/system/status | jq '{devices_total, rules_total, plugins_active}'
 
 # Confirm plugins are active
 curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8080/api/v1/plugins | jq '.[].status'
+  http://localhost:8080/api/v1/plugins | jq '.[] | {plugin_id, status}'
 
-# Watch the event stream — you should see device state updates from plugins
+# Watch the event stream for live device updates from plugins
 websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN"
 ```
 
@@ -290,31 +289,34 @@ websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN"
 
 ## Fresh install (no migration)
 
-Skip Steps 1 and 5. After `deploy.sh`:
+Skip steps 1 and 4. After installing:
 
-1. Edit `config/homecore.toml` — set `jwt_secret`, `[location]`, and plugin entries
-2. Edit each `plugins/hc-*/config/config.toml` — fill in device IPs, API keys, credentials
-3. Install the systemd service (Step 7)
-4. Start homeCore — admin credentials are printed to the console/journal on first run
+1. Edit `config/homecore.toml` and set `[location]` (latitude,
+   longitude, timezone). The JWT secret is generated for you.
+2. Start homeCore and sign in as `admin` with the password from
+   `INITIAL_ADMIN_PASSWORD`. Change it, then delete the file.
+3. Install plugins from the web app (Plugins → Add) and fill in each
+   plugin's settings: hub addresses, API keys, credentials.
+4. Install the systemd service (step 6) if you aren't using Docker.
 
 ---
 
 ## Checklist
 
 ```
-[ ] Backup archive created and verified on source machine
-[ ] Plugin configs archived separately
-[ ] Archives transferred to new machine
-[ ] Rust toolchain installed (rustup stable)
-[ ] Workspace cloned via workspace-clone.sh
-[ ] deploy.sh ran successfully (all binaries installed)
-[ ] state.redb and history.db restored to data/
-[ ] Rules restored to rules/
-[ ] homecore.toml reviewed (jwt_secret, location, plugin paths)
-[ ] Plugin configs restored and credentials verified
-[ ] systemd service installed and enabled
+[ ] Backup archive created and checked on the old machine
+[ ] jwt_secret copied (optional)
+[ ] Web app data saved (Settings → Data & backups)
+[ ] Archive transferred to the new machine
+[ ] homeCore installed on the new machine and started once
+[ ] Same plugins installed on the new machine
+[ ] Restore checked with ?check=true, then staged
+[ ] homeCore restarted; old accounts sign in
+[ ] homecore.toml reviewed (location, broker, plugin paths)
+[ ] Plugin settings checked for the new network
+[ ] systemd service installed and enabled (non-Docker)
 [ ] Health check passes
-[ ] Device count matches source system
+[ ] Device and rule counts match the old machine
 [ ] All plugins showing active status
 [ ] Event stream showing live device updates
 ```
