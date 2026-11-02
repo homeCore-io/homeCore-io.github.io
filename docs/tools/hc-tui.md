@@ -1,18 +1,19 @@
 ---
 id: hc-tui
-title: hc-tui — Terminal UI
+title: "hc-tui: Terminal UI"
 sidebar_label: hc-tui (Terminal UI)
 sidebar_position: 2
 ---
 
 # hc-tui
 
-`hc-tui` is a keyboard-driven terminal UI for HomeCore — built with
-Rust and `ratatui`. It connects to the same REST + WebSocket API as
-the bundled web admin and is the right surface for SSH sessions,
-headless boxes, and anyone who'd rather not leave the terminal.
+`hc-tui` is a keyboard-driven terminal UI for HomeCore, written in Rust with `ratatui`. It talks to the same REST and WebSocket API as the [web app](../web-ui/overview.md), which makes it handy over SSH, on headless machines, and for anyone who would rather stay in the terminal.
 
-The repo lives at [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui).
+The repo lives at [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`; you can also build it from source with `cargo build --release`.
+
+:::caution Being reworked
+HomeCore 0.1.82 removed the `/timers` and `/switches` endpoints in favour of `/glue`. hc-tui's Switches and Timers sub-tabs still use the old endpoints, so they stay empty and can't create anything, and its helper creator (`g` in Manage) doesn't create helpers either. Create and manage helpers in the web app (**Settings → Helpers**) or with the [`/glue` API](../devices/virtual-devices.md#managing-helpers) until hc-tui catches up.
+:::
 
 ---
 
@@ -21,13 +22,12 @@ The repo lives at [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui).
 | Scenario | Use |
 |---|---|
 | Quick device toggle from an SSH session | `hc-tui` |
-| Demoing automations on a screen-shared call | Web UI (richer visuals) |
-| Editing a complex rule with many conditions | Web UI (typed editor) |
-| Triaging a flood of events on a remote box | `hc-tui` (low-overhead live stream) |
+| Showing automations on a screen-shared call | Web app (richer visuals) |
+| Writing or editing a rule | Web app (rule editor) |
+| Triaging a flood of events or logs on a remote box | `hc-tui` (low-overhead live stream) |
 | Commissioning a Matter device from the command line | `hc-tui` (Manage → Matter) |
 
-The TUI and web UI hit the same endpoints, so anything you do in one
-shows up live in the other.
+Both talk to the same endpoints, so anything you do in one shows up live in the other.
 
 ---
 
@@ -37,31 +37,44 @@ shows up live in the other.
 hc-tui --base-url http://127.0.0.1:8080 --cache-dir ~/.cache/hc-tui
 ```
 
-- `--base-url` points at the HomeCore server **without** the `/api/v1`
-  suffix.
-- `--cache-dir` stores per-user JSON snapshots so subsequent launches
-  paint instantly while live data syncs.
+| Flag | Default | Description |
+|---|---|---|
+| `--base-url` | `http://127.0.0.1:8080` | The HomeCore server, **without** the `/api/v1` suffix |
+| `--cache-dir` | `./cache` | Where per-user JSON snapshots and the saved session go |
+| `--config` | `config/config.toml` | Optional config file |
 
-A login screen appears first. Sign in with the same credentials you'd
-use on the web UI; the TUI persists the JWT in the cache directory.
+Flags override the config file, and the file is optional:
+
+```toml
+[server]
+base_url = "http://127.0.0.1:8080"   # without /api/v1
+
+[cache]
+dir = "./cache"
+
+[session]
+# Save the JWT to {cache_dir}/session.json and skip the login screen while it is valid.
+persist_token = true
+
+# Optional: log in automatically when the saved token is missing or expired.
+#[auto_login]
+#username = "admin"
+#password = "..."
+```
+
+Without a valid saved session, a login screen appears first. Sign in with the same credentials you use in the web app. The config file can hold a password, so keep it private.
 
 ---
 
 ## Layout
 
-The main UI is a tab strip across the top, with a status line at the
-bottom. The visible tab set depends on your role:
+The main screen is a row of tabs across the top with a status line at the bottom:
 
-- **`user` / `read_only`** — Devices, Scenes, Areas,
-  Automations, Events
-- **`admin`** — adds Users, Plugins, and a Manage section
-  (Matter commissioning, Logs)
+**Devices · Scenes · Areas · Rules · Plugins · Manage**
 
-A live event subscription on `/api/v1/events/stream` keeps state
-fresh; if the connection drops the TUI auto-reconnects without
-intervention. The terminal redraw path is event-driven — idle screens
-do not continuously repaint, so leaving the TUI open does not burn
-CPU.
+Plugins appears only for admins. Manage appears for everyone, but most of its panels use admin-only endpoints, so other roles get HomeCore's refusal there.
+
+A live subscription to `/api/v1/events/stream` keeps device state, availability and names current, and reconnects by itself if the connection drops. Screens redraw only when something changes, so leaving the TUI open doesn't burn CPU.
 
 ---
 
@@ -75,25 +88,37 @@ CPU.
 | `Enter` | Submit login |
 | `Esc` | Quit |
 
-### Main UI
+### Everywhere
 
 | Key | Action |
 |---|---|
-| `Tab` / `Shift+Tab` | Switch tabs |
+| `Tab` / `Shift+Tab` | Next / previous tab |
+| `1` to `9` | Jump to a tab |
 | `j` / `k` (or `Down` / `Up`) | Move selection |
-| `r` | Refresh data from the server |
+| `r` | Refresh from the server |
+| `T` | Show times in UTC or local time |
 | `q` | Quit |
 
 ### Devices tab
 
+`Left` / `Right` switch between the **All**, **Media Players**, **Switches** and **Timers** sub-tabs.
+
+On **All**:
+
 | Key | Action |
 |---|---|
-| `t` | Toggle selected device (lights/switches: on/off; media players: play/stop, falling back to pause if stop is unsupported) |
-| `e` | Edit metadata (name, area, canonical name) — admin only |
-| `/` | Filter (matches name, `device_id`, and `canonical_name`) |
+| `t` | Toggle the selected device (lights and switches on/off; media players play/stop, falling back to pause if stop isn't supported) |
+| `Space` | Lock/unlock a lock, or toggle a switch |
+| `l` / `u` | Lock / unlock |
+| `+` / `-` | Brightness up / down |
+| `Enter` | Edit name, area and canonical name |
+| `d` | Delete the device |
+| `/` | Search (matches name, `device_id` and `canonical_name`) |
+| `f` | Filter: all, online, offline, low battery |
+| `s` | Sort: name, status, last seen |
+| `v` | Grouped or flat list |
 
-The Devices tab has a dedicated **Media Players** sub-tab with
-generic transport controls:
+On **Media Players**, with generic transport controls:
 
 | Key | Action |
 |---|---|
@@ -102,92 +127,128 @@ generic transport controls:
 | `n` / `b` | Next / previous track |
 | `+` / `-` | Volume up / down |
 | `m` | Mute toggle |
+| `Enter` | Edit metadata |
 
 ### Scenes tab
 
 | Key | Action |
 |---|---|
-| `a` | Activate selected scene |
+| `a` | Activate the selected scene |
 
-### Manage → Matter (admin only)
+### Areas tab
+
+Two panes: the areas, and the devices in the selected one.
 
 | Key | Action |
 |---|---|
-| `c` | Open commission form (pairing code, optional name / room / discriminator / passcode) |
-| `r` | Refresh node inventory |
-| `i` | Reinterview selected node |
-| `d` | Remove selected node |
+| `n` | New area |
+| `Enter` | Edit the selected area |
+| `d` | Delete the selected area |
 
-### Manage → Logs (admin only)
+### Rules tab
 
-The live log WebSocket is opened only when you actually visit this
-panel — closing the panel closes the stream. Filter controls let you
-narrow by level and module.
+| Key | Action |
+|---|---|
+| `Enter` | Open the rule's detail view with its RON (`j`/`k`, `PageUp`/`PageDown` scroll; `Esc` back) |
+| `e` / `d` | Enable / disable |
+| `Space` | Select several rules; then `e` enables them all and `D` disables them all |
+| `c` | Clone |
+| `x` / `Delete` | Delete, after a `y`/`n` confirmation |
+| `h` | Recent firing history |
+| `f` | Filter bar: tag, trigger type, stale |
+| `s` | Show only rules with stale device references |
+| `g` | Rule groups: enable (`e`), disable (`d`) or delete (`x`) a group |
+| `Esc` | Close history, or clear the selection |
+
+The TUI has no rule editor; write rules in the web app.
+
+### Plugins tab (admin)
+
+| Key | Action |
+|---|---|
+| `Enter` | Open the plugin's detail view |
+| `d` | Deregister the plugin |
+
+In the detail view, `1` to `4` (or `Left`/`Right`) switch between **Overview**, **Actions**, **Diagnostics** and **Metrics**, and `Esc` closes it. On **Actions**, `Enter` runs the selected action from the plugin's manifest, with no parameters. A streaming action opens a progress window that shows progress, items, warnings and prompts; type a reply and press `Enter` to answer a prompt, and press `c` (`Ctrl+C` while replying) to cancel. `Esc` closes the window; the action keeps running unless you cancelled it. `b` and `p` start bridge discovery and pairing for plugins that have bridges.
+
+### Manage tab
+
+`Left` / `Right` move between the panels: **Modes**, **Matter**, **Status**, **Users**, **Logs**, **Events**, **Audit** and **Backup**.
+
+| Panel | Keys |
+|---|---|
+| Modes | `n` or `Enter` new mode; `d` delete |
+| Matter | `c` or `n` commission (pairing code, optional name, room, discriminator, passcode); `r` refresh nodes; `i` or `Enter` re-interview; `d` remove node |
+| Status | `r` refresh system status |
+| Users | `n` or `Enter` new user (admins; for other roles `Enter` opens the role editor); `p` change password; `d` delete |
+| Logs | `p` or `Space` pause/resume; `e`, `w`, `i` show ERROR, WARN or INFO and above; `/` filter by module; `c` or `d` clear the buffer |
+| Events | `f` filter: all, Hue inputs, entertainment, plugin metrics |
+| Audit | `Enter` expand an entry; `n` / `p` next / previous page; `r` refresh |
+| Backup | `Enter` runs the selected action: download a system backup (`.zip`), export all rules or scenes to JSON, or import rules or scenes from `~/.homecore/imports/rules.json` and `~/.homecore/imports/scenes.json` |
+
+The Logs panel opens its log WebSocket only while you are on it, and closes it when you leave.
 
 ---
 
-## Caching behaviour
+## Caching
 
-- On login, the TUI loads cached state and config first (if present),
-  then syncs fresh data from HomeCore. This makes subsequent launches
-  feel instant on slow links.
-- Manual refresh (`r`) pulls fresh data and updates the cache.
-- After any device or scene action, the TUI re-fetches and re-caches
-  the affected slice.
-- There is no background polling loop; live updates come from the
-  event stream WebSocket.
+- On login, the TUI shows cached state first (if there is any), then syncs fresh data from HomeCore, so later launches appear at once even on a slow link.
+- `r` pulls fresh data and updates the cache.
+- After a device or scene action, the TUI re-fetches and re-caches what changed.
+- There is no background polling; live updates come from the event stream.
 
 ---
 
 ## Endpoints used
 
-The TUI is API-only; it does not depend on internal types or the
-admin UDS. All operations go through documented `/api/v1` endpoints,
-so anything the TUI can do, a custom client can do too.
+The TUI uses only the documented `/api/v1` API, so anything it does, another client can do too.
 
 ```
-POST /auth/login                    # login
-GET  /auth/me                       # role + scope inspection
+POST   /auth/login, GET /auth/me, POST /auth/change-password
+GET    /devices                      PATCH /devices/{id}/state
+PATCH  /devices/{id}                 DELETE /devices/{id}
+GET    /scenes                       POST /scenes/{id}/activate
+GET    /areas (+ create, edit, delete, PUT /areas/{id}/devices)
+GET    /automations, /automations/{id}, /automations/{id}/ron, /automations/{id}/history
+POST   /automations/{id}/clone       PATCH, DELETE /automations/{id}
+GET    /automations/groups (+ enable, disable, delete)
+GET    /automations/export           POST /automations/import
+GET    /scenes/export                POST /scenes/import
+GET    /events?limit=...
+GET    /plugins, /plugins/{id}/capabilities
+POST   /plugins/{id}/command         DELETE /plugins/{id}
+GET    /modes                        POST /modes, DELETE /modes/{id}
+GET    /auth/users (+ create, role, password, delete)
+GET    /system/status                POST /system/backup
+GET    /audit
+POST   /plugins/matter/commission    GET /plugins/matter/nodes
+POST   /plugins/matter/reinterview   DELETE /plugins/matter/nodes/{id}
 
-GET  /devices                       # device list
-PATCH /devices/{id}/state           # toggle / control
-GET  /scenes
-POST /scenes/{id}/activate
-GET  /areas
-GET  /automations
-GET  /events?limit=...
-
-GET  /auth/users                    # admin
-GET  /plugins                       # admin
-
-POST /plugins/matter/commission     # admin
-GET  /plugins/matter/nodes
-POST /plugins/matter/reinterview
-DELETE /plugins/matter/nodes/{id}
-
-WS   /events/stream?token=...       # live state updates
-WS   /logs/stream                   # admin, when Manage → Logs is open
+GET    /plugins/{id}/command/{request_id}/stream   # SSE, streaming actions
+WS     /events/stream?token=...                    # live state
+WS     /logs/stream                                # only while Manage → Logs is open
 ```
+
+It also still calls `/switches`, `/timers` and `/glue` as described in the note at the top.
 
 ---
 
-## Comparison with the web UI
+## Comparison with the web app
 
-| Feature | Web UI | TUI |
+| Feature | Web app | TUI |
 |---|---|---|
 | Device control | yes | yes |
 | Scene activation | yes | yes |
 | Live event stream | yes | yes |
-| Typed rule editor | yes | read-only list |
-| Plugin streaming actions | yes (ActionDrawer) | no |
-| Audit log | yes | no |
-| Matter commissioning | no | yes (Manage → Matter) |
-| Live log streaming | yes (`/logs/stream`) | yes (Manage → Logs, on-demand) |
-| Backup / restore | yes | no |
-| Mobile-friendly | yes (responsive) | no (terminal) |
+| Rule editor | yes | no (enable, disable, clone, delete, import, export) |
+| Helpers (timers, switches, counters …) | yes | no (see the note above) |
+| Plugin actions, including streaming ones | yes | yes (without parameters) |
+| Audit log | yes | yes |
+| Matter commissioning | yes | yes (Manage → Matter) |
+| Live logs | yes | yes (Manage → Logs, on demand) |
+| Backup | yes | download, plus rules and scenes in and out |
+| Restore | yes | no |
+| Phones and tablets | yes | no (terminal) |
 | Works over plain SSH | no | yes |
 
-If you need rule editing, audit review, or backups, use
-the [web UI](../web-ui/overview.md). For everything else — and especially
-remote / headless administration — the TUI is the lower-overhead
-choice.
+For writing rules, helpers, restore or anything on a phone, use the [web app](../web-ui/overview.md). For quick control and for watching events and logs on a remote or headless machine, the TUI is the lighter choice.
