@@ -129,9 +129,13 @@ Quick version:
   `scripts/service-templates/homecore.service` and replace its
   `@@USER@@`, `@@GROUP@@` and `@@INSTALL_DIR@@` placeholders
 - [ ] Enable the service: `systemctl enable homecore`
-- [ ] Use `Restart=always` if you want restarts from the web app or
-  `POST /api/v1/system/restart` to bring homeCore back (it exits with code
-  0, which `Restart=on-failure` treats as a clean stop)
+- [ ] Keep `Restart=on-failure`. Restarts from the web app or
+  `POST /api/v1/system/restart` exit with code 75, so systemd starts
+  homeCore again (before v0.1.97 they exited with code 0 and needed
+  `Restart=always`)
+- [ ] If your unit came from a template older than v0.1.97, delete its
+  `ExecReload=/bin/kill -HUP $MAINPID` line. homeCore has no `SIGHUP`
+  handler, so `systemctl reload homecore` stops it
 - [ ] Verify it starts on reboot
 
 ## Docker

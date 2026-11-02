@@ -99,10 +99,14 @@ homeCore handles `SIGINT` and `SIGTERM` with a graceful shutdown:
    ones.
 5. The process exits.
 
+A stop by signal exits with code 0.
+
 `POST /api/v1/system/restart` (admin only) runs the same shutdown and
-exits with code 0, leaving it to the supervisor to start homeCore again.
-Under systemd that only happens with `Restart=always`; see
-[Systemd Deployment](./systemd-deployment).
+exits with code 75 (`EX_TEMPFAIL`), leaving it to the supervisor to start
+homeCore again. systemd's `Restart=on-failure`, launchd's `KeepAlive` and
+Docker's restart policies all restart on that code; see
+[Systemd Deployment](./systemd-deployment). Before v0.1.97 it exited with
+code 0, which `Restart=on-failure` treats as a clean stop.
 
 ### Configuration
 

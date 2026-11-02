@@ -98,8 +98,12 @@ account and writes the password to `INITIAL_ADMIN_PASSWORD` in its home
 directory (and prints it in the log). Sign in with that.
 
 Then install the same plugins the old machine had, from the web app
-(Plugins → Add). A restore only writes plugin settings for plugins the
-machine knows about, so install them first.
+(Plugins → Add). You can also install them after the restore. A restore
+puts the settings of a plugin the new machine doesn't list in
+`[[plugins]]` at `config/plugins/<plugin_id>.toml`, and an install keeps
+a settings file it finds there. Before v0.1.97 a restore skipped those
+settings, so on older versions install the plugins first and expect to
+re-enter the settings of registry-installed plugins (see step 4).
 
 For a plugin you installed by hand (an unpacked tarball or your own
 build), copy its directory under `plugins/` from the old machine. Its
@@ -124,8 +128,7 @@ curl -s -X POST "http://localhost:8080/api/v1/system/restore?check=true" \
 ```
 
 The response lists what would be `restored` and what would be
-`skipped`. A plugin's settings show up as skipped when that plugin isn't
-installed yet.
+`skipped`, and it matches what the restore does at the next start.
 
 Then stage the restore:
 
@@ -144,9 +147,10 @@ place on its next start, before it opens anything. Restart it to finish:
 - **systemd:** `sudo systemctl restart homecore`
 - **Run by hand:** stop it (Ctrl-C) and start it again.
 
-`POST /api/v1/system/restart` also works under Docker. Under the systemd
-unit described below it does not, because the unit restarts homeCore
-only after a failure and an API restart exits cleanly.
+`POST /api/v1/system/restart` also works under Docker and under the
+systemd unit described below: it exits with code 75, which the unit's
+`Restart=on-failure` restarts on. Before v0.1.97 it exited with code 0,
+and the systemd unit left homeCore stopped.
 
 If you copied `jwt_secret`, do the restart as a stop and a start, and put
 the file in the new `data/` directory while homeCore is stopped.
@@ -155,14 +159,16 @@ After the restart, sign in with your old accounts. The temporary admin
 password no longer applies, because the restored `state.redb` brings
 back the old machine's users. Delete `INITIAL_ADMIN_PASSWORD`.
 
-Then open each plugin's page and check its settings. In v0.1.96 the
-restore applied at startup matches plugin settings against the
-`[[plugins]]` blocks in the config that was in place *before* the
-restore, so settings for registry-installed plugins (and for any plugin
-not declared there) are skipped, even when the `?check=true` response
-listed them as restored. homeCore prints the `restored` and `skipped`
-lists to stderr (the journal, or `docker logs`) when it applies the
-restore. If a plugin's settings are missing, re-enter them; the archive keeps a copy of each at `plugins/<id>/config.toml`:
+homeCore prints the `restored` and `skipped` lists to stderr (the
+journal, or `docker logs`) when it applies the restore.
+
+Before v0.1.97, the restore applied at startup matched plugin settings
+against the `[[plugins]]` blocks in the config that was in place before
+the restore, so settings for registry-installed plugins (and for any
+plugin not declared there) were skipped, even when the `?check=true`
+response listed them as restored. On those versions, check each
+plugin's page and re-enter any missing settings. The archive keeps a
+copy of each at `plugins/<id>/config.toml`:
 
 ```bash
 unzip -p homecore-backup-YYYYMMDD.zip plugins/plugin.hue/config.toml

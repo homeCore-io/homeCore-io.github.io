@@ -25,6 +25,77 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.97, 2026-11-02
+
+**Theme:** fixes found while checking the docs against the code.
+
+### What you'll notice
+
+- **Restarting from the app or API brings homeCore back under systemd.**
+  homeCore used to exit with status 0, which systemd's
+  `Restart=on-failure` takes as a deliberate stop, so it stayed down. It
+  now exits with 75 and is started again. This works with a unit
+  installed from an older template, with nothing to change. A
+  `systemctl stop` still stops it.
+- **Restoring a backup keeps the settings of every plugin.** Settings for
+  plugins installed from the Plugins page, and for every plugin on a
+  fresh machine, used to be skipped, even though the check before the
+  restore listed them. They are restored now, and the check matches
+  what happens.
+- **An external MQTT broker works.** `[broker] external_url =
+  "mqtt://host:1883"` (also under Settings, MQTT broker, "External broker")
+  makes homeCore use a Mosquitto or EMQX instead of its own broker, which
+  it then doesn't start. The setting was documented before but did
+  nothing. TLS to the broker (`mqtts://`) isn't supported, and homeCore
+  says so at start.
+- **Automations behave as described:**
+  - *Repeat until* runs its steps, then checks, so it always runs at
+    least once and up to the number of times you set. It used to check
+    first and stop one short.
+  - *Repeat until* and *Repeat while* see devices change while they
+    loop. Before, they saw the devices as they were when the automation
+    started, so a loop waiting for a door to close ran to its limit.
+  - An automation set to start over if it runs again ("Restart") now
+    stops the earlier run. Before, it cut the earlier
+    run's wait short and let it carry on, so "turn off in 5 minutes"
+    turned the light off at once.
+  - An automation that queues its runs ("Queued") runs them one at a
+    time, in order. Before, it ran up to the queue size at the same time.
+  - "Goes offline", held for 5 minutes, fires only if the device is still
+    offline after 5 minutes.
+  - A "stop lower-priority rules from running" step that is switched off
+    no longer stops anything.
+  - Automations that run each other stop after 10 levels instead of
+    running until something breaks.
+- **`systemctl reload homecore` no longer stops homeCore** on a unit made
+  from the new template. homeCore has no reload; use `systemctl restart`.
+
+### For integrators
+
+- `POST /system/restart` exits with status 75 (EX_TEMPFAIL). A stop by
+  signal exits 0.
+- The Tasmota example profile (`config/profiles/examples/tasmota.toml`)
+  has one entry per topic. Two entries for `tele/{device}/SENSOR` and two
+  for `stat/{device}/RESULT` meant only the first of each was used, so
+  temperature, humidity and dimmer fields were never published. The
+  router uses the first pattern that matches a topic.
+
+### Release matrix
+
+**Tagged:** `v0.1.97` (core). No plugin or app release.
+
+### Upgrade notes
+
+- Nothing to change. If you copied `homecore.service` or
+  `homecore-mosquitto.service` from an older release, you can delete its
+  `ExecReload=` line so that `systemctl
+  reload` can't stop homeCore.
+- If you use "Restart" or "Queued", or *Repeat until*, check that
+  the automation still does what you want: these now behave as their
+  names say, which may differ from what you tuned them to.
+
+---
+
 ## hc-nuheat 0.1.1, 2026-11-02
 
 **Theme:** NuHeat sign-ins no longer end after 30 days.

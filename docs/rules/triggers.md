@@ -395,11 +395,9 @@ trigger: DeviceAvailabilityChanged(
 |---|---|---|
 | `device_id` (alias `device`) | yes | The device to watch. |
 | `to` | no | `true` for online only, `false` for offline only. Leave it out for both. |
-| `for_duration_secs` | no | Delay the firing by this many seconds. |
+| `for_duration_secs` | no | Wait this many seconds, then fire only if the device still has the availability it changed to. |
 
-:::caution
-For this trigger, `for_duration_secs` only delays the rule. homeCore does not check availability again when the time is up, so a device that drops off and comes straight back still fires the rule a minute later. To skip devices that have already recovered, add a condition that checks the device's current state.
-:::
+With `for_duration_secs`, a device that drops off and comes back within the time doesn't fire the rule. Before v0.1.97 homeCore didn't check availability again when the time was up, so it fired anyway; on those versions, add a condition that checks the device's current state.
 
 In Rhai, `trigger_value()` returns `true` or `false` (the new availability).
 

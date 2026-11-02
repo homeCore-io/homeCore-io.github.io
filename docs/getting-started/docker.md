@@ -279,11 +279,13 @@ hc-cli broker generate-mosquitto-config \
 `hc-cli` is not in the core image or the release tarball. Build it from
 the homeCore repository (`cargo build -p hc-cli`).
 
-Core itself has no setting to use an external broker. It always starts
-its embedded broker and connects to it on `127.0.0.1`, and the
-`[broker] external_url` key mentioned in older material is not read. See
-the [MQTT broker guide](../administration/broker.md) before planning a
-Mosquitto deployment.
+Then point core at the broker with `[broker] external_url` (for example
+`"mqtt://mosquitto:1883"`). Core skips its embedded broker and logs in as
+`internal.core` with the password from `[[broker.clients]]`. Each
+plugin's own config must point at the same broker. Before v0.1.97 core
+ignored `external_url` and always started its embedded broker. See
+[External Mosquitto deployment](../administration/broker.md#external-mosquitto-deployment)
+for the full setup.
 
 ---
 

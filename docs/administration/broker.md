@@ -16,10 +16,10 @@ The embedded rumqttd authenticates connections but does **not** enforce
 per-topic publish/subscribe ACLs. That is a limitation of rumqttd, not a
 homeCore setting. Where per-topic enforcement matters (containers, remote
 plugins, third-party code, or a security review), the alternative is an
-external Mosquitto broker. `hc-cli broker generate-mosquitto-config`
-converts your existing `[[broker.clients]]` entries into a Mosquitto ACL
-file; see [External Mosquitto deployment](#external-mosquitto-deployment)
-below, including its current limitation.
+external Mosquitto broker, set with `[broker] external_url`.
+`hc-cli broker generate-mosquitto-config` converts your existing
+`[[broker.clients]]` entries into a Mosquitto ACL file; see
+[External Mosquitto deployment](#external-mosquitto-deployment) below.
 
 | Mode | Authn (CONNECT) | Authz (per-topic ACL) | When to use |
 |---|---|---|---|
@@ -34,6 +34,9 @@ below, including its current limitation.
 | `port` | `1883` | MQTT v3.1.1, plain text. homeCore's own client connects here on `127.0.0.1` |
 | `v5_port` | `1884` | A second, MQTT v5 listener for devices that need it (for example Shelly Plus/Pro). `0` turns it off |
 | `tls_port` | unset | Optional TLS listener; needs `cert_path` and `key_path` |
+
+None of these listeners open when `external_url` is set, because the
+embedded broker isn't started.
 
 ## Topic schema
 
@@ -152,14 +155,44 @@ Mosquitto enforces topic ACLs. The `allow_pub` / `allow_sub` patterns you
 already have in `[[broker.clients]]` can be converted to a Mosquitto ACL
 file.
 
-:::warning homeCore cannot yet use an external broker
-In homeCore 0.1.96, `homecore.toml` has no setting that points core at an
-external broker. The `[broker] external_url` key mentioned by `hc-cli`
-and the sample compose file is not read by the server: homeCore always
-starts its embedded broker and connects its own client to `127.0.0.1`
-on `[broker].port`. The steps below generate a working Mosquitto setup,
-but core itself will not switch to it until that setting exists.
-:::
+To run homeCore against an external broker (Mosquitto or EMQX), set
+`external_url`, either in `homecore.toml` or in the settings form
+("External broker"):
+
+```toml
+[broker]
+external_url = "mqtt://192.168.1.20:1883"
+
+[[broker.clients]]
+id       = "internal.core"
+password = "a-strong-random-password"
+allow_pub = ["homecore/#"]
+allow_sub = ["homecore/#"]
+```
+
+When `external_url` is set:
+
+- The embedded broker isn't started, so `host`, `port`, `v5_port` and the
+  TLS listener settings are unused.
+- homeCore's own client connects to that address as `internal.core`, with
+  the password from the `internal.core` entry in `[[broker.clients]]`.
+  Without that entry it connects without credentials, which a Mosquitto
+  with anonymous access off refuses.
+- Plugins installed from the registry after the change are given that
+  address in their settings.
+- Plugins already installed keep the `broker_host` and `broker_port` in
+  their own config. Point each one at the external broker. Their
+  `plugin_id` and `password` stay the same, and each needs a matching
+  entry in the broker's password file.
+
+The port defaults to 1883 when the URL leaves it out. `tcp://host:port`
+and a bare `host:port` are accepted too. homeCore refuses to start with
+`mqtts://` (or `ssl://`), because its own MQTT client has no TLS; use
+`mqtt://` on a trusted network, or a TLS-terminating proxy on the same
+host.
+
+Before v0.1.97, `external_url` was not read: homeCore always started its
+embedded broker and connected to `127.0.0.1` on `[broker].port`.
 
 ### Generate the config
 
@@ -200,16 +233,21 @@ docker compose -f docker-compose.external-broker.yml run --rm passwd-setup
 docker compose -f docker-compose.external-broker.yml up -d
 ```
 
-The compose file and `hc-cli` then tell you to set:
+In that setup the broker is the `mosquitto` service, so set:
 
 ```toml
 [broker]
 external_url = "mqtt://mosquitto:1883"
 ```
 
-As the warning above says, the current server ignores this key. Plugins
-would keep their existing `plugin_id` and `password` credentials; only
-where they are checked would change.
+Keep the `internal.core` entry in `[[broker.clients]]`: homeCore logs in
+to Mosquitto with it, and `hc-cli` builds the ACL and password files from
+the same entries.
+
+A plugin installed from the registry gets a new password in its settings
+file (`config/plugins/<plugin_id>.toml`). Add a `[[broker.clients]]`
+entry with that password and regenerate the Mosquitto files, or the
+broker refuses the plugin's connection.
 
 ## TLS
 

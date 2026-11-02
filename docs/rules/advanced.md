@@ -17,14 +17,36 @@ The snippets on this page are fragments of a rule file. Put them inside a full `
 |---|---|
 | `Parallel` | Default. Every trigger starts a new run, alongside any that are still going. |
 | `Single` | While a run is in progress, new triggers are skipped. History records `skipped` with the reason `single: already in-flight`. |
-| `Restart` | A new trigger cancels this rule's pending cancellable delays, then starts a new run. |
-| `Queued` | Runs start alongside each other, as with `Parallel`, until `max_queue` are in progress (default 10). Further triggers are skipped with the reason `queued: queue full (max N)`. |
+| `Restart` | A new trigger stops the earlier run at its next step and starts a new run. |
+| `Queued` | Runs go one at a time, in the order they were triggered. Up to `max_queue` (default 10) may be waiting or running; further triggers are skipped with the reason `queued: queue full (max N)`. |
 
-`Restart` does not abort the earlier run. Cancelling a delay ends the wait early, and that run then carries on with the steps after the delay. Delays without `cancelable: true` are not touched at all. If the steps after a delay would undo the new run's work (turning a light off, say), `Restart` is the wrong tool.
+With `Restart`, the earlier run's cancellable delays are cut short so it reaches its next step straight away, and it stops there without running the steps after the delay. A step that can't be cut short, such as a `Delay` without `cancelable: true` or a `WaitForExpression`, is waited out first, and the earlier run stops after it. The new run starts at once in either case.
 
-`Queued` does not wait for one run to finish before starting the next. It only caps how many run at once.
+With `Queued`, each run waits for the one before it to finish. A waiting run's conditions were checked when it was triggered, but its actions see device states as they are when its turn comes.
 
-For a motion light that stays on until the room has been quiet for five minutes, `Single` with a wait step does the job in one rule:
+Before v0.1.97 these two modes behaved differently. `Restart` only cut the earlier run's cancellable delays short, and that run then carried on with the steps after the delay, so "off in 5 minutes" turned the light off at once. `Queued` started runs alongside each other, as `Parallel` does, and only capped how many ran at once.
+
+For a motion light that stays on until the room has been quiet for five minutes, `Restart` with a cancellable delay does the job in one rule:
+
+```ron
+name: "Hallway motion light",
+run_mode: Restart,
+
+trigger: DeviceStateChanged(
+    device: "hallway.motion",
+    attribute: Some("motion"),
+    to: Some(true),
+),
+
+actions: [
+    RuleAction(action: SetDeviceState(device: "hallway.light", state: { "on": true })),
+    // New motion stops this run here and starts the five minutes again.
+    RuleAction(action: Delay(duration_secs: 300, cancelable: true)),
+    RuleAction(action: SetDeviceState(device: "hallway.light", state: { "on": false })),
+],
+```
+
+This counts five minutes from the last motion that started, so a person standing still for longer than that sees the light go off. `Single` with a wait step counts from when motion clears instead:
 
 ```ron
 name: "Hallway motion light",
@@ -145,7 +167,7 @@ Rule(
 )
 ```
 
-The chain stops as soon as the higher rule fires, wherever `StopRuleChain` sits in its action list. Only a top-level step counts; a `StopRuleChain` nested inside a `Conditional` or `Parallel` does not stop the chain. If the disarm rule's condition fails, it doesn't fire, and the wrong-code rule runs as usual.
+The chain stops as soon as the higher rule fires, wherever `StopRuleChain` sits in its action list. Only a top-level step that is switched on counts. A `StopRuleChain` nested inside a `Conditional` or `Parallel` does not stop the chain, and neither does one with `enabled: false` (before v0.1.97 a switched-off step still stopped it). If the disarm rule's condition fails, it doesn't fire, and the wrong-code rule runs as usual.
 
 ---
 
@@ -174,7 +196,7 @@ Three steps cancel delays:
 
 Keys belong to the rule that set them, so `CancelDelays` in one rule can't reach a delay in another. Use `CancelRuleTimers` with the other rule's ID for that.
 
-Because a cancelled delay lets the run carry on, cancelling the delay above turns the porch light off immediately rather than leaving it on. To build "turn off after five quiet minutes, and start the count again on new motion", use the `WaitForExpression` pattern under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"command": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
+Because a cancelled delay lets the run carry on, cancelling the delay above with one of these steps turns the porch light off immediately rather than leaving it on. `run_mode: Restart` is different: it also stops the earlier run, so the steps after the delay don't run. To build "turn off after five quiet minutes, and start the count again on new motion", use one of the patterns under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"command": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
 
 ---
 

@@ -370,7 +370,17 @@ own conditions are decided.
 - An `Arc<AtomicUsize>` (`in_flight`) counts running firings for graceful
   shutdown.
 - Per-rule `run_mode` (`Parallel`, `Single`, `Restart`, or `Queued` with
-  an optional `max_queue`) is enforced with a per-rule in-flight counter.
+  an optional `max_queue`) is enforced with per-rule run state
+  (`RuleRuns` in `engine.rs`): an in-flight counter (`Single`, and the
+  `max_queue` limit), the newest run's exit flag, which `Restart` sets so
+  that run stops at its next step, and a one-permit semaphore that
+  `Queued` runs take in turn. A queued run takes a fresh device snapshot
+  once it holds the permit.
+- `RunRuleActions` passes its call depth on to the called rule's actions,
+  so the limit of 10 (`MAX_CALL_DEPTH` in `executor.rs`) holds across
+  rules that run each other.
+- `RepeatUntil` and `RepeatWhile` take a fresh snapshot from the live
+  device cache for each check, as `WaitForExpression` does.
 - `Delay` actions sleep inside their own task without blocking other
   firings.
 - `Parallel { actions }` spawns each sub-action as its own `tokio::spawn`

@@ -29,7 +29,16 @@ All backup and restore endpoints require the `admin` role.
 Plugin configs are stored by plugin id rather than by path, so a backup
 taken on one host restores correctly on another even if the config files
 live elsewhere. On restore, each one goes to the path the running host's
-`[[plugins]]` table gives for that id.
+`[[plugins]]` table gives for that id. A plugin the host doesn't list
+there, such as one installed from the registry or any plugin on a fresh
+host, gets its settings at `config/plugins/<plugin_id>.toml`. An
+installed plugin reads its settings from that file first. Only ids that
+start with `plugin.` are restored this way, and a settings file there
+doesn't start a plugin by itself; the plugin still has to be installed.
+
+Before v0.1.97, a restore skipped the settings of any plugin the host
+didn't list in `[[plugins]]`, which included every registry-installed
+plugin, even though `?check=true` reported them as restored.
 
 Not included:
 
@@ -158,12 +167,12 @@ curl -s -X POST http://localhost:8080/api/v1/system/restart \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-`POST /system/restart` shuts homeCore down cleanly (exit code 0) and
-relies on whatever supervises it to start it again. Docker's
-`restart: unless-stopped` does that. A systemd unit with
-`Restart=on-failure` does not restart a process that exited cleanly, so
-on systemd use `sudo systemctl restart homecore` instead, or set
-`Restart=always` in the unit.
+`POST /system/restart` shuts homeCore down and exits with code 75, and
+relies on whatever supervises it to start it again. Docker's restart
+policies, launchd's `KeepAlive` and a systemd unit with
+`Restart=on-failure` all do that. Before v0.1.97 the restart exited with
+code 0, which `Restart=on-failure` treats as a clean stop; on those
+versions use `sudo systemctl restart homecore` under systemd.
 
 The request body for `/system/restore` is the raw zip bytes, not JSON or
 base64. Archives larger than 500 MiB are rejected with 413. The kept-backup

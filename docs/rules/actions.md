@@ -396,7 +396,7 @@ Besides the functions available to conditions (`device_state`, `hub_var`, `curre
 | `rule_var(name)` | Read one of this rule's variables. |
 | `trigger_device()`, `trigger_value()` and the other `trigger_*()` functions | Details of the event that started the rule. See [Trigger context in Rhai](./triggers.md#trigger-context-in-rhai). |
 
-Device commands, notifications, HTTP requests and MQTT publishes don't happen while the script is running. homeCore collects them and carries them out after the script finishes, in the order they were made. `device_state()` takes a raw device ID and returns the states as they were when the rule fired.
+Device commands, notifications, HTTP requests and MQTT publishes don't happen while the script is running. homeCore collects them and carries them out after the script finishes, in the order they were made. `device_state()` takes a raw device ID and returns the states as they were when the rule fired (when its turn came, for a `Queued` rule; at the start of the pass, inside a `RepeatUntil` or `RepeatWhile` loop).
 
 ## Flow control
 
@@ -502,12 +502,12 @@ action: Conditional(
 
 | Field | Required | Description |
 |---|---|---|
-| `condition` | yes | A condition, or a Rhai expression as a string. Inside a condition here, write `device_id` in full: the `device` alias isn't accepted in this position. |
+| `condition` | yes | A condition, or a Rhai expression as a string. |
 | `then_actions` | yes | Runs when the condition passes. |
 | `else_if` | no | A list of branches, each with its own `condition` and `actions`. The first that passes runs. |
 | `else_actions` | no | Runs when nothing else did. |
 
-A condition here is judged the same way as in the rule's `conditions` list. A Rhai expression reads device states as they were when the rule fired, which matters after a `Delay`, and can use `device_state()` and the time functions but not `hub_var()` or the `trigger_*()` functions.
+A condition here is judged the same way as in the rule's `conditions` list. A Rhai expression reads device states as they were when the rule fired, which matters after a `Delay` (inside a `RepeatUntil` or `RepeatWhile` loop, as they were at the start of that pass), and can use `device_state()` and the time functions but not `hub_var()` or the `trigger_*()` functions.
 
 ---
 
@@ -563,9 +563,9 @@ action: RepeatUntil(
 ),
 ```
 
-`max_iterations` defaults to 100 and `interval_ms` to 0. In the current version the expression is checked before each pass, like `RepeatWhile`: if it's already `true`, the actions don't run. The last allowed pass is spent on the check, so the actions run at most `max_iterations - 1` times.
+`max_iterations` defaults to 100 and `interval_ms` (the pause after each pass) to 0. The actions run first and the expression is checked after each pass, so the actions run at least once and at most `max_iterations` times, even when the expression is already `true` at the start. Before v0.1.97 the expression was checked before each pass: the actions didn't run at all if it was already `true`, and ran at most `max_iterations - 1` times.
 
-The expressions in `RepeatWhile` and `RepeatUntil` see device states as they were when the rule fired, not as they are now. A loop that waits for a device to change will not see the change. Use `WaitForExpression` for that.
+The expressions in `RepeatWhile` and `RepeatUntil` see device states as they are at each check, and so do the actions inside the loop. A loop can wait for a device to change, for example for a door to close. Before v0.1.97 both loops saw device states as they were when the rule fired, so a loop waiting for a change ran to its limit.
 
 ---
 
@@ -643,7 +643,7 @@ Stops homeCore from evaluating the remaining rules for the current event. Rules 
 action: StopRuleChain,
 ```
 
-It takes effect when the rule fires, wherever it sits in the top-level `actions` list. Inside a container action it does nothing. It usually goes on a high-priority rule that should be exclusive. See [Advanced: StopRuleChain](./advanced#stoprulechain).
+It takes effect when the rule fires, wherever it sits in the top-level `actions` list. Inside a container action it does nothing, and a step switched off with `enabled: false` doesn't stop the chain (before v0.1.97 it still did). It usually goes on a high-priority rule that should be exclusive. See [Advanced: StopRuleChain](./advanced#stoprulechain).
 
 ---
 
@@ -771,7 +771,9 @@ action: RunRuleActions(
 ),
 ```
 
-The other rule's own `enabled` flags on its actions are respected. Its actions don't appear in this rule's fire history. Don't set up rules that call each other in a loop.
+The other rule's own `enabled` flags on its actions are respected. Its actions don't appear in this rule's fire history.
+
+`RunRuleActions` can nest up to 10 levels deep, counted across every rule in the chain. Past that, the step is skipped and homeCore logs a warning (`max call depth reached`), so rules that run each other stop there. Before v0.1.97 the count started again at 0 in each called rule, and two rules that ran each other never stopped.
 
 ---
 

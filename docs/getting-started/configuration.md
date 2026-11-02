@@ -59,6 +59,9 @@ port = 1883
 # cert_path = "/etc/homecore/broker.crt"
 # key_path  = "/etc/homecore/broker.key"
 
+# Use an external broker (Mosquitto, EMQX) instead of the embedded one.
+# external_url = "mqtt://192.168.1.20:1883"
+
 # When [[broker.clients]] entries are present, the embedded broker requires
 # credentials on CONNECT. The `allow_pub` / `allow_sub` patterns are
 # metadata-only on rumqttd — they are NOT enforced at publish/subscribe time.
@@ -302,8 +305,9 @@ public_key = "d64zXOo99GE+uYAPbtbIwLUJHtBaACJB73cUppj93I8="
 
 ### `[broker]`
 
-The embedded MQTT broker. Core always runs it, and core's own MQTT
-client connects to it on `127.0.0.1` at `port`.
+The MQTT broker. By default core runs its embedded broker, and core's own
+MQTT client connects to it on `127.0.0.1` at `port`. With `external_url`
+set, core uses that broker instead and the embedded one isn't started.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
@@ -313,6 +317,7 @@ client connects to it on `127.0.0.1` at `port`.
 | `tls_port` | integer | none | TLS MQTT port (requires `cert_path` and `key_path`) |
 | `cert_path` | string | none | Path to TLS certificate file (PEM) |
 | `key_path` | string | none | Path to TLS private key file (PEM) |
+| `external_url` | string | none | An external broker (Mosquitto, EMQX) as `mqtt://host:port`, used instead of the embedded one. The port defaults to `1883`; `tcp://host:port` and a bare `host:port` also work. `mqtts://` is refused at startup. The settings form calls it "External broker". Added in v0.1.97. |
 
 Core refuses to start when `host` is not a loopback address and there
 are no `[[broker.clients]]` entries, because that would be an open
@@ -321,8 +326,14 @@ credentials, or, on a network you have isolated some other way, set
 the environment variable `HC_ALLOW_ANONYMOUS_REMOTE_BROKER=1` (core then
 logs an error at startup and continues).
 
-There is no setting for pointing core at an external broker. A
-`[broker] external_url` key that some older pages mention is not read.
+When `external_url` is set, `host`, `port`, `v5_port` and the TLS keys
+are unused, and the open-broker check above doesn't apply. Core's own
+client logs in as `internal.core` with that entry's password from
+`[[broker.clients]]`. Plugins installed from the registry are given the
+external address; point already installed plugins at it in their own
+configs. See
+[External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
+Before v0.1.97 the key was not read.
 
 `[[broker.clients]]` entries:
 

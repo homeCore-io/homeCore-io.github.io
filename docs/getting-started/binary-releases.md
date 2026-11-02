@@ -216,11 +216,12 @@ sudo systemctl enable --now homecore.service
 sudo journalctl -u homecore.service -f   # tail the logs
 ```
 
-The unit restarts core only when it exits with an error
+The unit restarts core when it exits with an error
 (`Restart=on-failure`). A restart requested through the API
-(`POST /api/v1/system/restart`) ends the process cleanly, so systemd
-does not start it again. Under systemd, restart with
-`sudo systemctl restart homecore` instead. See
+(`POST /api/v1/system/restart`) or the web app exits with code 75, so
+systemd starts it again. Before v0.1.97 it exited with code 0 and
+homeCore stayed stopped; on those versions restart with
+`sudo systemctl restart homecore`. See
 [systemd deployment](../administration/systemd-deployment) for a fuller
 walkthrough.
 

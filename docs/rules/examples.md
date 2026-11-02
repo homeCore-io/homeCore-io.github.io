@@ -129,7 +129,7 @@ Rule(
 
 The expression is a Rhai script, so it uses the motion sensor's raw device ID (`motion_hallway` here) rather than its canonical name. It is checked every 500 ms by default and has to stay true for the whole `hold_duration_ms`; motion resets the count.
 
-A pair of rules with a cancellable `Delay` and `CancelDelays` does **not** work for this: delay keys are private to the rule that set them, and cancelling a delay makes the run skip ahead to the "off" step instead of stopping. See [Cancellable delays](./advanced.md#cancellable-delays). A [timer helper](../devices/virtual-devices.md) is the other reliable way to do it.
+A pair of rules with a cancellable `Delay` and `CancelDelays` does **not** work for this: delay keys are private to the rule that set them, and cancelling a delay makes the run skip ahead to the "off" step instead of stopping. See [Cancellable delays](./advanced.md#cancellable-delays). One rule with `run_mode: Restart` and a cancellable `Delay` does work from v0.1.97, counting the five minutes from the last motion; see [Run modes](./advanced.md#run-modes). A [timer helper](../devices/virtual-devices.md) is another reliable way to do it.
 
 ---
 

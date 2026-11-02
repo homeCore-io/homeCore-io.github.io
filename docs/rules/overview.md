@@ -82,7 +82,7 @@ Event arrives (device state change, time, webhook, alert, ...)
                                             → record "condition_failed", skip
       → all passed: start the actions in the background; record "fired"
         once they finish
-      → if the rule has a StopRuleChain step, stop here: lower-priority
+      → if the rule has an enabled StopRuleChain step, stop here: lower-priority
         rules do not see this event
 ```
 
@@ -192,8 +192,8 @@ Subdirectories are not loaded, so `rules/examples/` can hold reference files wit
 |---|---|
 | `Parallel` | Default. Every trigger starts a new run, alongside any that are still going. |
 | `Single` | If a run is still going, the new trigger is skipped. |
-| `Restart` | Cancels this rule's pending cancellable delays, then starts a new run. |
-| `Queued` | Like `Parallel` up to `max_queue` runs at once (default 10). Beyond that, new triggers are skipped. |
+| `Restart` | Stops the earlier run at its next step (cutting its cancellable delays short), then starts a new run. |
+| `Queued` | Runs one at a time, in the order they were triggered. Up to `max_queue` (default 10) may be waiting or running; beyond that, new triggers are skipped. |
 
 ```ron
 run_mode: Single,
@@ -201,7 +201,7 @@ run_mode: Single,
 run_mode: Queued(max_queue: 3),
 ```
 
-In JSON these are `"run_mode": "Single"` and `"run_mode": {"Queued": {"max_queue": 3}}`. [Advanced Patterns](./advanced.md#run-modes) explains each mode in more detail, including what `Restart` does and doesn't stop.
+In JSON these are `"run_mode": "Single"` and `"run_mode": {"Queued": {"max_queue": 3}}`. [Advanced Patterns](./advanced.md#run-modes) explains each mode in more detail, including how `Restart` and `Queued` behaved before v0.1.97.
 
 ## Priority
 

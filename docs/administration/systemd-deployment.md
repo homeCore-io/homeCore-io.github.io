@@ -13,22 +13,14 @@ embedded rumqttd does not. If you're new to the trade-off between the
 embedded broker and an external one, read
 [the broker guide](./broker#external-mosquitto-deployment) first.
 
-:::warning homeCore cannot yet use an external broker
-In homeCore 0.1.96 there is no working `[broker] external_url` setting.
-The server ignores that key, always starts its embedded broker, and
-connects its own client to `127.0.0.1` on `[broker].port`. The Mosquitto
-half of this guide (steps 1 and 4, and the operations section) works as
-written, but homeCore will not route its traffic through Mosquitto until
-that setting exists. If both brokers are configured for port 1883 on the
-same host, they will collide. Until then, use the embedded broker with
-`[[broker.clients]]` credentials, as described in
-[the broker guide](./broker#password-authentication).
-:::
+homeCore uses Mosquitto through `[broker] external_url`, which needs
+v0.1.97 or later. Before v0.1.97 the server ignored that key, always
+started its embedded broker on `[broker].port`, and collided with a
+Mosquitto on the same port.
 
 If you prefer Docker, the compose variant is in the core repo at
 `core/docker/docker-compose.external-broker.yml`. It uses the same
-generated files with different packaging, and carries the same
-limitation.
+generated files with different packaging.
 
 This guide assumes a Debian/Ubuntu-style distribution with `systemd` and
 `apt`. On Red Hat, Arch or NixOS, adapt the package names and paths.
@@ -103,15 +95,17 @@ sudo install -d -o root     -g homecore -m 0750 /etc/homecore
 
 ## 3. Write `homecore.toml`
 
-Put your config at `/etc/homecore/homecore.toml`. The part that matters
-for this deployment is `[[broker.clients]]`, one entry per MQTT client:
+Put your config at `/etc/homecore/homecore.toml`. The parts that matter
+for this deployment are `external_url` and `[[broker.clients]]`, one
+entry per MQTT client:
 
 ```toml
 [broker]
+# Use Mosquitto; the embedded broker isn't started.
 external_url = "mqtt://127.0.0.1:1883"
-# NOTE: homeCore 0.1.96 ignores external_url (see the warning above).
-# hc-cli reads the [[broker.clients]] entries below to generate the
-# Mosquitto ACL and password files.
+# homeCore logs in to Mosquitto as internal.core. hc-cli reads the
+# [[broker.clients]] entries below to generate the Mosquitto ACL and
+# password files.
 
 [[broker.clients]]
 id       = "internal.core"
@@ -131,6 +125,12 @@ allow_sub = ["homecore/devices/thermostat_+/cmd",
 
 # ...one [[broker.clients]] block per plugin.
 ```
+
+Each plugin's own config must point at Mosquitto too
+(`broker_host = "127.0.0.1"`, `broker_port = 1883` in its `[homecore]`
+table), with the same `password` as its entry here. Plugins installed
+from the registry after `external_url` is set are given that address
+when they are installed.
 
 The passwords are plaintext, so lock the file down:
 
@@ -213,8 +213,11 @@ User=homecore
 Group=homecore
 Environment="HOMECORE_HOME=/var/lib/homecore"
 ExecStart=/usr/local/bin/homecore --config /etc/homecore/homecore.toml
-ExecReload=/bin/kill -HUP $MAINPID
+# No ExecReload: homeCore has no SIGHUP handler, so a reload would stop it.
+# Use `systemctl restart homecore` (or POST /system/restart) instead.
 
+# POST /system/restart exits with 75 so that it counts as a failure and
+# is restarted too.
 Restart=on-failure
 RestartSec=5
 StartLimitIntervalSec=60
@@ -259,14 +262,19 @@ Notes on the unit:
   `homecore.toml` resolve against. `--home <path>` on the command line
   does the same and takes precedence. Without either, homeCore uses its
   working directory.
-- homeCore has no `SIGHUP` handler, so don't use `systemctl reload
-  homecore`. Use `systemctl restart homecore`.
+- homeCore has no `SIGHUP` handler, so the unit has no `ExecReload` and
+  `systemctl reload homecore` isn't supported. Use `systemctl restart
+  homecore`. Units installed from templates older than v0.1.97 have an
+  `ExecReload=/bin/kill -HUP $MAINPID` line, and `systemctl reload` on
+  them stops homeCore for good. Delete that line and run
+  `systemctl daemon-reload`.
 - `KillMode=control-group` stops the plugins homeCore supervises along
   with it.
 - `POST /api/v1/system/restart` (and restarting from the web app) shuts
-  homeCore down with exit code 0 and expects the supervisor to start it
-  again. `Restart=on-failure` doesn't restart after a clean exit, so set
-  `Restart=always` if you want that to work.
+  homeCore down with exit code 75, which `Restart=on-failure` restarts
+  on. A stop by signal exits with code 0 and stays stopped. Before
+  v0.1.97 the API restart also exited with code 0, so homeCore stayed
+  stopped under this unit.
 
 ## 6. Start everything
 
@@ -388,9 +396,16 @@ sends.
 ## Troubleshooting
 
 **homeCore and Mosquitto both want port 1883.**
-Because homeCore always starts its embedded broker (see the warning at the
-top), it and Mosquitto can't both listen on 1883. Check what holds the
-port with `ss -tlnp | grep 1883`.
+homeCore started its embedded broker, which happens when `external_url`
+is unset or empty, or on a version before v0.1.97. Check that
+`[broker] external_url` is set in the config the unit loads, and look
+for `Using an external MQTT broker` in `journalctl -u homecore`. Check
+what holds the port with `ss -tlnp | grep 1883`.
+
+**homeCore starts but never connects to Mosquitto.**
+Mosquitto's log shows `internal.core` refused, or no connection from it.
+Check that `[[broker.clients]]` has an `internal.core` entry and that its
+password matches the one in Mosquitto's `passwd`.
 
 **Plugins connect, but Mosquitto's log fills with denied publishes.**
 The plugin is publishing outside its ACL. Either the ACL is too narrow
@@ -407,7 +422,10 @@ Add `log_type debug` to `mosquitto.conf` temporarily while debugging.
 
 ## Next steps
 
-- [TLS for the broker](./broker#tls): move plugins off plain-text MQTT.
+- [TLS for the broker](./broker#tls) covers the embedded broker's TLS
+  listener. With Mosquitto, configure TLS in Mosquitto itself. homeCore's
+  own client connects without TLS, so keep it on `127.0.0.1` or a
+  trusted network.
 - [Backup / restore](./backup-restore): the state database, history and
   `jwt_secret` live under `/var/lib/homecore/data`, and scheduled backups
   go to `/var/lib/homecore/backups`. The audit database and `jwt_secret`

@@ -346,12 +346,14 @@ Device IDs: `tasmota_{topic_name}`, where the topic name is set in the
 Tasmota console with `Topic mydevice`. The dual-relay entries use
 `{device}_relay1` and `{device}_relay2`, without the prefix.
 
-As shipped, two pairs of entries share a pattern, so the second of each
-never matches: the temperature and humidity entry sits behind the power
-monitoring one on `tele/{device}/SENSOR`, and the dimmer entry sits
-behind the plain `POWER` one on `stat/{device}/RESULT`. If you need the
-later mapping, merge its `field_map` and `coerce` into the earlier entry,
-or delete the earlier one.
+`tele/{device}/SENSOR` is one entry that maps both the power monitoring
+and the temperature and humidity fields, and `stat/{device}/RESULT` is
+one entry that maps `POWER` and the dimmer fields (`Dimmer`, `CT`,
+`Color`). Before v0.1.97 the example profile had two entries for each of
+those topics, and because only the first match is used, temperature,
+humidity and the dimmer fields were never published. If you copied the
+profile from an older release, replace your copy with the current
+example, or merge each pair of entries into one.
 
 ### `shelly-gen1.toml`
 
