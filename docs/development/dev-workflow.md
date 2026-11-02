@@ -7,68 +7,112 @@ sidebar_position: 2
 
 # Dev Workflow
 
-## Standard dev session
+## Toolchain
 
-For multi-component work (core + plugins + UI together), the easiest
-launcher is `hc-scripts/run-dev.sh` from the workspace root:
+Use the Rust version CI and the release builds use (1.99.1 at the time of
+writing; `rust_version` in hc-scripts' `rust-ci.yml` and `rust-release.yml`).
+A newer local toolchain has a different clippy lint set, so code that passes
+locally can fail CI. You also need Node.js 24 for plugin screens and the web
+app, and `just`, `gh` and `jq` for the recipes and release steps.
+
+homeCore picks its base directory from `--home`, then `HOMECORE_HOME`, then
+the current directory (see `core/homecore/src/main.rs`). If your shell sets
+`HOMECORE_HOME`, a bare `cargo run -p homecore` uses it wherever you start
+it from.
+
+## Running core
+
+### A sandbox, not the house
+
+Test against a sandbox homeCore: its own `--home` and `--config`, its own
+broker port, and plugins pointed at stand-ins (small local emulators of
+the device) instead of real hardware. Never test against the real house.
+That means no discovery from a sandbox, since it would find real devices,
+and no commands to real devices. Section 9 of
+[`core/docs/plugin-development.md`](https://github.com/homeCore-io/homeCore/blob/develop/docs/plugin-development.md)
+has the details.
+
+The workspace `Justfile` has recipes for a local sandbox in
+`<workspace>/sandbox/`. That directory is a real `HOMECORE_HOME` (config,
+registry, redb state, `INITIAL_ADMIN_PASSWORD`), not build output, and no
+`clean` recipe touches it.
 
 ```bash
-./hc-scripts/run-dev.sh             # build all + run core (debug)
+just sandbox         # build the homecore binary (incremental), then run it on the sandbox
+just sandbox-run     # run the existing binary without building
+just sandbox-build   # build the whole workspace, reinstall the sandbox's plugins, then run
+```
+
+All three run `core/target/debug/homecore` with `--home sandbox` and
+`--config sandbox/homecore.toml`. `sandbox-build` calls
+`sandbox/reinstall-plugins.sh`, which you provide in your sandbox.
+
+For a one-off throwaway instance, point `--home` at an empty directory:
+
+```bash
+cargo run -p homecore -- --home /tmp/hc-dev
+```
+
+Reset it by deleting its data:
+
+```bash
+rm -rf /tmp/hc-dev/data/
+cargo run -p homecore -- --home /tmp/hc-dev
+```
+
+On first run, copy the admin password from the startup output (it is
+also written to `INITIAL_ADMIN_PASSWORD` in the home directory).
+
+### `run-dev.sh`
+
+`hc-scripts/run-dev.sh` is the older all-in-one launcher, run from the
+workspace root:
+
+```bash
+./hc-scripts/run-dev.sh             # pull, update, build, run (debug)
 ./hc-scripts/run-dev.sh --release   # release build
 ./hc-scripts/run-dev.sh --no-build  # skip cargo, use existing binaries
 ./hc-scripts/run-dev.sh --no-pull   # skip `git pull` in every repo
+./hc-scripts/run-dev.sh --no-update # skip `cargo update`
 ```
 
-The script:
-1. Pulls every component repo listed in `workspace.toml` (core, the
-   non-Rust SDKs and plugins, the clients).
-2. Runs `cargo update` in each Rust workspace it finds.
-3. Builds the server. Every Rust plugin is a member of core's
-   workspace, so they are built by the same command — binaries land in
-   `core/target/debug/<name>` with no separate plugin build step.
-4. Runs `homecore --config core/config/homecore.dev.toml`.
+What it does:
+
+1. Runs `git pull --ff-only` in hc-scripts itself, `core/`, each
+   `sdks/hc-plugin-sdk-*` checkout, and each git repo under `clients/`.
+   It finds these by scanning directories; it does not read
+   `workspace.toml`.
+2. Runs `cargo update` on `core/Cargo.toml`, which rewrites `Cargo.lock`.
+   Pass `--no-update` (or `--no-pull`) when you do not want that.
+3. Builds the `homecore` binary only (`cargo build --bin homecore`). It
+   does not build the plugins, so run `cargo build --workspace` (or
+   `just build`) first if plugin code changed.
+4. Starts the server from `core/target/<profile>/` with `--home core`
+   and `--config config/homecore.dev.toml`.
 
 The dev config's `[[plugins]]` blocks point at `target/debug/<name>`,
-relative to `HOMECORE_HOME` (which in development is `core/`), so
-homecore launches exactly what was just built.
+relative to `HOMECORE_HOME` (here `core/`), so homecore launches whatever
+the last workspace build produced.
 
 :::caution run-dev.sh is not sandboxed
-It starts a real homeCore with the real plugin configs, so it connects
-to whatever hubs, bridges and cloud accounts those configs name. That is
-usually what you want on a dev box and emphatically not what you want
-while testing something destructive. To work in isolation, write a
-config with its own ports, its own `[storage]` paths and no
-`[[plugins]]`, and pass it with `--config`.
+It starts a real homeCore with the real plugin configs, so it connects to
+whatever hubs, bridges and cloud accounts those configs name. Do not use
+it to test anything destructive. Use a sandbox instead.
 :::
 
-For tighter loops on a single component, you can also run cargo
-directly. Three terminal windows is enough:
+Its `--webui` flag starts the retired Flutter app's dev proxy. It is not
+the flag you want for UI work; see [Web UI development](#web-ui-development).
 
-### Terminal 1 — the server
+### A typical loop
+
+Run the server in one terminal:
 
 ```bash
 cd homeCore/core
-cargo run -p homecore
+cargo run -p homecore -- --home /tmp/hc-dev
 ```
 
-HomeCore uses the **current working directory** as its base. Running
-from `core/` picks up `config/homecore.toml` and writes data to
-`data/` right there.
-
-On first run, copy the admin password from the startup output.
-
-To restart after a code change: `Ctrl-C`, then `cargo run -p homecore`
-again. Only changed crates recompile.
-
-### Terminal 2 — virtual device (optional)
-
-Start after the server is up:
-
-```bash
-cargo run -p virtual-device -- --broker 127.0.0.1 --port 1883 --id plugin.virtual
-```
-
-### Terminal 3 — API calls
+Log in from another and keep the token:
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
@@ -76,102 +120,120 @@ TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -d '{"username":"admin","password":"YOUR_PASSWORD"}' | jq -r .token)
 ```
 
-### Optional: Terminal 4 — live event stream
+Optionally, watch the live event stream in a third:
 
 ```bash
 websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN"
 ```
 
-### Typical loop
+Then:
 
-1. Make a code change
-2. `Ctrl-C` in Terminal 1
-3. `cargo run -p homecore` (only changed crates recompile)
-4. Re-test with `curl` in Terminal 3
-5. Check Terminal 1 for log output
+1. Make a code change.
+2. `Ctrl-C` the server.
+3. Run `cargo run -p homecore -- --home /tmp/hc-dev` again. Only changed
+   crates recompile.
+4. Re-test with `curl`.
+5. Read the server's log output.
+
+For devices to automate against without hardware, use core's own glue
+devices (virtual switches, timers and the rest); see
+[Virtual devices](../devices/virtual-devices.md).
 
 ## Pre-PR check (`just check`)
 
-Every Rust component (core + each plugin) ships an aligned `Justfile`
-with the same recipes. From the component's repo root:
+There are three Justfiles, and their clippy settings differ from CI's,
+so read this section before trusting a local green.
+
+| Where | `just check` runs |
+|---|---|
+| Workspace root (`Justfile`, a symlink to `hc-scripts/Justfile.workspace`) | `check-core` (core's `just check`), then `fmt`, `clippy --locked` and `test --locked` for the standalone Rust clients `hc-tui` and `hc-web-leptos` |
+| `core/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets` with `-D clippy::correctness -D clippy::suspicious` and three `-A` allowances, `cargo test --workspace` |
+| `core/plugins/hc-*/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --all-targets --all-features -- -D warnings` with three `-A` allowances, `cargo test --all-features` |
+
+CI (`hc-scripts/.github/workflows/rust-ci.yml`) runs this at core's root:
 
 ```bash
-just                # default: list all recipes
-just check          # fmt + clippy + test — mirrors what CI runs
-```
-
-The clippy invocation matches `hc-scripts/.github/workflows/rust-ci.yml`
-exactly:
-
-```bash
+cargo fmt --all --check
 cargo clippy --all-targets --all-features -- \
     -D warnings \
-    -A clippy::too_many_arguments \
-    -A clippy::type_complexity \
-    -A clippy::result_large_err
+    -A clippy::type_complexity
+cargo test --all-features
 ```
 
-So if `just check` passes locally, CI passes too. The three allowed
-lints are stylistic-only allowances — see
-`hc-scripts/.github/workflows/rust-ci.yml` for the rationale on each.
+That is stricter than any of the Justfiles. Core's Justfile does not deny
+warnings at all, and the plugin Justfiles still allow
+`clippy::too_many_arguments` and `clippy::result_large_err`, which CI
+stopped allowing. To reproduce CI before pushing, run the three commands
+above from `core/` with the toolchain CI uses (see Toolchain above).
 
-### Recipe reference
+Other workspace recipes:
 
-| Recipe | What it runs | When to use |
-|---|---|---|
-| `just` (default) | `just --list` | See available recipes |
-| `just check` | `fmt` → `clippy` → `test` | Before pushing |
-| `just fmt` | `cargo fmt --all -- --check` | CI-equivalent format check |
-| `just fmt-fix` | `cargo fmt --all` | Apply formatting in place |
-| `just clippy` | The CI-mirror clippy command above | Lint pass |
-| `just test` | `cargo test --all-features` | Test pass |
-| `just build` | `cargo build` | Debug build |
-| `just build-release` | `cargo build --release` | Release build |
-| `just run` | `cargo run -- --config config/config.dev.toml` | Run the plugin against your dev config |
-| `just clean` | `cargo clean` | Wipe the target/ tree |
-| `just package` | `../../hc-scripts/build-archive.sh --kind plugin --name <self> --build` | Produce a `dist/<name>-<ver>-<plat>.tar.gz` fragment |
+| Recipe | What it does |
+|---|---|
+| `just check-core` | core's `just check` |
+| `just check-plugin <name>` | `fmt`, `clippy` and `test` for one workspace member (`-p <name>`) |
+| `just check-clients` | the standalone Rust clients only |
+| `just fmt` / `just clippy` / `just test` | one step across core and the Rust clients |
+| `just build` / `just build-release` | debug or release build of everything Rust |
+| `just clean` | `cargo clean` for core and the Rust clients |
+| `just clean-release` | `cargo clean --release` only |
+| `just clean-all` | `clean`, plus the Flutter build cache, `logs/*.log` and the devenv/direnv caches |
+| `just deploy-local [args]` | build and install a production-like layout with `hc-scripts/deploy.sh` (default destination `/var/tmp/homeCore`) |
 
-The `package` recipe wraps `hc-scripts/build-archive.sh` — same script
-CI uses to produce release tarballs. `BIN_NAME` auto-derives from the
-directory name, so the same Justfile works for every plugin without
-customization. Override the script path with
-`HC_SCRIPTS=/path/to/hc-scripts just package` if `hc-scripts` is not
-checked out beside `core`.
+### Inside a plugin directory
 
-Install `just` once if needed:
+Each plugin under `core/plugins/` keeps a Justfile with these recipes:
+
+| Recipe | What it runs |
+|---|---|
+| `just` (default) | `just --list` |
+| `just check` | `fmt`, then `clippy`, then `test` |
+| `just fmt` / `just fmt-fix` | `cargo fmt --all -- --check` / `cargo fmt --all` |
+| `just clippy` | the clippy command from the table above |
+| `just test` | `cargo test --all-features` |
+| `just build` / `just build-release` | `cargo build` / `cargo build --release` |
+| `just run` | `cargo run -- --config config/config.dev.toml` |
+| `just clean` | `cargo clean` |
+| `just package` | `$HC_SCRIPTS/build-archive.sh --kind plugin --name <self> --build` |
+
+Because the plugin is a workspace member, some of these act on the whole
+workspace, not the plugin: `cargo fmt --all` formats every member, and
+`cargo clean` empties core's shared `target/`.
+
+`just package` wraps `hc-scripts/build-archive.sh`. `BIN_NAME` comes from
+the directory name, so the same Justfile works for every plugin. The
+default `HC_SCRIPTS` is `../../hc-scripts`, which from
+`core/plugins/<name>/` resolves to `core/hc-scripts`, a path that does
+not exist in this layout. Pass the real location:
 
 ```bash
-cargo install just
+HC_SCRIPTS=../../../hc-scripts just package
 ```
 
 ## Cargo commands reference
 
-For tighter feedback loops on a single crate, fall back to `cargo`
-directly:
+For a single crate, call `cargo` directly from `core/`:
 
 ```bash
-# Fastest feedback — check compiles without building
+# Fastest feedback: type-check without building
 cargo check --workspace
 cargo check -p hc-core        # single crate
 
 # Build
 cargo build --workspace
-cargo build --release          # optimized binary
+cargo build --release          # optimized binaries
 
 # Run
 cargo run -p homecore
 cargo run -p homecore --release
 
-# Run virtual device
-cargo run -p virtual-device -- --broker 127.0.0.1 --port 1883 --id plugin.virtual
-
 # Test
 cargo test --workspace
 cargo test -p hc-auth          # single crate
 cargo test -p hc-core          # rule engine tests
-cargo test -p hc-api           # API + WebSocket auth tests
+cargo test -p hc-api           # API crate tests
 cargo test -p homecore --test integration_test   # full-stack integration test
-cargo test -p hc-core repeat_until               # specific test by name
+cargo test -p hc-core repeat_until               # tests whose names contain this
 cargo test --workspace -- --nocapture            # show println! output
 
 # Watch for changes (install once: cargo install cargo-watch)
@@ -185,83 +247,73 @@ cargo watch -x "test -p hc-api"
 cd core
 cargo test --all-features            # the whole workspace, unit + integration
 cargo test -p hc-core                # one crate
-cargo test --test integration_test   # one integration binary
+cargo test -p homecore --test integration_test   # one integration binary
 ```
 
-Roughly 450 test functions across core at the time of writing, so a
-specific number here would be wrong within a week — `cargo test` is the
-count that matters. What the layers cover:
+There are several hundred test functions in core's crates and server
+alone, and well over a thousand once the plugins and SDK are counted. Any
+number written here would go stale quickly, so treat `cargo test` as the
+count. What the layers cover:
 
 | Layer | What its tests are for |
 |---|---|
 | `hc-auth` | Password hashing, JWT issue/validate/expire/tamper, role→scope mapping, refresh rotation and reuse detection |
-| `hc-types` | The rule vocabulary, derived from the enums, so a client's mirror can be checked against the real thing |
+| `hc-types` | The rule vocabulary, derived from the enums and snapshotted in `docs/rule-vocabulary.json`, so a client's mirror can be checked against the real thing |
 | `hc-core` | Trigger matching, condition evaluation, the action executor (Delay, RepeatUntil, Parallel), the scheduler |
 | `hc-state` | Device registry round-trips, history queries |
-| `hc-api` | Scope enforcement per route, WebSocket auth, session invalidation, atomic rule import, and the OpenAPI-vs-router check |
-| `homecore` (integration) | The full stack: virtual device → MQTT → rule fires → command back |
+| `hc-api` | Scope guards, handler helpers |
+| `homecore/tests/` | The full stack: MQTT → state bridge → rule fires; scope enforcement, API keys and sessions; atomic rule import; plugin-runtime enrollment; streaming; and the OpenAPI-vs-router check |
 
-Plugins and SDKs carry their own suites; `hc-captest` exists specifically
-to assert the capability spec end to end against a running core.
+Plugins and SDKs carry their own suites. `hc-captest` exists to assert
+the capability spec end to end against a running core.
 
 ## Web UI development
 
-The web UI is [hc-web](https://github.com/homeCore-io/hc-web) — Flutter,
-its own repo, built and served separately from core. You need the Flutter
-SDK, not cargo.
-
-The app calls `/api/v1` as a **relative** path on purpose (one build
-artifact runs anywhere, with no build-time configuration), and core sends
-no CORS headers at all — so a browser cannot call core cross-origin.
-Something has to make the API same-origin with the app. In production
-that is the nginx inside hc-web's container; in development it is a
-60-line proxy in the repo:
+The web app is
+[hc-web-svelte](https://github.com/homeCore-io/hc-web-svelte), in its own
+repo at `clients/hc-web-svelte`. It needs Node.js, not cargo.
 
 ```bash
-# Terminal 1 — proxy: serves the app and forwards /api/v1 to a real core
-HOMECORE_URL=http://127.0.0.1:8080 node tool/dev.mjs   # -> http://localhost:3001
-
-# Terminal 2 — Flutter's dev server, which does the incremental compile
-flutter run -d web-server --web-port 5001 --web-hostname 127.0.0.1
+cd clients/hc-web-svelte
+npm install
+cp .env.example .env    # HC_CORE_URL defaults to http://127.0.0.1:8080
+npm run dev             # http://localhost:5180
 ```
 
-Press `R` in terminal 2 to hot-restart: seconds, rather than a
-four-minute image rebuild. WebSockets are proxied too — without them the
-app loads and then shows stale state forever, because
-`/api/v1/events/stream` is how it learns the house changed.
+The dev server mounts the same pass-through to core that the production
+UI server uses (`server/proxy.js`), so `/api/v1` and the event stream
+reach core on the app's own origin, with sessions held in httpOnly
+cookies. Point `HC_CORE_URL` at a sandbox core, not the house.
 
-`scripts/build.sh` produces the production bundle
-(`flutter build web --release` into `build/web`), which the repo's
-Dockerfile wraps in the nginx image.
+Before pushing, run the same checks CI does (hc-scripts' `node-ci.yml`):
 
-### The retired Leptos client
+```bash
+npm run typecheck
+npm run lint
+npm run format:check
+npm test
+npm run build && npm run budget
+```
+
+The repo's README covers the production server and the container image.
+
+### The retired clients
 
 `[web_admin]` in `homecore.toml` still exists and still serves a
-directory of static files from core's root path. It was built for the
-Leptos/WASM admin that core used to bake in; that client is retired, the
-setting defaults to off, and the standard deployment leaves it off.
+directory of static files from core's root path through the
+`hc-web-admin` crate. It was built for the Leptos/WASM admin that core
+used to bake in. That client is retired, the setting defaults to off, and
+the standard deployment leaves it off.
 
-`run-dev.sh --webui` still builds and `trunk serve`s that retired client.
-It is not the flag you want for UI work — use the two terminals above.
-
-## Isolated dev environment
-
-Use a throwaway directory to keep state separate from your main installation:
-
-```bash
-HOMECORE_HOME=/tmp/hc-dev cargo run -p homecore
-# or
-cargo run -p homecore -- --home /tmp/hc-dev
-```
-
-Reset it cleanly:
-
-```bash
-rm -rf /tmp/hc-dev/data/
-HOMECORE_HOME=/tmp/hc-dev cargo run -p homecore
-```
+The Flutter app (`clients/hc-web-flutter`) is retired as well. Some
+workspace tooling still refers to it: `just hc-web-dev`,
+`just clean-flutter` and `run-dev.sh --webui`. None of these is needed for
+current UI work.
 
 ## Debugging with RUST_LOG
+
+`RUST_LOG` adds to the `[logging]` level and per-target settings in
+`homecore.toml` and wins on conflict:
 
 ```bash
 # Rule engine internals
@@ -284,7 +336,8 @@ RUST_LOG=info,hc_core=debug,hc_mqtt_client=debug,hc_broker=warn cargo run -p hom
 
 ### "cannot borrow `self` as mutable because it is also borrowed as immutable"
 
-Usually means you're holding a reference across an async await point. The fix is to clone the value before the await:
+This usually means a reference is held across an `.await`. Clone the
+value before the await:
 
 ```rust
 // ❌ fails
@@ -298,11 +351,14 @@ self.state.update().await?;
 
 ### "future cannot be sent between threads safely" / `Send` bound
 
-An `async fn` that captures a non-`Send` type (e.g. `Rc`, `RefCell`) passed to `tokio::spawn`. Either use `Arc<Mutex<>>` instead, or restructure so the non-Send value is dropped before the first `await`.
+An `async fn` passed to `tokio::spawn` captures a non-`Send` type (such
+as `Rc` or `RefCell`). Use `Arc<Mutex<>>` instead, or restructure so the
+non-`Send` value is dropped before the first `await`.
 
 ### "the trait bound is not satisfied for `Box<dyn Future>`"
 
-Recursive async functions need `Box::pin`:
+Recursive async functions need `Box::pin`. The executor's
+`run_single_action` is written this way:
 
 ```rust
 fn run_action(action: Action) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> {
@@ -322,7 +378,9 @@ fn run_action(action: Action) -> Pin<Box<dyn Future<Output = Result<()>> + Send>
 
 ### Deadlock in `RwLock`
 
-Never hold a write lock across an `await`. Take the data you need, drop the lock, then do async work:
+Do not hold a write lock across an `await`. If anything awaited needs
+the same lock, the task waits on itself. Take what you need, drop the
+lock, then do the async work:
 
 ```rust
 // ❌ deadlock
@@ -340,34 +398,93 @@ persist_to_db(&new_rule).await?;
 
 ## Adding a new REST endpoint
 
-1. Add handler function in `crates/hc-api/src/handlers.rs` (or a new file for new resource types)
-2. Add route in `crates/hc-api/src/lib.rs` `build_router()`
-3. Add scope extractor parameter to the handler signature
-4. Add `utoipa` `#[utoipa::path(...)]` attribute for OpenAPI generation
-5. Register in `openapi.rs` if using the OpenAPI macro router
-6. Write a test in `hc-api` module tests
+The short version (the full checklist is in
+[Adding Features](./adding-features.md#adding-a-new-rest-endpoint)):
+
+1. Write the handler in `crates/hc-api/src/handlers.rs`, or in a file of
+   its own for a new resource type.
+2. Register the route in `router()` in `crates/hc-api/src/lib.rs`, in
+   `public` if it needs no auth and `protected` otherwise.
+3. Guard it with a scope extractor from `crates/hc-api/src/auth_middleware.rs`.
+4. Document it in `core/docs/openapi.yaml`.
+   `homecore/tests/openapi_covers_router_test.rs` fails if the spec and
+   the router disagree.
+5. Run `cargo test -p homecore --test openapi_covers_router_test`.
 
 ## Adding a new action type
 
-1. Add the variant to `Action` enum in `crates/hc-types/src/rule.rs`
-2. Add serde deserialization (usually automatic with `#[serde(tag = "type", rename_all = "snake_case")]`)
-3. Add match arm in `executor.rs` `run_single_action()`
-4. Write unit tests in `hc-core` module tests
-5. Add to the action type reference in `docs/devNotes.md`
+1. Add the variant to the `Action` enum in `crates/hc-types/src/rule.rs`.
+2. Add its match arm to `run_single_action()` in
+   `crates/hc-core/src/executor.rs`.
+3. Write unit tests in `executor.rs`; the `RepeatUntil` and `Delay` tests
+   are good templates.
+4. Regenerate the rule vocabulary snapshot:
+   `UPDATE_VOCABULARY=1 cargo test -p hc-types --features schema`.
+5. Add it to the action reference in `docs/devNotes.md` and to this
+   site's [Actions](../rules/actions.md) page.
 
 ## Integration test
-
-The integration test starts a full HomeCore instance on a random port:
 
 ```bash
 cargo test -p homecore --test integration_test
 ```
 
-It:
-1. Starts HomeCore with an in-memory config (temp files under `/tmp/`)
-2. Connects the virtual device plugin
-3. Creates a rule via the REST API
-4. Publishes a state change via MQTT
-5. Asserts the rule fired and the expected command was published
+`homecore/tests/integration_test.rs` builds a small homeCore in-process:
 
-To add a new integration test scenario, add a test function in `tests/integration_test.rs`.
+1. Starts the embedded broker on a free port.
+2. Opens a state store in temp files (`/tmp/hc-test-<port>.redb` and
+   `.db`) and writes a rule into it directly.
+3. Starts the MQTT client and `Core` (state bridge and rule engine),
+   subscribing to the event bus before anything is published.
+4. Connects an MQTT client named `virtual-device` and publishes
+   `{"on": true}` to `homecore/devices/test_light/state`.
+5. Asserts that `DeviceStateChanged` and `RuleFired` both arrive on the
+   bus.
+
+The same file also checks that a rule's second trigger fires it and that
+a plugin's capability manifest reaches the bus. To add a scenario, add a
+`#[tokio::test]` function there, or a new file in `homecore/tests/`.
+
+## Branches, CI and releases
+
+Work lands on `develop`, and releases are cut from `main`.
+CI (`core/.github/workflows/ci.yml`) runs on pushes to both branches and
+on pull requests into either. Besides the Rust checks, it builds every
+plugin's `ui/` that has a `package.json`. When `develop` goes red, the
+shared workflow opens a tracking issue in the repo and closes it when CI
+recovers. A weekly `canary.yml` runs the same checks against the latest
+stable Rust. It gates nothing; a red canary is a preview of what the next
+toolchain bump will demand.
+
+The reusable workflows in hc-scripts are referenced as `@main` by every
+repo, so a change to them is live for the whole org once it merges to
+hc-scripts' `main`.
+
+Day-to-day pushes to `develop` need no ceremony. Cutting a release does:
+
+- **Tag only after CI on the release commit is green.** Push `develop`,
+  merge to `main`, push, watch the run, then tag. A local `just check` is
+  not CI (see [above](#pre-pr-check-just-check)). To prove the whole
+  pipeline before choosing a version, run
+  `gh workflow run release.yml --ref develop` (add `-f plugin=hc-<name>`
+  for a plugin): it builds and archives without creating a Release.
+- The tag names the component. `v<version>` releases the server
+  (tarball, checksum, and the `ghcr.io` `hc-core` image).
+  `hc-<name>-v<version>` releases one plugin as a signed registry
+  artifact. A core release that changes plugins tags them on the same
+  commit.
+- A server release bumps two files: `homecore/Cargo.toml` and
+  `info.version` in `docs/openapi.yaml`, then refresh `Cargo.lock`. A
+  test fails if they disagree, so run the checks after the bump, not
+  before.
+- A plugin release bumps `version` in the plugin's `Cargo.toml`.
+- **Every release gets an entry in
+  [Release Notes](../release-notes.md)**, written as part of cutting it,
+  for the people running a house: what they can now do, what they must
+  change on upgrade, and what is deliberately unchanged. A round with
+  nothing an operator would notice still gets an entry saying so.
+
+If a tag's artifacts are already published and CI then fails, fix
+forward with a new version rather than moving the tag.
+`hc-scripts/README.md` and the workspace `AGENTS.md` have the history
+behind these rules.
