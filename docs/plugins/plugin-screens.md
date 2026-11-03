@@ -28,8 +28,20 @@ generic ones.
 | `plugin.page` | the plugin's page in Settings › Plugins, in place of the generic list of actions | `host` |
 | `device.panel` | a device's panel, in place of the generic controls | `host`, `deviceId` |
 | `rule.step` | the automation editor's form for a step that sets one of its devices | `host`, `deviceIds`, `value` |
-| `device.card` | its devices' card on Home, the rooms and favourites | `host`, `deviceId`, `form` |
+| `device.card` | its devices' card on Home, the rooms and favorites | `host`, `deviceId`, `form` |
 | `dashboard.card` | a card of its own, added from Edit → "Add a card" | `host`, `form`, `config` |
+| `look.drawing` | how a family of things is drawn, in a [look](../web-ui/looks.md) that chooses it | `host`, `thing`, `deviceId` |
+| `look.piece` | a piece of a page's frame: a room's header, a display's rest view | `host`, `room` or `things` |
+| `look.symbol` | symbols a person can give any device | `host`, `name` |
+
+The three `look.*` slots draw **any device in the house**, not only the
+plugin's, once a look chooses them, and each needs a `label`, its name in the
+look editor. They need homeCore v0.1.98 and app v0.1.46.
+
+homeCore passes every slot to the app as the plugin wrote it, fields it
+doesn't know included, and checks only that its `slot` is a dotted lowercase
+name and its elements are valid custom element names. The app decides what a
+slot means and ignores what it doesn't know.
 
 ## The folder
 
@@ -129,9 +141,10 @@ checkout of that repository.
 | `host.ui` | the app's `confirm(...)`, `openDevice(id)`, `navigate(href)` |
 | `host.me` | who is using it: `name`, `role`, `isAdmin`, `can(scope)` |
 | `host.theme` | `sheet` (the app's parts as a stylesheet) and `dark()` |
+| `host.rive` | Rive's runtime, lent by the app: `play(canvas, options)` and `motion()` (see [Rive from code](#rive-from-code)). Absent before app 0.1.47. |
 
 `host` also carries `api` (always `1`), `pluginId` and `appVersion`. The
-optional members (`alerts`, `units`, `fileUrl`) arrived after the first
+optional members (`alerts`, `units`, `fileUrl`, `rive`) arrived after the first
 release of the interface, so check for them before use and fall back when
 they are missing.
 
@@ -151,7 +164,7 @@ Two habits keep a screen consistent with the rest of the app:
 
 ## The app's look
 
-The app's colours and type are CSS custom properties, which reach into a
+The app's colors and type are CSS custom properties, which reach into a
 shadow root, so your screens follow light, dark and the household's theme.
 Adopt `host.theme.sheet` into your shadow root for the app's element defaults
 and its parts as classes:
@@ -215,6 +228,67 @@ in it is the plugin's own. The element's class may offer two statics:
 - `describe(host, deviceIds, value)`: the step in words, with `{devices}`
   where the devices' names go ("apply “Halloween 1” on `{devices}`"). It is
   used in every automation sentence.
+
+**`look.drawing`.** `draws` names the families it can draw: `lights`,
+`switches`, `scenes`, `doors`, `readings`, `watching`, `media`, `climate`
+(thermostats). It is given `thing`, the thing's values in plain names
+(`name`, `on`, `level`, `color`, `state`, `room`, `temperature` in °C,
+`humidity`, …), set afresh as the thing changes, and `deviceId`. It never
+commands a device, since `host` is scoped to the plugin's own: it asks for
+what a tap does with an `act` event, and the app does it.
+
+```js
+this.dispatchEvent(new CustomEvent('act', { detail: { do: 'switch' } })); // or 'run', 'open'
+```
+
+**`look.piece`.** `draws` is `header` (a room's header, given `room`:
+`{id, name, things}`) or `rest` (a display's rest view, over the whole
+screen, given `things`; it may ask to `wake` with a `wake` event).
+
+**`look.symbol`.** `symbols` names them (lowercase, digits, hyphens). The
+element is created once per symbol shown and given `name`; draw it at `1em`
+in `currentColor`. They are offered in every card's Symbol choice.
+
+If a look's drawing, piece or symbol doesn't load, the app draws the thing as
+Classic draws it.
+
+### A drawing made in Rive
+
+A `look.drawing` can be a Rive file instead of code: name a `.riv` in the
+UI's folder with `rive`, and the version of the values it expects with
+`values`. The element name is then only its id.
+
+```json
+{ "slot": "look.drawing", "element": "hc-yours-dial", "label": "Dial", "draws": ["climate"],
+  "rive": "dial.riv", "values": 1 }
+```
+
+The app fills the file's view model by property name and runs it as the
+look's motion allows. The names for each family, and how to make the file,
+are in [Making a UI extension](../web-ui/making-extensions.md#rive-drawings):
+the same file works in a plugin and in an extension. A plugin built with an
+SDK older than homeCore v0.1.98 drops the `rive` field; rebuild it.
+
+### Rive from code
+
+Code can play a Rive file too, with the app's runtime:
+
+```js
+const player = await host.rive.play(canvas, {
+  src: new URL('./dial.riv', import.meta.url).href, // a file in your UI folder
+  stateMachine: 'Main',
+  values: { heating: true, temperature: 21.5 },
+});
+player.set({ heating: false }); // plays the change as the look's motion allows
+player.destroy();               // when your element is removed
+```
+
+`motion` defaults to the look's (`host.rive.motion()`): still settles each
+state at once, gentle plays a change and stops, lively keeps the loops
+running, and someone who asks for less motion always gets still. Nothing is
+drawn off screen. The runtime loads the first time it is used. A file with
+scripts must be signed with Rive's `--publish`; one made of markup alone
+needs nothing.
 
 ## Name your numbers instead
 

@@ -25,6 +25,191 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-gauge v0.1.0, 2026-11-03
+
+**Theme:** readings drawn as a gauge, and the first UI extension made of code.
+
+A UI extension on its own, from `hc-extensions`. It needs app v0.1.47.
+
+### What you'll notice
+
+- **A gauge for readings.** Once installed from the Catalog and chosen in a
+  look's Drawings (Readings › Gauge), a temperature or humidity reading is
+  drawn on a dial, in your units. Tapping it opens the device.
+
+### For people who make extensions
+
+- It's the example of an extension made of code: one module, `gauge.js`,
+  defining a custom element, with no build step. See
+  [Making a UI extension](/docs/web-ui/making-extensions).
+
+---
+
+## App v0.1.47, 2026-11-03
+
+**Theme:** extensions made of code, and Rive from code.
+
+Needs nothing new from homeCore; v0.1.98 is still needed for plugins'
+drawings.
+
+### What you'll notice
+
+- **UI extensions can be code.** Besides Rive animations, an extension can
+  bring a web component that draws any kind of thing: lights, switches,
+  scenes, doors, readings, sensors, players or thermostats. The first is
+  hc-gauge. When you add an extension from a file, the Catalog says which of
+  its drawings are code, and warns that code runs in the browser of everyone
+  who sees a look that uses it. As before, only people who may install
+  plugins can install one.
+- **Temperatures in drawings are in °C, as documented.** A drawing made in
+  the look editor that reads `temperature` was given the device's raw
+  reading, so a sensor that reports in °F gave a °F number and every other
+  sensor a °C one. It is now always °C. If you made a drawing that shows
+  `temperature` and your sensors report in °F, show `state` instead, which
+  is in your units.
+- **American spelling where it was still British:** Customizing, Favorites,
+  and "Add to favorites" on a card.
+
+### For plugin and extension authors
+
+- `host.rive.play(canvas, options)` plays a Rive file with the app's
+  runtime, following the look's motion. Plugins' screens and extensions'
+  code both have it. See
+  [Plugin Screens](/docs/plugins/plugin-screens#rive-from-code).
+- An extension's code is given its own `host`: who is looking, their
+  units, the look, Rive and `fileUrl(path)` for its own files, and nothing
+  that reaches a device. Its files are served by relative path, so a module
+  can import its own styles, pictures and `.riv` files.
+
+### Release matrix
+
+**Tagged:** app `v0.1.47`, with `hc-gauge-v0.1.0`. No core or plugin release.
+
+### Upgrade notes
+
+- Nothing to change, apart from the note on temperatures above if you made
+  drawings in the look editor.
+
+---
+
+## App v0.1.46, 2026-11-03
+
+**Theme:** looks. How the house is drawn becomes something you choose,
+change and make.
+
+Needs homeCore v0.1.98 for plugins' drawings; everything else works with
+v0.1.97.
+
+### What you'll notice
+
+- **Two looks to choose from.** Settings › Look picks the house's look,
+  and each person can pick their own under Me. *Classic* is the app as it
+  was. *Lit* draws each room as a lit room:
+  - lights you drag across to dim, and switches as rockers;
+  - scenes as swatches of their colors;
+  - doors, garage doors and locks drawn as what they are;
+  - readings with their day, and quiet sensors in a Watching list.
+
+  A house that chooses nothing stays Classic.
+- **Each look keeps its own arrangement.** Moving a card in Lit doesn't
+  move it in Classic.
+- **Arranging by dragging,** in every look: cards and sections, from the
+  Add sheet, and by keyboard. A card can be resized by dragging its corner.
+- **Make your own look** in the look editor, starting from Classic or Lit.
+  - *Tabs:* Drawings, Feel (spacing, corners, type size, motion), Colors,
+    Frame, Rooms, Home, Displays, and where it reaches.
+  - *Previews:* every choice is shown with the house's own things.
+  - *What changed:* lists how it differs from the look it came from.
+  - *Sharing:* a look can be exported to a file and imported again.
+- **Drawings made in the editor,** from parts and expressions
+  (`level + "%"`, `round(temperature, 1) + "°"`), by anyone who may make a
+  look.
+  Admins can also give a drawing its own HTML, CSS and JavaScript, which
+  runs walled off from the page.
+- **New ways to draw things:**
+  - lights, switches and readings as chips or rows;
+  - a reading with its usual range for the week;
+  - a room's batteries in one list, with all of them under Alerts ›
+    Batteries;
+  - a player's artwork while it plays, with a remote pad for TVs and
+    players;
+  - a chart comparing several sensors;
+  - the time above the weather;
+  - a section joined into one card.
+- **Lit opens a room over Home** instead of leaving the page. Back closes
+  it. This is a Frame choice, off in Classic.
+- **Thermostats can be animated.** Drawings › Thermostats offers the dial,
+  or an animated thermostat once one is installed (below).
+- **The Catalog.** Settings › Plugins › Catalog replaces "Add a plugin".
+  It has a tab for Plugins and one for UI extensions, each grouped by
+  category (Lighting, Climate, Media, Hubs, Weather). It isn't a shop:
+  everything in it is free.
+- **UI extensions:** drawings and cards made outside the app, which looks
+  can choose.
+  - *Installing:* from the Catalog, or by an admin from a file.
+  - *Managing:* Settings › Extensions lists what's installed and where it
+    came from, with Remove.
+  - *Removing:* things that used its drawings are drawn as Classic draws
+    them again.
+  - *The first one:* hc-thermostat, an animated thermostat drawn with Rive.
+
+### For plugin authors
+
+- A plugin can offer drawings, frame pieces and symbols to the looks:
+  slots `look.drawing`, `look.piece` and `look.symbol`, documented in
+  the plugin development guide. These need homeCore v0.1.98.
+- A `look.drawing` can be a Rive file (`"rive": "dial.riv"`) instead of
+  code. The app fills its view model by name and runs it as the look's
+  motion allows.
+
+### Release matrix
+
+**Tagged:** app `v0.1.46`. Released with homeCore `v0.1.98`.
+
+### Upgrade notes
+
+- Nothing to change. The UI server installs extensions into
+  `extensions/` in its data directory, so keep that on its volume as
+  before. To use the Catalog it needs to reach `homecore.io` and GitHub's
+  release downloads; adding an extension from a file works offline.
+- Home's JavaScript budget is now 200 KB, from 150 KB, to make room for the
+  looks. Rive's runtime loads only where an animated drawing is on screen.
+
+---
+
+## v0.1.98, 2026-11-03
+
+**Theme:** plugins can draw for the looks.
+
+### What you'll notice
+
+- Nothing on its own. With app v0.1.46, plugins can offer drawings, frame
+  pieces and symbols that the looks can choose.
+
+### For plugin authors
+
+- New UI slots: `look.drawing`, `look.piece` and `look.symbol`.
+- homeCore now passes a plugin's UI slots on to the app as written,
+  fields it doesn't know included. It checks only what keeps a UI safe to
+  load: a dotted slot name, custom element names, and a module inside its
+  bundle. The app decides what a slot means and ignores what it doesn't
+  know. A plugin built with an older SDK loses fields the SDK doesn't know;
+  rebuild to pass them on.
+- A plugin's manifest can name its Catalog `category` under
+  `[package.metadata.homecore]`, and releases send it to the registry.
+  Every plugin in the registry already has one.
+
+### Release matrix
+
+**Tagged:** `v0.1.98` (core). No plugin release: the plugins' names and
+categories in the registry were updated without new versions.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## hc-thermostat v0.1.0, 2026-11-03
 
 **Theme:** the first UI extension, an animated thermostat.

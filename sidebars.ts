@@ -61,6 +61,9 @@ const sidebars = {
       label: 'Web UI',
       items: [
         'web-ui/overview',
+        'web-ui/looks',
+        'web-ui/extensions',
+        'web-ui/making-extensions',
       ],
     },
     {
