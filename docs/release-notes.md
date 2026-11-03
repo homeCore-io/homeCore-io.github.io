@@ -25,6 +25,72 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.48, 2026-11-03
+
+**Theme:** see an extension before installing it, and choose how its drawing
+behaves.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **Previews in the Catalog.** Choosing a UI extension shows how it looks,
+  a picture or a short looping video, before you install it. The app's
+  server fetches it and shows it only if it matches the Catalog's signed
+  list. Settings › Extensions shows a small one beside each installed
+  extension. Someone who asks for less motion sees a video paused on its
+  first frame.
+- **Options for drawings.** A plugin's or an extension's drawing can offer
+  on-or-off choices, shown under it in the look editor once a look chooses
+  it, and the look keeps them. The animated thermostat's first is **Pulse
+  while it works**. What changed lists an option you change.
+
+### For plugin and extension authors
+
+- An element, or a plugin's `look.drawing`, may declare `options`
+  (`{ "id": "pulse", "label": "Pulse while it works", "type": "boolean",
+  "default": true }`). A Rive file gets each as a view model boolean of the
+  same name; code gets them as `options`.
+- An extension's manifest may name a `preview`; a release uploads it and
+  the registry keeps its checksum.
+- Extension files are served with byte ranges, so a video in one plays in
+  Safari.
+
+### Release matrix
+
+**Tagged:** app `v0.1.48`, with `hc-thermostat-v0.1.1` and
+`hc-gauge-v0.1.1`. No core or plugin release.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
+## hc-thermostat v0.1.1, 2026-11-03
+
+**Theme:** heat that looks like heat.
+
+### What you'll notice
+
+- **Heat shimmers up** from the gap at the foot of the ring while it heats,
+  instead of round embers that looked like bubbles, and it stays clear of
+  the temperature and target.
+- **No stray ember.** One on the far left rose and fell back each loop; every
+  wisp now only rises.
+- **Pulsing is an option.** The dial's breathing while it works can be
+  turned off in the look editor (Pulse while it works, app v0.1.48). With
+  an older app it stays on, as before.
+- **A preview** in the Catalog: the thermostat heating, then cooling.
+
+---
+
+## hc-gauge v0.1.1, 2026-11-03
+
+A preview in the Catalog. The gauge itself is unchanged.
+
+---
+
 ## hc-gauge v0.1.0, 2026-11-03
 
 **Theme:** readings drawn as a gauge, and the first UI extension made of code.
