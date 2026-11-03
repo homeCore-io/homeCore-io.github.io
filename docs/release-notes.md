@@ -25,6 +25,124 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.46, 2026-11-03
+
+**Theme:** looks. How the house is drawn becomes something you choose,
+change and make.
+
+Needs homeCore v0.1.98 for plugins' drawings; everything else works with
+v0.1.97.
+
+### What you'll notice
+
+- **Two looks to choose from.** Settings › Look picks the house's look,
+  and each person can pick their own under Me. *Classic* is the app as it
+  was. *Lit* draws each room as a lit room:
+  - lights you drag across to dim, and switches as rockers;
+  - scenes as swatches of their colors;
+  - doors, garage doors and locks drawn as what they are;
+  - readings with their day, and quiet sensors in a Watching list.
+
+  A house that chooses nothing stays Classic.
+- **Each look keeps its own arrangement.** Moving a card in Lit doesn't
+  move it in Classic.
+- **Arranging by dragging,** in every look: cards and sections, from the
+  Add sheet, and by keyboard. A card can be resized by dragging its corner.
+- **Make your own look** in the look editor, starting from Classic or Lit.
+  - *Tabs:* Drawings, Feel (spacing, corners, type size, motion), Colors,
+    Frame, Rooms, Home, Displays, and where it reaches.
+  - *Previews:* every choice is shown with the house's own things.
+  - *What changed:* lists how it differs from the look it came from.
+  - *Sharing:* a look can be exported to a file and imported again.
+- **Drawings made in the editor,** from parts and expressions
+  (`level + "%"`, `round(temperature, 1) + "°"`), by anyone who may make a
+  look.
+  Admins can also give a drawing its own HTML, CSS and JavaScript, which
+  runs walled off from the page.
+- **New ways to draw things:**
+  - lights, switches and readings as chips or rows;
+  - a reading with its usual range for the week;
+  - a room's batteries in one list, with all of them under Alerts ›
+    Batteries;
+  - a player's artwork while it plays, with a remote pad for TVs and
+    players;
+  - a chart comparing several sensors;
+  - the time above the weather;
+  - a section joined into one card.
+- **Lit opens a room over Home** instead of leaving the page. Back closes
+  it. This is a Frame choice, off in Classic.
+- **Thermostats can be animated.** Drawings › Thermostats offers the dial,
+  or an animated thermostat once one is installed (below).
+- **The Catalog.** Settings › Plugins › Catalog replaces "Add a plugin".
+  It has a tab for Plugins and one for UI extensions, each grouped by
+  category (Lighting, Climate, Media, Hubs, Weather). It isn't a shop:
+  everything in it is free.
+- **UI extensions:** drawings and cards made outside the app, which looks
+  can choose.
+  - *Installing:* from the Catalog, or by an admin from a file.
+  - *Managing:* Settings › Extensions lists what's installed and where it
+    came from, with Remove.
+  - *Removing:* things that used its drawings are drawn as Classic draws
+    them again.
+  - *The first one:* hc-thermostat, an animated thermostat drawn with Rive.
+
+### For plugin authors
+
+- A plugin can offer drawings, frame pieces and symbols to the looks:
+  slots `look.drawing`, `look.piece` and `look.symbol`, documented in
+  the plugin development guide. These need homeCore v0.1.98.
+- A `look.drawing` can be a Rive file (`"rive": "dial.riv"`) instead of
+  code. The app fills its view model by name and runs it as the look's
+  motion allows.
+
+### Release matrix
+
+**Tagged:** app `v0.1.46`. Released with homeCore `v0.1.98`.
+
+### Upgrade notes
+
+- Nothing to change. The UI server installs extensions into
+  `extensions/` in its data directory, so keep that on its volume as
+  before. To use the Catalog it needs to reach `homecore.io` and GitHub's
+  release downloads; adding an extension from a file works offline.
+- Home's JavaScript budget is now 200 KB, from 150 KB, to make room for the
+  looks. Rive's runtime loads only where an animated drawing is on screen.
+
+---
+
+## v0.1.98, 2026-11-03
+
+**Theme:** plugins can draw for the looks.
+
+### What you'll notice
+
+- Nothing on its own. With app v0.1.46, plugins can offer drawings, frame
+  pieces and symbols that the looks can choose.
+
+### For plugin authors
+
+- New UI slots: `look.drawing`, `look.piece` and `look.symbol`.
+- homeCore now passes a plugin's UI slots on to the app as written,
+  fields it doesn't know included. It checks only what keeps a UI safe to
+  load: a dotted slot name, custom element names, and a module inside its
+  bundle. The app decides what a slot means and ignores what it doesn't
+  know. A plugin built with an older SDK loses fields the SDK doesn't know;
+  rebuild to pass them on.
+- A plugin's manifest can name its Catalog `category` under
+  `[package.metadata.homecore]`, and releases send it to the registry.
+  Every plugin in the registry already has one.
+
+### Release matrix
+
+**Tagged:** `v0.1.98` (core). No plugin release: the plugins' names and
+categories in the registry were updated without new versions.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## hc-thermostat v0.1.0, 2026-11-03
 
 **Theme:** the first UI extension, an animated thermostat.
