@@ -25,6 +25,73 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-gauge v0.1.0, 2026-11-03
+
+**Theme:** readings drawn as a gauge, and the first UI extension made of code.
+
+A UI extension on its own, from `hc-extensions`. It needs app v0.1.47.
+
+### What you'll notice
+
+- **A gauge for readings.** Once installed from the Catalog and chosen in a
+  look's Drawings (Readings › Gauge), a temperature or humidity reading is
+  drawn on a dial, in your units. Tapping it opens the device.
+
+### For people who make extensions
+
+- It's the example of an extension made of code: one module, `gauge.js`,
+  defining a custom element, with no build step. See
+  [Making a UI extension](/docs/web-ui/making-extensions).
+
+---
+
+## App v0.1.47, 2026-11-03
+
+**Theme:** extensions made of code, and Rive from code.
+
+Needs nothing new from homeCore; v0.1.98 is still needed for plugins'
+drawings.
+
+### What you'll notice
+
+- **UI extensions can be code.** Besides Rive animations, an extension can
+  bring a web component that draws any kind of thing: lights, switches,
+  scenes, doors, readings, sensors, players or thermostats. The first is
+  hc-gauge. When you add an extension from a file, the Catalog says which of
+  its drawings are code, and warns that code runs in the browser of everyone
+  who sees a look that uses it. As before, only people who may install
+  plugins can install one.
+- **Temperatures in drawings are in °C, as documented.** A drawing made in
+  the look editor that reads `temperature` was given the device's raw
+  reading, so a sensor that reports in °F gave a °F number and every other
+  sensor a °C one. It is now always °C. If you made a drawing that shows
+  `temperature` and your sensors report in °F, show `state` instead, which
+  is in your units.
+- **American spelling where it was still British:** Customizing, Favorites,
+  and "Add to favorites" on a card.
+
+### For plugin and extension authors
+
+- `host.rive.play(canvas, options)` plays a Rive file with the app's
+  runtime, following the look's motion. Plugins' screens and extensions'
+  code both have it. See
+  [Plugin Screens](/docs/plugins/plugin-screens#rive-from-code).
+- An extension's code is given its own `host`: who is looking, their
+  units, the look, Rive and `fileUrl(path)` for its own files, and nothing
+  that reaches a device. Its files are served by relative path, so a module
+  can import its own styles, pictures and `.riv` files.
+
+### Release matrix
+
+**Tagged:** app `v0.1.47`, with `hc-gauge-v0.1.0`. No core or plugin release.
+
+### Upgrade notes
+
+- Nothing to change, apart from the note on temperatures above if you made
+  drawings in the look editor.
+
+---
+
 ## App v0.1.46, 2026-11-03
 
 **Theme:** looks. How the house is drawn becomes something you choose,
