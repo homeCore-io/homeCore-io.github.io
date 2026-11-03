@@ -44,6 +44,8 @@ Needs nothing new from homeCore.
   on-or-off choices, shown under it in the look editor once a look chooses
   it, and the look keeps them. The animated thermostat's first is **Pulse
   while it works**. What changed lists an option you change.
+- **The animated thermostat is drawn once.** It was rebuilt, reloading its
+  file, each time its card recomputed; now it stays and is told what changed.
 
 ### For plugin and extension authors
 
