@@ -25,6 +25,37 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.49, 2026-11-03
+
+**Theme:** the Catalog only offers what this app can install.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **Extensions that need a newer app say so.** A version made for a newer
+  app isn't offered. When none of an extension's versions fit, the Catalog
+  says which app it needs instead of Install, and an older app won't install
+  it from a file either. hc-gauge, which is code, needs v0.1.47.
+- **A preview says Loading…** while the app fetches and checks it, instead of
+  an empty box.
+
+### For extension authors
+
+- `min_app` in `extension.json` is the oldest app that can use it; a
+  release sends it to the registry.
+
+### Release matrix
+
+**Tagged:** app `v0.1.49`. No core, plugin or extension release; hc-gauge's
+entries in the registry now say it needs app v0.1.47.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## App v0.1.48, 2026-11-03
 
 **Theme:** see an extension before installing it, and choose how its drawing
