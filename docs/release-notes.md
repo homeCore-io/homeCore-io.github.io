@@ -25,6 +25,34 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-thermostat v0.1.0, 2026-11-03
+
+**Theme:** the first UI extension, an animated thermostat.
+
+A UI extension on its own, from the new `hc-extensions` repo. homeCore, the
+app and the plugins are unchanged. Installing it needs an app with the
+Catalog and looks, which hasn't been released yet.
+
+### What you'll notice
+
+- **A thermostat card drawn with Rive.** Once a look chooses it (Drawings ›
+  Thermostats › Animated), the card's dial becomes an animation: orange with
+  a warm glow while heating, blue with frost while cooling, gray when idle
+  and dimmed when off. A new target eases into place, and with the look's
+  motion set to lively, embers rise and frost falls while it works. The
+  card's − and +, modes and schedule are as before.
+- **It follows your units.** Readings and targets show as the card shows
+  them, in whole °F or half °C.
+
+### For people who make extensions
+
+- An extension is a folder with an `extension.json`; `pack.sh` packs it,
+  and a tag `<id>-v<version>` releases it to the registry's own signed
+  extensions index. The thermostat is made with Rive's CLI from markup, so
+  its file needs no signing.
+
+---
+
 ## App v0.1.45, 2026-11-02
 
 **Theme:** a new plugin opens where it needs you.
