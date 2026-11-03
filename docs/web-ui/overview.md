@@ -59,14 +59,18 @@ Worth knowing:
 
 On a phone, a bar along the bottom holds **Home · Scenes · Alerts · More** by default. Each person can choose their own bar on **Me**, including rooms and pages; **Pages** joins the default bar once a page exists. On a wider screen, a collapsible sidebar holds Home, Pages, Scenes and Alerts, with the rooms below them. **Search** (⌘K) finds places, devices and rules, and Settings has its own search over every setting.
 
+### Looks
+
+How the house is drawn is a [look](./looks.md): Classic, the app as it always was; Lit, which draws each room as a lit room; or one you make in the look editor. The house has one, and each person can choose their own on **Me**. Drawings can also come from plugins and from [UI extensions](./extensions.md), such as an animated thermostat.
+
 ### Home and rooms
 
 Home is generated from the house: your rooms and the devices in them, live. Visible controls act directly (tap a light's switch and it turns on), and tapping a card opens the device's details. Rooms are reached from Home, and each room page works the same way.
 
 Home can be arranged in two modes:
 
-- **Customise** changes the page for you alone ("Only you see these changes"). Long-press a card to star or hide it.
-- **Edit** changes the shared page for everyone, for people allowed to edit it.
+- **Edit › Just for me** changes the page for you alone. Long-press a card to star or hide it.
+- **Edit › For everyone** changes the shared page for everyone, for people allowed to edit it.
 
 In either mode you can move, hide and rename sections, add your own, add cards (a device, a scene, or cards such as Heading, Text, Worth knowing, Playing, Weather and Chart) and move cards between sections. To add something at a particular place, tap the **+** in the gap between two cards. "Goes here" marks the spot, and the Add sheet opens beside the page (under it on a phone). The sheet says which section and spot it adds to, and you can change either there. It stays open, and each thing you add goes after the last. Each device card has its own settings: size, main reading, what else it shows, what a tap does, and its symbol. Home can also show your rooms as boxes (room field, room tiles, or rooms in the sidebar) with chosen big numbers across the top, such as Inside, Outside and Lights on.
 
@@ -92,7 +96,7 @@ Settings has two groups.
 
 **House:** Devices · Rooms · Scenes · Modes · Helpers · Automations · Alerts · Displays · Asking first · Look
 
-**System:** Plugins · People & access · Configuration · Notifications · Data & backups · Logs · Events · Audit · System
+**System:** Plugins · Extensions · People & access · Configuration · Notifications · Data & backups · Logs · Events · Audit · System
 
 Some of these are worth calling out:
 
@@ -102,7 +106,9 @@ Some of these are worth calling out:
 | Automations | Rules written out in words, with when each last ran, groups by tag, dry runs and history. The editor builds a rule as sentences in three parts (When, Only if, Do) and covers every trigger, condition and action; its advanced mode edits the rule as JSON. |
 | Alerts | Time rules, such as a door left open at night |
 | Asking first | Which commands ask for confirmation before they go |
-| Plugins | Install from the [signed registry](../plugins/overview.md), start, stop, restart and update, edit each plugin's settings in a form the plugin describes, run its actions, set its log level and read its live log. Plugin runtimes are approved here too. |
+| Plugins | Install from the Catalog, the [signed registry](../plugins/overview.md), grouped by category, start, stop, restart and update, edit each plugin's settings in a form the plugin describes, run its actions, set its log level and read its live log. Plugin runtimes are approved here too. |
+| Extensions | The [UI extensions](./extensions.md) installed, where each came from, and Remove; new ones come from the Catalog or a file |
+| Look | The house's [look](./looks.md), and the look editor |
 | Configuration | `homecore.toml` as a form driven by core's config descriptor, with the raw TOML and a restart button |
 | Notifications | Notification channels, a test send, and the automations that use each |
 | People & access | Accounts, roles and API keys |
