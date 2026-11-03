@@ -39,6 +39,14 @@ each. `hc-thermostat` is a Rive drawing; `hc-gauge` is code.
 - `values` is the version of the values the app gives drawings, `1` today.
   An app that only knows an older version leaves the extension out.
 - `description` and `category` are what the Catalog shows and groups by.
+- `preview` is a picture or a short silent video of how it looks (`.png`,
+  `.jpg`, `.webp`, `.gif`, `.mp4` or `.webm`; square, 480 pixels, works
+  best). The Catalog shows it before anything is installed, and Settings ›
+  Extensions shows it beside what is. A video plays on a loop, muted, and
+  stays on its first frame for someone who asks for less motion. For a Rive
+  drawing, `hc-thermostat/preview.sh` renders one from the `.riv` itself, so
+  it is always the real thing; prefer `.mp4`, which keeps glows and gradients
+  smooth where animated `.webp` and `.gif` band.
 - Each element has an `id`, a `label` (its name in the look editor), the
   family it `draws`, and a `kind`:
   - `rive`: `file`, a `.riv`, with an optional `artboard` and
@@ -163,7 +171,8 @@ In hc-extensions, `./pack.sh <id>` packs an extension's folder into
 `dist/<id>-<version>.tar.zst`, leaving out hidden files and anything its
 `.packignore` lists (`hc-thermostat` leaves out its Rive project). It also
 gathers the licenses of embedded fonts. Pushing a tag `<id>-v<version>`
-releases it: the workflow packs it, attaches it to a GitHub Release, adds it
+releases it: the workflow packs it, attaches it and its preview to a GitHub
+Release, adds it
 to the registry's signed list of extensions, and checks that the Catalog
 offers it.
 

@@ -19,8 +19,11 @@ extensions made of code (below) need v0.1.47.
 ## Installing one
 
 **From the Catalog.** Settings › Plugins › **Catalog** has a tab for UI
-extensions, grouped by category. Choose one and its version, then
-**Install**. The app downloads it from its release, checks the Catalog's
+extensions, grouped by category. Choose one to see how it looks (a picture
+or a short video), pick its version, then **Install**. The app's server
+fetches the preview and checks it against the Catalog's signed list before
+showing it, so your browser never fetches it from elsewhere. Installing
+downloads the extension from its release, checks the Catalog's
 signature and the file's checksum, and only then unpacks it. Nothing in the
 Catalog costs anything.
 
