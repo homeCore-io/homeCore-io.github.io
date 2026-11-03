@@ -39,6 +39,9 @@ each. `hc-thermostat` is a Rive drawing; `hc-gauge` is code.
 - `values` is the version of the values the app gives drawings, `1` today.
   An app that only knows an older version leaves the extension out.
 - `description` and `category` are what the Catalog shows and groups by.
+- `min_app` is the oldest app that can use it (a code drawing needs
+  `0.1.47`). An older app's Catalog leaves it out and says which app it
+  needs, and won't install it from a file.
 - `preview` is a picture or a short silent video of how it looks (`.png`,
   `.jpg`, `.webp`, `.gif`, `.mp4` or `.webm`; square, 480 pixels, works
   best). The Catalog shows it before anything is installed, and Settings ›
