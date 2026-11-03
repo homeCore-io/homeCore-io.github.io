@@ -44,6 +44,15 @@ each. `hc-thermostat` is a Rive drawing; `hc-gauge` is code.
   - `rive`: `file`, a `.riv`, with an optional `artboard` and
     `stateMachine` (the file's defaults otherwise);
   - `code`: `module`, a `.js` file, and the custom `element` it defines.
+- An element may offer `options`: up to eight on-or-off choices, each with an
+  `id` (lowercase first), a `label` and a `default`, shown under the drawing
+  in the look editor once a look chooses it. The look keeps what was chosen.
+  A Rive file is given each as a view model **boolean** of the same name;
+  code is given them as `options` (`{ pulse: true }`).
+
+  ```json
+  "options": [{ "id": "pulse", "label": "Pulse while it works", "type": "boolean", "default": true }]
+  ```
 
 The families are `lights`, `switches`, `scenes`, `doors`, `readings`,
 `watching`, `media` and `climate` (thermostats). Code can draw any of them;
@@ -102,6 +111,7 @@ creates it and sets:
   `state` (in words, in the person's units), `temperature` (°C),
   `humidity`, `available`, `alarm`, `kind`.
 - For `climate`, also `values`: the table above.
+- `options`, the choices the look made for the options you offer.
 
 A drawing never commands anything, and its host has nothing that could. Ask
 for what a tap does with an `act` event, and the app does it:

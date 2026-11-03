@@ -266,7 +266,10 @@ UI's folder with `rive`, and the version of the values it expects with
 The app fills the file's view model by property name and runs it as the
 look's motion allows. The names for each family, and how to make the file,
 are in [Making a UI extension](../web-ui/making-extensions.md#rive-drawings):
-the same file works in a plugin and in an extension. A plugin built with an
+the same file works in a plugin and in an extension. A `look.drawing`, Rive
+or code, can also offer `options`, on-or-off choices shown under it in the
+look editor, given to a Rive file as view model booleans and to code as
+`options`. A plugin built with an
 SDK older than homeCore v0.1.98 drops the `rive` field; rebuild it.
 
 ### Rive from code
