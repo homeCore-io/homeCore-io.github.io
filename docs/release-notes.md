@@ -25,6 +25,37 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.51, 2026-11-07
+
+**Theme:** stacks sized the way you want, beside other cards.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **Wider stacks.** A stack is one to four cards wide, and its things go in
+  one column or two, so long names fit. With two cards or more to a column,
+  a thing's whole state shows ("Closed · 8 d ago").
+- **Its corner sizes it both ways.** Drag across for its width and down for
+  its height, one to six cards; a label shows the size as you go. A click on
+  the corner fits it to its things again.
+- **Beside other cards.** A stack in "Also here" can share its rows with the
+  things there; that section's things and cards now share one grid.
+- **Nothing hidden under the sheet.** While Add or a stack's settings is
+  open, the page makes room for it, so every card can still be reached,
+  moved and dragged.
+
+### Release matrix
+
+**Tagged:** app `v0.1.51`. No core, plugin or extension release.
+
+### Upgrade notes
+
+- Nothing to change. A stack made two wide in v0.1.50 stays two wide, with
+  its things in two columns, until you change it.
+
+---
+
 ## App v0.1.50, 2026-11-07
 
 **Theme:** stacks, one tall card holding several things.
