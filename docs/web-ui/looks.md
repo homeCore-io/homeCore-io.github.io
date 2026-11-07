@@ -41,6 +41,30 @@ from the Add sheet by dragging them where they go, and resize a card by
 dragging its corner. Everything dragging does can also be done without it,
 from a card's menu or with the keyboard.
 
+## Stacks
+
+A stack is one tall card holding several things, for a room with more
+switches than it has room for. Things of any kind mix: switches, lights,
+sensors, locks and scenes, each with its own control. A switch flips, a
+scene runs, a lock locks (and asks before unlocking, where it's set to),
+and a sensor shows its state. Tapping a name opens the device.
+
+- **Adding one.** While arranging, **Add › Cards › Stack**. Its settings open
+  beside the page; tick the things it holds (this room's first, the whole
+  house by search or kind), and reorder or take them out there.
+- **Moving things in and out.** Drop a card on a stack to put it in, or drag
+  a line out of one to give it its own card again. A card's **Move to** lists
+  the page's stacks too. A thing in a stack leaves its own card, so it's on
+  the page once.
+- **How it looks.** A list, pills, rockers like wall switches, a keypad, or
+  what's on or open first with the rest folded. One card wide or two; as tall
+  as its things, or two or three cards tall, scrolling inside. Its heading
+  counts what's on and open, and **All off** turns off its switches.
+- **Made by a look.** In the look editor's Rooms tab, a section can start
+  **in a stack from** a number of things: a room with that many starts that
+  section as one stack, which anyone can change like their own. A stack
+  someone filled keeps its things over one a look filled.
+
 ## Making your own
 
 Open the look editor from Settings › Look (for the house) or Me (for

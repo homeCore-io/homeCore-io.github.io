@@ -25,6 +25,41 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.50, 2026-11-07
+
+**Theme:** stacks, one tall card holding several things.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **Stacks.** While arranging, Add › Cards › Stack puts one tall card in
+  any section, in any look. Its settings choose what it holds: this room's
+  things first, anything in the house by search or kind. Switches, lights,
+  sensors, locks and scenes mix, each with its own control, and a lock still
+  asks before unlocking where it's set to.
+- **Five ways to draw one:** a list, pills, rockers, a keypad, or what's on
+  or open first with the rest folded. One card wide or two; as tall as its
+  things, or two or three cards tall, scrolling inside. Its heading counts
+  what's on and open, with All off for its switches.
+- **On the page once.** A thing in a stack leaves its own card, and gets it
+  back when taken out.
+- **Dragging.** A card dropped on a stack goes in; a line dragged out
+  becomes a card where it's let go. A card's Move to lists the page's stacks.
+- **Looks can make them.** In the look editor's Rooms tab, a section can
+  start "in a stack from" a number of things.
+
+### Release matrix
+
+**Tagged:** app `v0.1.50`. No core, plugin or extension release.
+
+### Upgrade notes
+
+- Nothing to change. Pages look as they did until someone adds a stack, or
+  a look's section asks for one.
+
+---
+
 ## App v0.1.49, 2026-11-03
 
 **Theme:** the Catalog only offers what this app can install.
