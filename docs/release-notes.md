@@ -25,6 +25,74 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.52, 2026-11-08
+
+**Theme:** any card anywhere, at any size, and your own pictures and videos.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **Every page is one grid.** Rooms, Home, the pages you made and what
+  displays show: 12 columns wide (4 on a phone), and every card has a place
+  and a size. Anything can sit beside anything, a stack included, and a gap
+  stays where you leave it until **Tidy** closes it up.
+- **Arranging by cells.** Drag a card and it shows where it will land; the
+  cards it covers move aside or down, and nothing overlaps. Its corner sizes
+  it to any width and height its drawing can take, with the size shown as
+  you go. The keyboard works too: Space picks a card up, the arrows move it,
+  Shift and the arrows size it.
+- **No more sections.** A heading is now just a title over what you put
+  under it, and hiding it hides only the title. "New section" is **Add a
+  title**. Move to offers the page's stacks.
+- **Widgets for laying out a page**, in Add › Cards: a title, a divider, an
+  empty space, a picture, a link to another page or room, and a clock.
+- **A look draws its own areas.** In the look editor's Rooms tab, an author
+  lays out rows of named areas and says what starts in each. Lit keeps its
+  shape: across the top, then main and beside.
+- **A room's Layout menu**, while arranging: back to the look's layout, copy
+  this room's layout to other rooms, or start from another room's.
+- **New things land with their kind.** A device that joins an arranged room
+  goes beside the last one like it, or on the line under them, and never
+  past another title.
+- **Phones and tablets read in order**, one area at a time, each title on
+  its own line.
+- **Your pictures and videos, in Settings › Pictures.** Upload them (or drop
+  them on the page), name them, share them with everyone or keep them yours,
+  put them in albums, see where each one is used, and delete them. Deleting
+  one that's in use says where, and takes it off those places.
+- **One picker everywhere.** Choose from your pictures or upload new. Where
+  words sit over a picture, choose which part stays in view and how dark it
+  goes behind them.
+- **Room photos.** Settings › Rooms gives a room a photo, behind its header
+  and its box on Home. A video plays there, silent.
+- **Your own picture**, chosen on Me, in place of your initial.
+- **A display at rest.** Settings › Displays: after a few minutes untouched,
+  a picture frame from an album, a clock, or dark, with the time over the
+  pictures if you like. A touch wakes it.
+
+### Release matrix
+
+**Tagged:** app `v0.1.52`. No core, plugin or extension release.
+
+### Upgrade notes
+
+- **Pages keep how they look.** Each page starts on the grid in the order
+  its sections had, with your own moves still applied; nothing is placed
+  until someone arranges it.
+- **A section you hid before still hides its cards** until you show it
+  again. A heading's list or panel layout you chose before is kept; on a
+  page it's no longer offered, as the look decides it.
+- **Pictures already on Picture cards** join the library as everyone's,
+  added by nobody in particular. People who edit the house's pages can
+  rename or delete them.
+- **Back up the UI server's data volume** to keep pictures and videos: they
+  live in its `pictures` folder. The backup in Settings › Data saves the
+  app's settings and pages but not the picture files yet.
+- A picture can now be up to 20 MB (it was 8 MB), and a video up to 200 MB.
+
+---
+
 ## App v0.1.51, 2026-11-07
 
 **Theme:** stacks sized the way you want, beside other cards.
