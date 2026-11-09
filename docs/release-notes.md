@@ -25,6 +25,127 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.53, 2026-11-08
+
+**Theme:** cameras, and pictures that upload again.
+
+Live video needs go2rtc and `HC_GO2RTC_URL` (below). Pictures with a
+notification need homeCore v0.1.99.
+
+### What you'll notice
+
+- **Pictures and videos upload again.** In the Docker image of v0.1.52, a
+  picture over 8 MB and nearly every video failed to upload. They now go up
+  to the limits v0.1.52 promised: 20 MB for a picture, 200 MB for a video.
+- **Cameras.** A camera's card is large by default and plays live, or shows
+  its newest snapshot. In Lit, cameras get a Cameras section of their own in
+  each room. Cameras come from the [Reolink](./plugins/reolink) plugin.
+- **A notification can carry a picture.** A Notify step in the rule editor
+  has **With a picture from**: choose a camera, and a fresh snapshot goes
+  with the message to Telegram, Pushover or email.
+- **A doorbell rings.** The rule editor offers "Front door doorbell rings"
+  as a moment, for a camera with a doorbell.
+- **The backup holds your pictures.** Settings › Data now saves a `.tar` with
+  the app's settings and pages and every picture and video. Putting one back
+  adds the pictures this app doesn't have and leaves the ones it has alone.
+  A `.json` backup from before still restores.
+- **A display at rest shows the temperature outside**, beside the date, from
+  your weather station.
+- **Deleting a display deletes its settings** in the app too. Settings ›
+  Displays clears out settings left behind by displays deleted before.
+- **The picture picker's "where it sits" squares** are easy to see in both
+  light and dark.
+- **Settings forms:** a list inside a table row (an NVR's stream names, say)
+  takes the row's full width, and a password field you're typing into for
+  the first time stays open.
+
+### Release matrix
+
+**Tagged:** app `v0.1.53`. Released the same day: homeCore `v0.1.99` and
+`hc-reolink-v0.1.0`.
+
+### Upgrade notes
+
+- **Live video:** set `HC_GO2RTC_URL` on the app's container to your
+  go2rtc's address as the app reaches it (for example
+  `http://127.0.0.1:1984` on host networking). The app plays video from its
+  own address at `/video`, only for people signed in, and passes on only
+  go2rtc's addresses for watching. Without it, cameras show snapshots.
+- A backup made with v0.1.52 or earlier holds no pictures. Make a new one
+  after upgrading.
+
+---
+
+## hc-reolink v0.1.0, 2026-11-08
+
+**Theme:** Reolink cameras, NVRs and Home Hubs.
+
+Needs homeCore v0.1.99 for the camera detections and pictures in
+notifications, and app v0.1.53 for live video and the Cameras card.
+
+### What you'll notice
+
+- **Cameras on their own, and NVRs or Home Hubs** with their cameras as
+  channels. A two-lens camera (a Duo) is a camera per lens.
+- **Detections as they happen,** by Reolink's push: motion, person, vehicle,
+  animal and package, with a snapshot of each. Asking every 30 seconds stays
+  behind push in case one is missed.
+- **Spotlights and sirens** are lights and sirens of their own, for cards,
+  rules and scenes. **PTZ** cameras turn and go to their presets.
+- **A doorbell's press** is a button press, for the button trigger.
+- **Live video** through go2rtc: the plugin adds and keeps current its own
+  `reolink_` streams, and never touches any other.
+- **Its own screens:** a camera card and panel, and a **Cameras** card
+  showing several cameras in one, four of them live.
+- **An account that may only watch** gets only what it may use, and an
+  alert saying so. After a refused sign-in the plugin waits ten minutes, so
+  it can't lock the account.
+
+See [Reolink](./plugins/reolink) for the details.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.0`. Released the same day: homeCore `v0.1.99`
+and app `v0.1.53`.
+
+---
+
+## v0.1.99, 2026-11-08
+
+**Theme:** cameras in rules, and pictures in notifications.
+
+### What you'll notice
+
+- **A notification can carry a picture.** `Notify` takes `picture_from`, a
+  camera: homeCore asks it for a fresh snapshot, waits up to 8 seconds, and
+  otherwise sends the newest it has. It goes as a photo on Telegram, an
+  attachment on Pushover (up to 5 MB) and by email. A channel that can't
+  send pictures, or a picture that can't be had, still sends the words. See
+  [Notify](./rules/actions#notify).
+- **Camera detections are shared names:** `person_detected`,
+  `vehicle_detected`, `animal_detected` and `package_detected`, beside
+  `motion`, so any camera plugin reads the same in rules.
+
+### For plugin authors
+
+- `host.rive.play` in the UI SDK lends a plugin's own code the app's Rive
+  runtime (app v0.1.47 and later), and `ExtensionHost` types what a UI
+  extension's code is given.
+- A device with a `snapshot` reading and a `take_snapshot` action can be a
+  Notify picture's source. homeCore fetches the file from the plugin's files
+  folder.
+
+### Release matrix
+
+**Tagged:** `v0.1.99` (core). Released the same day: `hc-reolink-v0.1.0` and
+app `v0.1.53`.
+
+### Upgrade notes
+
+- Nothing to change. Rules without `picture_from` work as before.
+
+---
+
 ## App v0.1.52, 2026-11-08
 
 **Theme:** any card anywhere, at any size, and your own pictures and videos.
