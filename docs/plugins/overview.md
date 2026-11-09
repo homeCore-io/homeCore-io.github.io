@@ -52,6 +52,7 @@ Plugins can also declare **capability actions**: plugin-specific commands such a
 | [hc-weather](./weather) | Rust | The weather for a place (Open-Meteo), and weather warnings as alerts |
 | [hc-nuheat](./nuheat) | Rust | NuHeat Signature floor-heating thermostats |
 | [hc-mysa](./mysa) | Rust | Mysa smart thermostats |
+| [hc-reolink](./reolink) | Rust | Reolink cameras, NVRs and Home Hubs |
 
 These plugins live in the homeCore repository. Each one is released as its own
 signed artifact and installed from the registry; none of them is built into
@@ -62,7 +63,7 @@ homeCore.
 A plugin can bring its own screens to the web app: its page, its devices' panel
 and cards, a form in the automation editor, and cards you add to a page
 yourself (Edit → Add a card). WLED, Ecowitt, Hue, Lutron, Sonos, Z-Wave,
-YoLink, Caséta, Roku, Thermostat, Weather and NuHeat have them. The screens
+YoLink, Caséta, Roku, Thermostat, Weather, NuHeat and Reolink have them. The screens
 come in the plugin's own package and are updated along with it. A plugin
 without them gets the app's generic screens. See
 [Screens and Cards](./plugin-screens) for how a plugin provides them.

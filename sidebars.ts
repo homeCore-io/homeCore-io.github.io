@@ -97,6 +97,7 @@ const sidebars = {
         'plugins/weather',
         'plugins/nuheat',
         'plugins/mysa',
+        'plugins/reolink',
       ],
     },
     {

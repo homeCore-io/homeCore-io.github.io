@@ -247,7 +247,18 @@ action: Notify(
 ),
 ```
 
+```ron
+// With a picture from a camera
+action: Notify(
+    channel: "all",
+    message: "Someone at the front door",
+    picture_from: Some("reolink_front_door"),
+),
+```
+
 `channel` is the name you gave a channel in `homecore.toml`, or `all` to send to every one. If sending fails (an unknown channel, a network error), homeCore logs a warning and carries on with the next action.
+
+`picture_from` names a camera (any device with a `snapshot` reading). homeCore asks it for a fresh snapshot, waits up to 8 seconds for it, and otherwise sends the newest one it has. The same picture goes to every channel: a photo on Telegram (the message becomes its caption, up to 1,024 characters), an attachment on Pushover (up to 5 MB) and by email. A channel that can't send pictures sends the words alone, and so does every channel if no picture can be had. In the app, it's **With a picture from** on a Notify step.
 
 In a rule an alert started, `{alert.message}`, `{alert.device}`, `{alert.device_id}`, `{alert.reason}`, `{alert.kind}`, `{alert.key}`, `{alert.severity}`, `{alert.raised_at}` and `{alert.id}` in the message or title are replaced with the alert's details. `LogMessage` supports the same placeholders. No other template syntax is substituted.
 
