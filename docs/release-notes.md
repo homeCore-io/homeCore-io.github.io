@@ -25,6 +25,66 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.55, 2026-11-10
+
+**Theme:** a plugin's log that says what went wrong, and tabs that survive an upgrade.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **A plugin's Log tab shows each line's details.** It used to print only
+  the message, so a line like "can't connect" didn't say which camera or why.
+  The details now follow the message, as `host: driveway`,
+  `error: ...`. Settings › Logs already showed them when you clicked a
+  line.
+- **A tab left open across an upgrade loads the new app.** It used to keep
+  running the old one, and buttons whose code loads when first pressed, such
+  as Style and Add, did nothing. Now the page reloads itself the first time
+  that happens.
+
+### Release matrix
+
+**Tagged:** `v0.1.55` (hc-web-svelte). Released the same day: `hc-reolink-v0.1.2`.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
+## hc-reolink v0.1.2, 2026-11-10
+
+**Theme:** one Duo, and errors you can act on.
+
+### What you'll notice
+
+- **A camera on its own is always one camera.** A Duo joins its lenses into
+  one picture, but a camera that reported two channels used to become a
+  camera per lens. Now it's one camera with one spotlight and siren. The
+  Duo 3 was already one camera; this covers models that report two
+  channels.
+- **"can't connect" says why.** The error names the address and whether it
+  timed out or was refused, and says to try the row's HTTPS switch. Before,
+  it said only "not answering".
+- **The go2rtc stream fields explain what names to put in.** The
+  [Reolink page](plugins/reolink#live-video) has the full walkthrough with
+  a go2rtc.yaml example.
+
+Seeing an error's details on the plugin's own Log tab needs app v0.1.55.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.2`. Released the same day: app `v0.1.55`.
+
+### Upgrade notes
+
+- A standalone camera that was split per lens loses its `_1` and `_2`
+  devices and gets one `reolink_<name>` device instead. Point any rules or
+  cards that used the per-lens devices at the new one.
+
+---
+
 ## App v0.1.54, 2026-11-09
 
 **Theme:** plugin settings that keep what you type.
