@@ -41,8 +41,8 @@ for five minutes after five refused sign-ins. After one refusal the plugin
 waits ten minutes before trying again, so a typo can't lock you out of the
 Reolink app as well.
 
-A camera with two lenses (a Duo) becomes a camera per lens, with one
-spotlight and one siren between them.
+A camera with two lenses (a Duo) is one camera, because it joins its lenses
+into one picture.
 
 ## What you get
 
@@ -98,21 +98,57 @@ camera.
 ## Live video
 
 Live video goes through [go2rtc](https://github.com/AlexxIT/go2rtc), which
-turns a camera's stream into what a browser plays. Set go2rtc's address in the
-plugin's settings (`[reolink.go2rtc] url`), and the plugin adds
-`reolink_<camera>` (the sub stream, H.264) and `reolink_<camera>_hd` (the
-main stream) to it and keeps them current. It never touches a stream whose
-name doesn't start with `reolink_`. If you already have go2rtc streams for
-your cameras, turn off `add_streams` and name them in each row's `streams`
-setting instead.
+turns a camera's stream into something a browser can play. Without go2rtc,
+cameras show their snapshots.
 
-The app plays them from its own address. Set `HC_GO2RTC_URL` on the app's
-container to go2rtc's address as the app reaches it
-(`http://127.0.0.1:1984` on host networking). The app passes on only go2rtc's
+### Plugin settings
+
+In the plugin's **go2rtc** section:
+
+| Setting | What to put |
+|---|---|
+| go2rtc address (`url`) | go2rtc's web address as the plugin reaches it, usually `http://127.0.0.1:1984`. Leave it empty for snapshots only. |
+| Add the cameras' streams to go2rtc (`add_streams`) | On (the default) and you're done: the plugin adds each camera's streams to go2rtc itself. |
+
+With **Add the cameras' streams to go2rtc** on, the plugin gives go2rtc two streams per camera,
+`reolink_<camera>` (the sub stream, H.264, which every browser plays) and
+`reolink_<camera>_hd` (the main stream), and keeps them current when a
+password or address changes. go2rtc saves them in its own config, so they
+outlast a restart. The plugin never touches a stream whose name doesn't
+start with `reolink_`, so streams you set up yourself are left alone.
+
+### Using streams you already have
+
+If your go2rtc already has streams for these cameras (for a camera wall, say),
+turn **Add the cameras' streams to go2rtc** off. Each row in Hosts then shows two more fields:
+
+| Field | What to put |
+|---|---|
+| go2rtc streams | the names of your go2rtc streams, one per camera. For a camera on its own, that's one name. For an NVR or Home Hub, the first name is channel 1's camera, the second channel 2's, and so on; leave an entry blank for a channel you skip. |
+| go2rtc streams, HD | the same for high-definition streams, if you have them. Leave it empty if not. |
+
+A stream's name is its key under `streams:` in go2rtc's config. With this
+go2rtc.yaml:
+
+```yaml
+streams:
+  driveway: rtsp://user:password@192.168.1.20:554/h264Preview_01_sub
+  driveway_hd: rtsp://user:password@192.168.1.20:554/h264Preview_01_main
+```
+
+you would put `driveway` in **go2rtc streams** and `driveway_hd` in
+**go2rtc streams, HD**. Use a sub stream for the first: browsers play H.264,
+and many Reolink main streams are H.265. A camera with no name in the list
+shows snapshots.
+
+### The app
+
+The app plays the streams from its own address. Set `HC_GO2RTC_URL` on the
+app's container to go2rtc's address as the app reaches it
+(`http://127.0.0.1:1984` on host networking, `http://go2rtc:1984` if go2rtc is
+a service in the same compose file). The app passes on only go2rtc's
 addresses for watching, and only to someone homeCore says is signed in, so
 go2rtc's own API (where the cameras' passwords are) stays out of reach.
-
-Without go2rtc, cameras show their snapshots.
 
 ## Settings
 
