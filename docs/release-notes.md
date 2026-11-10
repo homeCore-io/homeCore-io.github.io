@@ -25,6 +25,74 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.101, 2026-11-10
+
+**Theme:** a plugin that isn't working never looks like it is.
+
+### What you'll notice
+
+- **A plugin is "Running" only once it has been heard from.** Before, a
+  plugin showed as running as soon as a registration for it arrived, even
+  a saved copy from its last run. A plugin that started but never connected
+  looked fine, with no log line and no alert. On one house, Lutron and
+  Caséta sat like that for an hour after an upgrade: their screens were
+  gone and their scenes did nothing.
+- **A plugin that doesn't connect is restarted, and says why.** If one
+  hasn't sent a heartbeat within 2 minutes of starting, or goes 5 minutes
+  without one, homeCore logs its last output, shows it as **Not
+  responding** and starts it again. It stays "Not responding" until it is
+  heard from.
+- **What a plugin prints before it connects is in its log.** Those lines
+  used to reach only the container's console (`docker logs`). They now show
+  on the plugin's Log tab and in Settings › Logs.
+- **A plugin that is down raises an alert.** After a minute exited or not
+  responding, an alert says so, for example "Lutron isn't running: started,
+  but hasn't connected to homeCore". It goes wherever offline alerts go. A
+  plugin someone stopped isn't down.
+
+"Not responding" reads as such from app v0.1.56.
+
+### Release matrix
+
+**Tagged:** `v0.1.101`. Released the same day: app `v0.1.56`.
+
+### Upgrade notes
+
+- Nothing to change. A plugin built on an SDK without heartbeats would now
+  be restarted every two minutes; every homeCore SDK has sent them since
+  the management protocol arrived.
+
+---
+
+## App v0.1.56, 2026-11-10
+
+**Theme:** pages without gaps.
+
+### What you'll notice
+
+- **Pages pack their columns.** Once a page had been rearranged, its cards
+  kept their saved places even after those went stale. A section that now
+  sits above the grid (Needs attention) left an empty band, and cards saved
+  beside the doors sat above their own column's title, pushing that whole
+  column down. Each card now sits right under whatever is above it in its
+  columns, and a side column's cards follow their title. Columns and order
+  are kept.
+- **A running timer counts down every second.** "6:23 left" used to stand
+  still for half a minute at a time.
+- **A plugin that isn't responding says so** on the Plugins page: "Not
+  responding, restarting it" (homeCore v0.1.101).
+
+### Release matrix
+
+**Tagged:** `v0.1.56` (hc-web-svelte). Released the same day: homeCore `v0.1.101`.
+
+### Upgrade notes
+
+- Nothing to change. A page with a very tall card across both columns keeps
+  the room beside it.
+
+---
+
 ## App v0.1.55, 2026-11-10
 
 **Theme:** a plugin's log that says what went wrong, and tabs that survive an upgrade.
