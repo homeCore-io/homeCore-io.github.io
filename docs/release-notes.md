@@ -25,6 +25,92 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.54, 2026-11-09
+
+**Theme:** plugin settings that keep what you type.
+
+Needs nothing new from homeCore.
+
+### What you'll notice
+
+- **A plugin's settings page no longer resets while it sits open.** Every
+  half minute or so it threw away whatever you were typing, as if the
+  plugin had restarted. It hadn't; the page misread a heartbeat as a
+  restart. Now only a real restart reloads the form.
+- **Rows in a plugin's settings explain themselves.** Each field in a row
+  (a Reolink camera's ports, say) shows its help underneath, and fields
+  that don't apply stay out of the way until they do.
+
+### Release matrix
+
+**Tagged:** app `v0.1.54`. Released the same day: homeCore `v0.1.100` and
+`hc-reolink-v0.1.1`.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
+## hc-reolink v0.1.1, 2026-11-09
+
+**Theme:** a settings page that says what it wants.
+
+### What you'll notice
+
+- **A new camera or NVR row starts filled in** with what the plugin uses
+  anyway: user name `admin`, HTTPS on, RTSP port 554, push port 9000.
+- **Every field says what it's for,** with examples for the name, the
+  address and go2rtc's address. Usually only the name, address, user name
+  and password need filling in.
+- **The go2rtc stream lists appear only when you need them,** when "Add the
+  cameras' streams to go2rtc" is off.
+- **Each row is titled by its name.**
+
+Field help inside a row needs app v0.1.54; with an older app the defaults
+still show.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.1`. Released the same day: homeCore
+`v0.1.100` and app `v0.1.54`.
+
+### Upgrade notes
+
+- Nothing to change. A camera's name still makes its device ids, so
+  renaming a row later gives its cameras new ids, as before.
+
+---
+
+## v0.1.100, 2026-11-09
+
+**Theme:** a health check, and a steady start time for plugins.
+
+### What you'll notice
+
+- **The container has a health check.** Docker asks homeCore's
+  `/api/v1/health` every 30 seconds and shows the container as healthy or
+  not, as it already did for the app.
+- **A plugin's start time holds still.** homeCore worked it out afresh from
+  each heartbeat, so it moved by a fraction of a second every time, and the
+  app took that for a restart. It now changes only when the plugin
+  restarts.
+- **Alpine 3.24.4** is the image's base. v0.1.99's image already had its
+  fixed packages (OpenSSH and apk-tools); OpenSSH isn't in the image.
+
+### Release matrix
+
+**Tagged:** `v0.1.100` (core). Released the same day: `hc-reolink-v0.1.1`
+and app `v0.1.54`.
+
+### Upgrade notes
+
+- **If you moved homeCore off port 8080**, the built-in health check asks
+  8080 and will report unhealthy. Give the `homecore` service its own
+  `healthcheck:` in compose with your port; it replaces the built-in one.
+
+---
+
 ## App v0.1.53, 2026-11-08
 
 **Theme:** cameras, and pictures that upload again.
