@@ -25,6 +25,28 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-zwave v0.1.21, 2026-11-11
+
+**Theme:** every Z-Wave temperature is °C.
+
+### What you'll notice
+
+- **Thermostats and sensors that report in °F read right.** A setpoint or
+  temperature without a standard name (the ones that appear as `cc67_…` and
+  `cc49_…`) used to pass through in whatever scale the device used, with no
+  unit, so a °F thermostat's 68 could be taken for 68 °C. The plugin now
+  converts these to °C from the device's own scale and says °C in the schema.
+
+### Release matrix
+
+**Tagged:** `hc-zwave-v0.1.21`. Released the same day: core `v0.1.102`.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## v0.1.102, 2026-11-11
 
 **Theme:** every temperature is °C inside homeCore, and the household has a unit.
