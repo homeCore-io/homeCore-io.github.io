@@ -25,6 +25,35 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.58, 2026-11-11
+
+**Theme:** temperatures in the household's unit.
+
+### What you'll notice
+
+- **The household picks a temperature unit.** Settings › System has a new
+  Units and region card: Each browser's, °F or °C. Everyone reads in that
+  unit until they pick their own, and alert messages use it too. Each
+  browser's keeps today's behavior: the browser's language decides, so
+  English (US) reads °F. Only an admin can change it. Needs core v0.1.102;
+  with an older core, the card cannot save and each browser decides.
+- **Your own choice still wins.** On your own settings page, the units
+  section says when your temperatures are following the household's unit.
+- **A thermostat with no unit shows its number as sent.** It used to take an
+  unlabeled setpoint for °C and convert it. It now shows the number with a
+  plain "°".
+
+### Release matrix
+
+**Tagged:** `v0.1.58` (hc-web-svelte). Released the same day: core
+`v0.1.102`, `hc-zwave-v0.1.21`, `hc-thermostat-v0.1.20`.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## hc-thermostat v0.1.20, 2026-11-11
 
 **Theme:** a sensor in °F is read as °F.
