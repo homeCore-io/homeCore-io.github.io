@@ -25,6 +25,45 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.102, 2026-11-11
+
+**Theme:** every temperature is °C inside homeCore, and the household has a unit.
+
+### What you'll notice
+
+- **A household temperature unit.** An admin can set °F or °C for the whole
+  house, or leave it unset. It's what everyone reads in until they pick their
+  own, and what alert messages use: an alert now reads "temperature above
+  14 °F" in the household's unit instead of a bare "-10". Read and change it
+  with `GET` and `PUT /api/v1/system/temperature-unit`. `chosen` is false
+  while it's unset; alert text then uses °C, and the app goes by each
+  browser's language. `PUT` with `null` clears it. The app's System page
+  sets it from app v0.1.58.
+- **Readings in °F or K are stored in °C.** Every plugin is meant to send °C.
+  If one sends °F or kelvin, and says so in its schema or in a
+  `<name>_unit` value beside the reading, core converts it before storing it.
+  Rules, history and every screen then see °C. Each conversion is listed in
+  `GET /api/v1/system/vocabulary-check` under `conversions`, and as a `unit`
+  finding, so the plugin can be fixed. A temperature with no unit at all is a
+  finding too.
+- **Plugin SDK:** a plugin can follow another device's schema
+  (`subscribe_schema`), which is how a thermostat learns its sensor's unit.
+  The SDK's conformance checks now include temperatures.
+
+### Release matrix
+
+**Tagged:** `v0.1.102` (homecore). Plugins whose behavior changed ship on
+their own tags: hc-zwave v0.1.21 and hc-thermostat v0.1.20.
+
+### Upgrade notes
+
+- Nothing to change. Leave the household unit unset to keep today's
+  behavior, where each browser's language decides.
+- Optional, in `homecore.toml`: `temperature_unit = "°F"` under
+  `[location]`. The System page writes the same line.
+
+---
+
 ## App v0.1.57, 2026-11-10
 
 **Theme:** less empty space.
