@@ -25,6 +25,29 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-thermostat v0.1.20, 2026-11-11
+
+**Theme:** a sensor in °F is read as °F.
+
+### What you'll notice
+
+- **A thermostat checks its sensor's unit.** It used to take every reading
+  as °C, so a sensor reporting 77 °F looked far too hot. It now reads the
+  sensor's declared unit and converts °F (or kelvin) before comparing it
+  with the setpoint. Sensors that already report °C, which is all current
+  plugins, behave as before.
+
+### Release matrix
+
+**Tagged:** `hc-thermostat-v0.1.20`. Released the same day: core `v0.1.102`,
+`hc-zwave-v0.1.21`.
+
+### Upgrade notes
+
+- Nothing to change.
+
+---
+
 ## hc-zwave v0.1.21, 2026-11-11
 
 **Theme:** every Z-Wave temperature is °C.
