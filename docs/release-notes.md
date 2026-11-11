@@ -25,6 +25,42 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.103, 2026-11-11
+
+**Theme:** Room on and Room off.
+
+### What you'll notice
+
+- **Room off remembers the room.** `POST /api/v1/areas/{id}/off` saves which
+  of the room's lights are on, at what level and color, and any Hue scene
+  that's active, then turns them all off. `POST /api/v1/areas/{id}/on` brings
+  it back: the scene as a scene, then the lights it doesn't cover. Lights that
+  were off stay off. With nothing saved, every light comes on full.
+- **What counts as a light:** every light in the room, plus switches you've
+  marked as lights in the app. Hue's room groups aren't counted twice.
+- **The saved state lasts.** It survives a restart and a hand change. Room off
+  replaces it only when at least one light is on, so pressing Room off twice
+  doesn't lose it. `GET /api/v1/areas/{id}/saved-lights` shows what's saved.
+  Deleting a room drops its saved state; merging rooms combines them.
+- **Rules can do it too,** with the new Room on and Room off actions, which
+  name a room by its name, id or slug.
+- **Each press is logged** as a `room_lights_changed` event and in the audit
+  log (`area.lights_on`, `area.lights_off`).
+- **Every device says which room it's in.** Device JSON from the API and the
+  live stream now has a `room` field: the room you set by hand, otherwise the
+  one the plugin reports. `area` and `area_override` are unchanged.
+
+### Release matrix
+
+**Tagged:** `v0.1.103` (homecore).
+
+### Upgrade notes
+
+- Nothing to change. The app's Room on and Room off buttons come with the
+  console look in a later app release; until then this is the API and rules.
+
+---
+
 ## App v0.1.58, 2026-11-11
 
 **Theme:** temperatures in the household's unit.
