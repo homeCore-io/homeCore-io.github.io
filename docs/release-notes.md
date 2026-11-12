@@ -55,6 +55,10 @@ a release nobody outside the workspace can find out about.
   doesn't.
 - **Rules can use Room on and Room off** as steps, with a room picker.
 
+Still to come in the Console look: its own Home page (for now Home is the
+page the other looks have) and Everywhere › Lights, Media, Climate, Security
+and Water, which show as coming soon.
+
 The Console look is built for screens at least 1280 wide. Other looks are
 unchanged.
 
