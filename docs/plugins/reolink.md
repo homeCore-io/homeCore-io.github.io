@@ -52,6 +52,13 @@ Each camera is a `camera` device named `reolink_<name>`, or
 their own, so cards, rules and scenes treat
 them like any other light or siren.
 
+A siren sounds while it's on: `{"on": true}` starts it and `{"on": false}`
+stops it. So none is left sounding, the plugin stops it after
+`siren_max_secs` (60 seconds unless changed, 5 to 600) and whenever the
+plugin itself stops. The `sound` action plays it a few times instead
+(`times`, 1 to 10). A siren is offered only when the camera account the
+plugin signs in with may use it.
+
 A camera reports:
 
 | Reading | |
@@ -158,7 +165,8 @@ go2rtc's own API (where the cameras' passwords are) stays out of reach.
 | Push | events as they happen (default on) |
 | Check every | `poll_secs`, how often to ask with push off (default 2 seconds) |
 | Snapshots kept | per camera (default 20) |
-| Siren times | how many times the siren sounds (default 3) |
+| Siren times | how many times the `sound` action plays the siren (default 3) |
+| Siren stops after | `siren_max_secs`, the longest a siren turned on keeps sounding (default 60 seconds) |
 | go2rtc | its address, and whether the plugin adds its own streams |
 
 ## Not covered

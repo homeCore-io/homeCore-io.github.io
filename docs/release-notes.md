@@ -25,6 +25,41 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-reolink v0.1.3, 2026-11-12
+
+**Theme:** sirens you can stop.
+
+### What you'll notice
+
+- **A siren sounds until you turn it off.** `{"on": true}` used to play the
+  siren three times, and `{"on": false}` did nothing. Now on starts it and off
+  stops it, using Reolink's manual mode, the same way Home Assistant's
+  Reolink library does.
+- **It stops itself.** A siren that's been on for `siren_max_secs` (60 seconds
+  unless changed, 5 to 600) is turned off, and so is any siren still sounding
+  when the plugin stops. A stop the camera refuses is tried again, and the
+  siren keeps reading on until one is taken.
+- **`on` shows what the camera says.** Where a camera pushes its siren's
+  status, the plugin publishes it as it comes.
+- **The camera panel's siren button stops a sounding siren** without asking.
+  Sounding one still asks first.
+- The `sound` action still plays the siren a few times. Firmware that refuses
+  the manual mode gets that instead when the siren is turned on.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.3`.
+
+### Upgrade notes
+
+- New setting `siren_max_secs` (default 60). Nothing to change unless you
+  want sirens to sound longer or shorter.
+- Rules that turned a siren on expecting three short plays now sound it until
+  it's turned off or the time limit passes. Use the `sound` action for the
+  old behavior.
+
+---
+
 ## v0.1.103, 2026-11-11
 
 **Theme:** Room on and Room off.
