@@ -25,6 +25,49 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.60, 2026-11-12
+
+**Theme:** the Console look gets its Home page, Everywhere views and room
+pictures, and you choose where each device shows.
+
+### What you'll notice
+
+- **Home in the Console look.** Your rooms are tiles lit as their lights are,
+  in a fixed order, with what needs attention at the top. An open or offline
+  lock or door counts as needing attention. Your favorites row is Every light
+  off plus your own favorites. How many things are playing links to
+  Everywhere › Media.
+- **Everywhere › Lights, Media, Climate, Security and Water** are built. Lights
+  counts the same lights Home does, including switches named as lights. The
+  sidebar shows each view's status, such as "2 open" or "1 offline".
+- **A room's header shows its drawing** across the whole header, lit by its
+  lights. The header's light count includes switches named as lights.
+- **Fans off** turns every fan off at once. Water shutoff still asks first.
+- **A homeCore virtual switch is a switch,** whatever it's called. A virtual
+  switch named "Garage Door" no longer shows as a door, and one named "Porch
+  Light" is no longer counted as a light.
+- **Timers show as small countdown clocks** with the time left, plus Start and
+  Cancel.
+- **Switches and timers as Rows or Tiles.** Each person chooses this in the
+  menu under their name. Rows is the default.
+- **Put any device on any tab.** The ⋯ beside a device in a room picks its
+  room and its tab, and Put back returns it to where it sorts by itself. A
+  moved device shows "moved here". The same choice is on the device's page in
+  Settings › Devices, as Console tab. The choice applies to the whole
+  household, and only people who can change the household's console settings
+  see the ⋯.
+- Long switch names take a second line instead of being cut short.
+
+### Release matrix
+
+**Tagged:** `v0.1.60` (hc-web-svelte).
+
+### Upgrade notes
+
+None. Works with core v0.1.103.
+
+---
+
 ## App v0.1.59, 2026-11-12
 
 **Theme:** the Console look, rooms first.
