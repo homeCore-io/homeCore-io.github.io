@@ -25,6 +25,53 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.59, 2026-11-12
+
+**Theme:** the Console look, rooms first.
+
+### What you'll notice
+
+- **A third built-in look, Console.** It puts the app in its own frame for a
+  desktop or wall screen: a toolbar, a sidebar of Everywhere views and your
+  rooms, and each room's devices in tabs. It's dark unless you chose light.
+  Each person picks their own sidebar, fader style and switch style, from six
+  styles.
+- **Lights** shows faders by group, sized to the window, with scene chips
+  (past two lines they fold behind All), switches and keypads beside them.
+  **Room on** and **Room off** are in each room's header.
+- **Media** shows each screen with its apps and remote, then its speakers led
+  by their artwork. Four or more speakers get a mixer. A room's audio sits
+  along the bottom of the console.
+- **Climate, Doors, Water, Sensors and Switches** tabs. A thermostat's switch
+  sits with it in Climate. A water valve driven by a relay reads shut when the
+  relay is on. Switches are grouped by where they come from, show their power
+  draw where they report it, and have All on and All off.
+- **Cameras.** Everywhere › Cameras is a camera wall: live video for the
+  camera you pick, snapshots of the others and a paged strip of recent events.
+  A room with cameras gets a Cameras tab, with the selected camera large and
+  the others in a roll below. A camera's events can be pills in a room's
+  header or on Home. Video plays only while it's on screen. Controls cover
+  spotlight, PTZ and siren. Sounding the siren asks first, and stopping it
+  doesn't.
+- **Rules can use Room on and Room off** as steps, with a room picker.
+
+The Console look is built for screens at least 1280 wide. Other looks are
+unchanged.
+
+### Release matrix
+
+**Tagged:** `v0.1.59` (hc-web-svelte). Released the same day:
+`hc-reolink-v0.1.3`.
+
+### Upgrade notes
+
+- Room on and Room off, in rooms and in rules, need core v0.1.103.
+- Live camera video needs `HC_GO2RTC_URL` on the app's container, as on the
+  [Reolink page](plugins/reolink#the-app). The Stop button for a siren needs
+  hc-reolink v0.1.3; with an older plugin a siren can't be stopped.
+
+---
+
 ## hc-reolink v0.1.3, 2026-11-12
 
 **Theme:** sirens you can stop.
@@ -48,7 +95,7 @@ a release nobody outside the workspace can find out about.
 
 ### Release matrix
 
-**Tagged:** `hc-reolink-v0.1.3`.
+**Tagged:** `hc-reolink-v0.1.3`. Released the same day: app `v0.1.59`.
 
 ### Upgrade notes
 
