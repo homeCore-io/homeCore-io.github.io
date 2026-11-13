@@ -78,7 +78,7 @@ All of these ship with the plugin, so updating the plugin updates them.
 - **Lutron scenes** is a card you add yourself (Edit → Add a card). It holds the scenes you pick, in the order you drag them into, as a grid or a single row.
 - **In automations**, a keypad step is *Press a button* or *Set a light*. You pick the button on a drawing of the keypad, and the step reads back in words, for example "press Outside on Kitchen 6 Button".
 
-Buttons take their names from their engravings. Where nothing is engraved, a keypad's raise/lower rocker is named *Lower* and *Raise*, and a Pico's buttons *On*, *Favorite*, *Off*, *Raise* and *Lower*. Any other unengraved button reads "Button 5" (or whatever its number is) until you name it in the plugin's settings. A VCRX's contact inputs are *Input 1* and *Input 2*.
+Buttons take their names from their engravings. Where nothing is engraved, a keypad's raise/lower rocker is named *Lower* and *Raise*, and a Pico's buttons *On*, *Favorite*, *Off*, *Raise* and *Lower*. Any other unengraved button reads "Button 5" (or whatever its number is) until it is named, either as its engraving in the plugin's settings or with `set_button_name` (see [Button names](#button-names)). A VCRX's contact inputs are *Input 1* and *Input 2*.
 
 ## SDK adoption
 
@@ -107,12 +107,31 @@ Names and units follow homeCore's shared device vocabulary. The plugin converts 
 | fan | `on`, `speed` (`off`/`low`/`medium`/`medium-high`/`high`), `speed_pct` | `on`, `speed`, `speed_pct`, optional `transition_ms` |
 | shade | `position` (0 to 100, 100 = open) | `position`; actions `raise`, `lower`, `stop` |
 | occupancy group | `occupied` | nothing |
-| keypad / VCRX | `button_N`, `last_button`, `last_button_name`, `led_N` (0 off, 1 on, 2 slow flash, 3 rapid) | actions `press_button {button}`, `set_led {button, state}` |
+| keypad / VCRX | `button_N`, `button_names`, `last_button`, `last_button_name`, `led_N` (0 off, 1 on, 2 slow flash, 3 rapid) | actions `press_button {button}`, `set_led {button, state}`, `set_button_name {button, name}` |
+| Pico | `button_N`, `button_names`, `last_button`, `last_button_name` | action `set_button_name {button, name}` |
 | VCRX contact inputs | `cci_N_open` (`true` = contact open) | nothing |
 | scene | `active` | action `activate` |
 | timeclock event | `enabled` | `enabled`; action `execute` |
 
 A keypad's `button_N` is the latest event on that button: `press`, `release`, `hold` or `double_click`. A hold fires once the button has been down for `hold_threshold_ms`, and a release still follows it. Keypads, Picos and VCRXs also publish `available_buttons` (`[{"number": 3, "name": "Outside"}]`), which is where the screens get button names.
+
+### Button names
+
+Each keypad, Pico and VCRX publishes `button_names`, every button's name keyed by its number:
+
+```json
+"button_names": { "1": "Movie", "2": "Dinner", "3": "Outside", "16": "Lower", "17": "Raise" }
+```
+
+A button's name is the one the household gave it, or else its engraving, or else the name for what it does described under [Its screens](#its-screens). Engravings come from the `button_names` list on the device's row in the plugin's settings, which **Import** fills from the repeater's design. `available_buttons`, `button_N`'s label and `last_button_name` use the same names, so pickers and automations read them too.
+
+Anyone who can control the keypad can name a button:
+
+```json
+{ "action": "set_button_name", "button": 1, "name": "Movie" }
+```
+
+An empty or missing `name` goes back to the engraving. A name is trimmed and kept to 64 characters, and a button the keypad does not have is refused. Names are kept in homeCore's stored state for the plugin, one entry per button, so they survive a restart and an update. Changing the engraving in the settings does not clear a name the household gave. Nothing is sent to the repeater, and the engraving on the wall stays as it is.
 
 - `{"on": true}` with no level turns a dimmer or fan back on at the last level the repeater reported, or full if none has been seen since the plugin started. `brightness_pct: 0` is off, and a lit dimmer never reports 0 %.
 - `transition_ms` sent beside a level sets the fade. It goes to the repeater to the hundredth of a second, for fades under a minute.
