@@ -25,6 +25,49 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.63, 2026-11-13
+
+**Theme:** the console on a phone.
+
+### What you'll notice
+
+- **A phone layout for the Console look.** On a screen narrower than 700
+  pixels, the console switches to a layout made for one hand. Four tabs
+  along the bottom: Home, Rooms, Everywhere and Cameras. Your picture at the
+  top right opens your own settings in a sheet.
+- **Home** greets you with the date and the outside temperature, lists what
+  needs attention with a button to fix each one, then your favorites and
+  every room as a lit tile, two across.
+- **A room** opens with its picture lit by its lights, then Room on and Room
+  off, your favorites and the tabs as chips. The chips follow the room's
+  Customize choices. The room's audio sits in a slim bar at the bottom that
+  opens into a sheet. The ⋯ button has Previous room and Next room.
+- **A sheet for each lamp.** Tap a lamp's name for a brightness bar, a warm
+  to cool strip, its scenes and Where it shows. Tap All for the same sheet
+  for the whole group. Swipe down or press Escape to close it.
+- **Everywhere** puts its five views behind a segmented control.
+- **Cameras** shows one camera live on top, snapshots of the others two
+  across, and the day's events below.
+- Everything you tap on the phone layout is at least 44 pixels.
+
+### Known limits
+
+- Customize needs a screen at least 700 wide; the phone says so.
+- A room's Cameras tab on the phone leaves out spotlight, siren and PTZ;
+  they're in each camera's Details.
+- Edit, search and the per-screen "opens on a room" setting aren't on the
+  phone yet.
+
+### Release matrix
+
+**Tagged:** `v0.1.63` (hc-web-svelte).
+
+### Upgrade notes
+
+- None. Desktop screens and the Lit and Classic looks are unchanged.
+
+---
+
 ## App v0.1.62, 2026-11-12
 
 **Theme:** a Hue scene in one lamp, and keypad buttons by name.
