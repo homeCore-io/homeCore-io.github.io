@@ -25,6 +25,54 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.61, 2026-11-12
+
+**Theme:** customize a room in the Console look, give it a photo, and pick
+your own picture.
+
+### What you'll notice
+
+- **Customize a room.** A Customize button in each room's header (or
+  "Customize the room" in your name menu) shows the room with dashed outlines
+  on what you can change:
+  - favorites: reorder, unpin, or add more with Pin a favorite
+  - tabs: reorder, hide, and star the one the room opens on
+  - the Lights tab: reorder its columns and hide single lights or switches
+  - room audio, the room picture, header pills and your control styles, in
+    a side panel
+
+  **Just me** changes only what you see. **Everyone** changes it for the
+  household and needs the right to change household settings. Your own
+  changes win over the household's. Undo works on every change until Done,
+  and each layer has a button to go back to where it started. Items move by
+  dragging, with their arrow buttons, or with the arrow keys.
+- **Header pills** for camera events are now chosen in Customize. The old
+  pills button in the room header became the Customize button.
+- **Room photos.** A room's picture can be a photo instead of the drawing.
+  It fills the header and the room's Home tile, and each light glows on it
+  when it's on. Light spots start where the drawing had them. Move a spot by
+  picking it and clicking the photo, or with the arrow keys, and pick its
+  device and glow size. A drawing's spots can be linked to a device by hand
+  too. Photos are kept in the app's picture library, never in core.
+- **Your picture.** You › Picture offers a photo, initials on a color (the
+  default) or an icon on a color. It shows in the toolbar, People, rule
+  history, a device's recent activity, and Customize. Others see only your
+  picture and name.
+- **The ⋯ placement picker** now also reaches scene chips, the camera
+  snapshots below the big camera, a big door's sensor that has an opener, and
+  a thermostat's run switch.
+
+### Release matrix
+
+**Tagged:** `v0.1.61` (hc-web-svelte).
+
+### Upgrade notes
+
+None. Works with core v0.1.103. Room photos and pictures use the app's
+existing data directory (`HC_DATA_DIR`).
+
+---
+
 ## App v0.1.60, 2026-11-12
 
 **Theme:** the Console look gets its Home page, Everywhere views and room
