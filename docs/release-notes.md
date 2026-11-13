@@ -25,6 +25,99 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.62, 2026-11-12
+
+**Theme:** a Hue scene in one lamp, and keypad buttons by name.
+
+### What you'll notice
+
+- **A scene for one lamp.** In a room's Lights tab, tap a Hue lamp's label
+  under its fader to select it. The scenes line then reads "Scene for Floor
+  Lamp", and a scene chip gives that lamp only its part of the scene. A chip
+  is greyed out when the scene doesn't set that lamp. With All selected, a
+  chip runs the whole scene as before.
+- **Which scene is on.** The scenes line names the scene the group shows, and
+  its chip is outlined. A lamp showing a different scene has the name under
+  its label. Chips are colored from the scene's own colors where Hue reports
+  them.
+- **Keypad buttons show their names.** A drawn Lutron keypad shows each
+  button's name: the household's own, else the engraving. People who can
+  change devices get **Rename buttons**: type a name, or clear it to go back
+  to the engraving.
+- **The bathroom drawing** now looks like a bathroom: an oval mirror, sink,
+  toilet, towel, shower and tub.
+
+### Release matrix
+
+**Tagged:** `v0.1.62` (hc-web-svelte). Released the same day:
+`hc-hue-v0.2.7`, `hc-lutron-v0.1.24`.
+
+### Upgrade notes
+
+- One-lamp scenes need hc-hue v0.2.7, and keypad names and renaming need
+  hc-lutron v0.1.24. With older plugins the console works as before.
+
+---
+
+## hc-lutron v0.1.24, 2026-11-12
+
+**Theme:** name your keypad buttons.
+
+### What you'll notice
+
+- **Every keypad, Pico and VCRX publishes `button_names`,** each button's
+  name keyed by its number. A name is the household's own label if one is
+  set, else the engraving from the DbXML import, else what the button does
+  ("Lower", "On").
+- **Anyone who can use the device can rename a button** with
+  `{"action": "set_button_name", "button": 1, "name": "Movie"}`. An empty
+  name goes back to the engraving. Names are kept in the plugin's saved
+  state, so one rename never overwrites another, and nothing is sent to the
+  repeater.
+- `available_buttons`, the button display names and `last_button_name` use
+  the same names.
+
+### Release matrix
+
+**Tagged:** `hc-lutron-v0.1.24`. Released the same day: `hc-hue-v0.2.7`,
+app `v0.1.62`.
+
+### Upgrade notes
+
+- Nothing to change. Keypads already known get the new action after the
+  plugin restarts on upgrade.
+
+---
+
+## hc-hue v0.2.7, 2026-11-12
+
+**Theme:** scenes light by light.
+
+### What you'll notice
+
+- **A scene says what it sets each light to.** Scene devices have a `lights`
+  attribute listing, for each light, on or off, brightness, color temperature
+  (kelvin), color and effect, with only what the scene sets.
+- **One light's part of a scene:** a light's new `apply_scene` action,
+  `{"action": "apply_scene", "scene_id": "<scene>"}`, sends that light only
+  what the scene sets for it. `transition_ms` is optional.
+- **Which scene a light shows.** Each light reports `scene` and `scene_name`
+  when its state matches a scene's setting for it, and null otherwise. Rooms
+  and zones report their active scene the same way. Matching allows small
+  differences in brightness and color.
+
+### Release matrix
+
+**Tagged:** `hc-hue-v0.2.7`. Released the same day: `hc-lutron-v0.1.24`,
+app `v0.1.62`.
+
+### Upgrade notes
+
+- Nothing to change. Lights already known get `apply_scene` after the plugin
+  restarts on upgrade.
+
+---
+
 ## App v0.1.61, 2026-11-12
 
 **Theme:** customize a room in the Console look, give it a photo, and pick
