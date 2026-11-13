@@ -74,6 +74,52 @@ their times in the Hue app. When you rename, add or delete a scene in the Hue
 app, homeCore follows within seconds. The same goes for a light that is
 renamed or moved to another room.
 
+### What a scene sets each light to
+
+A scene publishes `lights`, one entry per light it sets. Each entry has the
+light's homeCore device id and the scene's setting for it, in the same names
+the light uses:
+
+```json
+"lights": [
+  { "device_id": "hue_{bridge}_light_{id}", "on": true, "brightness_pct": 56.3,
+    "color_temp": 2237, "color_hex": "#ffc48a" },
+  { "device_id": "hue_{bridge}_light_{id}", "on": true, "brightness_pct": 80,
+    "color_xy": { "x": 0.56, "y": 0.4 }, "color_hex": "#ff9f2e" },
+  { "device_id": "hue_{bridge}_light_{id}", "on": false }
+]
+```
+
+An entry carries only what the scene sets: `on`, `brightness_pct`,
+`color_temp` (kelvin), `color_xy`, `gradient_points` and `effect`, plus
+`color_hex`, a swatch to draw. A smart scene has no `lights`, because it moves
+through other scenes. When a scene is edited in the Hue app, `lights` follows.
+
+One light can take its own part of a scene and leave the rest of the room
+alone:
+
+```json
+{ "action": "apply_scene", "scene_id": "hue_{bridge}_scene_{id}", "transition_ms": 400 }
+```
+
+`scene_id` is the scene's homeCore device id or its Hue id. `transition_ms` is
+optional. Without it, the light fades as the scene does. A scene that does not
+set that light is refused, and the reason shows with the command's result.
+
+### Which scene is showing
+
+A light publishes `scene` (the scene's homeCore device id) and `scene_name`
+when what it shows matches its part of a scene. They are null when it matches
+none. The match allows for the small differences the bridge reports: 3 points
+of brightness, 8 mirek of white (about 60 K around 2700 K), and a short
+distance in color. A light that is off matches no scene, and neither does a
+scene setting that only switches a light on. When two scenes match, the one
+the bridge reports active wins, then the first by name. Both follow the
+bridge's event stream, so dimming a light by hand clears its scene.
+
+A room or zone that is a device publishes `scene` and `scene_name` for its
+scene the bridge reports active, and null when none is.
+
 ## Rooms and zones
 
 Each Hue room or zone can be a device of its own in homeCore, with one switch,
@@ -149,6 +195,7 @@ These are the commands the screens send, for anyone writing their own:
 | scene | `{"action": "rename", "name": "Movie"}`, `{"action": "delete"}` | rename it, delete it from the bridge |
 | room | `{"action": "save_scene", "name": "Movie"}` | save its lights as they are as a new scene |
 | light, room | `{"action": "activate", "scene_id": "<the scene's resource_id>"}` | apply a scene through it |
+| light | `{"action": "apply_scene", "scene_id": "<the scene's device id>"}` | give this light only its part of the scene |
 | motion sensor | `{"motion_sensitivity": 2}`, `{"enabled": false}` | sensitivity 0 to 2; pause it |
 | contact sensor | `{"enabled": false}` | pause it |
 
