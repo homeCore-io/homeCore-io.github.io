@@ -25,6 +25,28 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.67, 2026-11-14
+
+**Theme:** update every plugin at once.
+
+### What you'll notice
+
+- **Update all.** With two or more plugin updates waiting, Settings ›
+  Plugins offers Update all. It lists each plugin with its current and
+  new version first, then updates them one at a time so they don't all
+  restart together. A plugin on a plugin runtime stays there. One that
+  fails doesn't stop the rest, and the page says how each went.
+
+### Release matrix
+
+**Tagged:** `v0.1.67` (hc-web-svelte).
+
+### Upgrade notes
+
+- No core change needed. Works with core v0.1.106.
+
+---
+
 ## App v0.1.66, 2026-11-14
 
 **Theme:** choose which devices count for security, and a few readability fixes.
