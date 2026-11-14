@@ -25,6 +25,105 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.66, 2026-11-14
+
+**Theme:** choose which devices count for security, and a few readability fixes.
+
+### What you'll notice
+
+- **Security is your choice, per device.** A device's page has a new
+  Security setting under Identity: as its type says (locks, doors and
+  windows count), Counts for security, or Not for security. It is kept in
+  homeCore, so every screen and app sees the same choice. An interior door
+  set to Not for security leaves Everywhere › Security, the sidebar's count,
+  its room's header and tile, and Home's list of what needs a look. It
+  stays on its room's tabs and in rules.
+- **Anything can be watched.** A motion sensor, a gate contact or a shed
+  light set to Counts for security shows with the locks and doors, and
+  needs a look while it is active (motion, open, wet or on) or offline.
+- **Quicker from Security.** Each pill in Everywhere › Security has a ⋯
+  menu with Not for security, for people who can edit devices.
+- **Easier to read.** A keypad's unnamed buttons and the red Shut off and
+  Close buttons are darker. On a phone in Classic or Lit, the glow at the
+  top of Everywhere reaches the screen's edges.
+
+### Release matrix
+
+**Tagged:** `v0.1.66` (hc-web-svelte).
+
+### Upgrade notes
+
+- Needs core v0.1.106 for the Security setting. With an older core the
+  setting can't be saved and everything counts by type, as before.
+
+---
+
+## v0.1.106, 2026-11-14
+
+**Theme:** a security choice on every device.
+
+### What changed
+
+- Devices have a `security` field: absent follows the device's type,
+  `true` counts it for security, `false` never counts it. Set it with
+  `PATCH /api/v1/devices/{id}` and `{"security": true | false | null}`;
+  `null` clears it. Any other value gets 422. Plugins re-registering a
+  device never change it, and live clients hear the change as
+  `device_metadata_changed`.
+
+### Release matrix
+
+**Tagged:** `v0.1.106` (core).
+
+---
+
+## hc-weather v0.1.2, 2026-11-14
+
+- Its readings are read only. They were marked writable because the
+  schema was built on a default that allows writes.
+
+---
+
+## hc-ecowitt v0.1.24, 2026-11-14
+
+- Every reading has a proper name: UV index, Dew point, Rain today,
+  PM2.5, Wind gust, and the gateway's settings, which used to show as
+  raw keys like "Uvi". The UV index no longer claims a unit.
+- Messages, action descriptions and the plugin page no longer use long
+  dashes.
+
+---
+
+## hc-thermostat v0.1.21, 2026-11-14
+
+- Yes/no readings read positively: Readings current or missing, Switch
+  connection online or offline, Switch report confirmed or waiting.
+  Attribute names and values are unchanged, so rules keep working.
+- Reasons, messages and the plugin page no longer use long dashes, for
+  example "Waiting (short-cycle guard)" and "Off: no reading".
+
+---
+
+## v0.1.105, 2026-11-14
+
+**Theme:** small API corrections.
+
+### What changed
+
+- Plugins that aren't running now report their installed version when
+  core can tell it from the install record or the version folder, so the
+  Catalog can say what's installed. A plugin configured by hand outside
+  an install folder still reports none.
+- Every automation endpoint answers 404 for a rule that doesn't exist.
+  Saving one answered 422, its history 503 and resuming it 200. An id
+  that isn't one gets a JSON 400.
+
+### Release matrix
+
+**Tagged:** `v0.1.105` (core).
+
+---
+
 ## App v0.1.65, 2026-11-14
 
 **Theme:** settings where you expect them, and plainer wording.
