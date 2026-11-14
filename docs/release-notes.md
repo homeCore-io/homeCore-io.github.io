@@ -25,6 +25,40 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.65, 2026-11-14
+
+**Theme:** settings where you expect them, and plainer wording.
+
+### What you'll notice
+
+- **The gear and your picture are on every page.** In the Console look,
+  Settings and Me now open in the same frame as Home, so the gear
+  (household settings) and your picture (your own settings) stay at the
+  top right everywhere. Settings and You are gone from the foot of the
+  sidebar. On a phone, Settings keeps the tab bar.
+- **Everywhere's On keeps Room on's choice.** Turning a room's lights on
+  from Everywhere brings back only the lights that were on, as Room on
+  does, instead of turning on every other light in the room too.
+- **Plugins follow core's rules.** The Catalog needs only the right to
+  manage plugins, and a plugin's admin actions need that right and the
+  admin role, which is what core checks.
+- **Signing out starts clean.** The next person to sign in on the same
+  screen no longer sees the last person's settings on Me. Changing your
+  password signs you out the same way.
+- **Wording.** Labels, hints and messages no longer use long dashes. For
+  example, the settings search reads "Find a setting: backup, port,
+  pushover", and a paused speaker shows "Paused: ALT Radio".
+
+### Release matrix
+
+**Tagged:** `v0.1.65` (hc-web-svelte).
+
+### Upgrade notes
+
+- No core change needed. Works with core v0.1.104.
+
+---
+
 ## App v0.1.64, 2026-11-14
 
 **Theme:** a deep check of the whole app: counts that agree, the phone
