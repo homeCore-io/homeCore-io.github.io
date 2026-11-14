@@ -25,6 +25,95 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.64, 2026-11-14
+
+**Theme:** a deep check of the whole app: counts that agree, the phone
+layout refined, the light theme readable, Settings honest about what it
+knows, and the keyboard.
+
+### What you'll notice
+
+- **Counts agree everywhere.** Home, the sidebar, room headers and
+  Everywhere use one rule for lights, one for what's playing and one for
+  security. A camera's spotlight isn't a light: Room on, Room off and All
+  off leave it alone, and Lit shows it with its camera. An offline light
+  counts as off. An unlocked lock is called unlocked, not open.
+- **Temperatures.** Readings already in °F are no longer converted a second
+  time in Lit, charts and the weather's feels-like. A room's temperature
+  comes from its air readers only, never a leak sensor, freezer probe or
+  heated floor. Home leaves out an outside temperature that hasn't been
+  reported in the last hour.
+- **No more blank page at start.** The app shows the homeCore mark and
+  Opening homeCore… until it is ready, and asks a busy core again before
+  sending anyone to sign in. Leaving Cameras no longer leaves core busy:
+  events and stills load a few at a time and only near the screen.
+- **On a phone:** Back closes an open sheet. The Media tab is one column.
+  The You sheet shows only what a phone uses, and Picture and Me open in
+  the phone layout. A room keeps up to seven switches on its Lights tab.
+  Every control is at least 44 pixels.
+- **Light theme.** Green, blue, amber and purple status text is darker in
+  the light theme, so Locked, Closed, humidity, No room, cooling and
+  Playing are easy to read. The red alert buttons have white words.
+- **Settings.** Pages say Loading… while they load instead of claiming
+  homeCore is too old, and say why when a request is refused. The Catalog
+  says when an installed version is unknown. System counts plugins that
+  need a look instead of saying All well. A plugin turned off but still
+  running says so. Admin pages show only what the sign-in can use.
+- **Keyboard and screen readers.** Every page has its own tab title, a
+  Skip to content link, and focus on the page after moving. Menus close
+  with Escape and return focus. Room tabs take Home and End. Search is a
+  proper combobox.
+- **Classic and Lit** have an Everywhere group in the sidebar. Lit says
+  Couldn't send when a command fails, and uses its own scene buttons.
+- **Smaller things.** "No room" is the one name for devices in no room.
+  Names that repeat are told apart, as in Test Door (44). Weather readings
+  are read only, with an empty state when the service has sent nothing. An
+  off light says Off. A paused timer offers Resume. Long names wrap to two
+  lines.
+
+### Release matrix
+
+**Tagged:** `v0.1.64` (hc-web-svelte).
+
+### Upgrade notes
+
+- Works best with core v0.1.104, which leaves camera spotlights out of
+  Room on and Room off.
+
+---
+
+## hc-ecowitt v0.1.23, 2026-11-14
+
+### What you'll notice
+
+- The station's panel and cards label each reading in the unit it was
+  written in, then show it in your units. A station still holding °F, mph
+  and inHg from an older plugin version reads 57.7°F, not 57.7 °C, and its
+  wind and pressure show instead of m/s and a dash.
+
+### Release matrix
+
+**Tagged:** `hc-ecowitt-v0.1.23`.
+
+---
+
+## v0.1.104, 2026-11-14
+
+### What you'll notice
+
+- Room on and Room off leave a camera's spotlight alone, wherever the
+  camera is, so turning on a room never lights its cameras' floodlights.
+
+### Release matrix
+
+**Tagged:** `v0.1.104` (core).
+
+### Upgrade notes
+
+- None.
+
+---
+
 ## App v0.1.63, 2026-11-13
 
 **Theme:** the console on a phone.
