@@ -25,6 +25,17 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.69, 2026-11-14
+
+- **Scenes is in the gear menu,** between Devices and Plugins, so the new
+  Scenes page is one click from anywhere. No core change needed.
+
+### Release matrix
+
+**Tagged:** `v0.1.69` (hc-web-svelte).
+
+---
+
 ## App v0.1.68, 2026-11-14
 
 **Theme:** every scene in one place, and the ones you choose on Home.
