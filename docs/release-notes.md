@@ -25,6 +25,26 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.70, 2026-11-15
+
+- **Home has a weather band.** It shows the current conditions, the next
+  24 hours and a three day forecast, with a link to show more days. It
+  works on desktop, tablet and phone layouts.
+- **The weather source is a setting.** Settings › System › Units and
+  region picks the source: automatic, the weather service, or a single
+  outdoor sensor. Temperatures and wind follow the household units. When
+  no weather source exists, the band is hidden.
+- **The favorites and scenes row fits the screen.** With a mouse or
+  trackpad the row wraps onto more lines. On a touch screen it scrolls
+  sideways with no scroll bar, and an edge fades only while more items
+  lie past it. No core change needed.
+
+### Release matrix
+
+**Tagged:** `v0.1.70` (hc-web-svelte).
+
+---
+
 ## hc-reolink v0.1.4, 2026-11-14
 
 - **Spotlights follow the camera.** A spotlight turned on or off by
