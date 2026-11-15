@@ -25,6 +25,42 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.68, 2026-11-14
+
+**Theme:** every scene in one place, and the ones you choose on Home.
+
+### What you'll notice
+
+- **Settings › Scenes lists every scene.** homeCore's own and every
+  plugin's (Lutron phantom buttons and keypad scenes, Hue, Caséta), the
+  way Devices lists devices: search by name, room or what provides it,
+  filters for On Home, Active and No room, a From picker, and every
+  column sorts. From says what provides each one, such as "Lutron ·
+  Phantom button 78". A Hue scene that several rooms share is one row
+  that opens to list each room's copy. Select several to put them on
+  Home, take them off, or move them to a room. New scene, Export and
+  Import are still here.
+- **A scenes row on Home.** The scenes you choose sit next to "Every
+  light off", in your order. A scene that can tell lights up while it's
+  active, like a keypad LED, and one tap runs it. On a phone the row is
+  two across.
+- **Yours or the house's.** Edit on the row sets the house's row
+  (Everyone) or your own (Just me), which follows you to every screen you
+  sign in to. Reorder by dragging or with the arrows, remove one, or add
+  any scene, Hue rooms included.
+
+### Release matrix
+
+**Tagged:** `v0.1.68` (hc-web-svelte).
+
+### Upgrade notes
+
+- No core change needed. The rows are kept with the app's household and
+  personal settings. Classic and Lit keep their own Scenes & modes section
+  on Home.
+
+---
+
 ## App v0.1.67, 2026-11-14
 
 **Theme:** update every plugin at once.
