@@ -106,7 +106,7 @@ Some of these are worth calling out:
 | Automations | Rules written out in words, with when each last ran, groups by tag, dry runs and history. The editor builds a rule as sentences in three parts (When, Only if, Do) and covers every trigger, condition and action; its advanced mode edits the rule as JSON. |
 | Alerts | Time rules, such as a door left open at night |
 | Asking first | Which commands ask for confirmation before they go |
-| Plugins | Install from the Catalog, the [signed registry](../plugins/overview.md), grouped by category, start, stop, restart and update, edit each plugin's settings in a form the plugin describes, run its actions, set its log level and read its live log. Plugin runtimes are approved here too. |
+| Plugins | Install from the Catalog, the [signed registry](../plugins/overview.md), grouped by category, start, stop, restart and update, edit each plugin's settings in a form the plugin describes, run its actions, set its log level and read its live log. Plugin runtimes are added here too. |
 | Extensions | The [UI extensions](./extensions.md) installed, where each came from, and Remove; new ones come from the Catalog or a file |
 | Look | The house's [look](./looks.md), and the look editor |
 | Configuration | `homecore.toml` as a form driven by core's config descriptor, with the raw TOML and a restart button |
