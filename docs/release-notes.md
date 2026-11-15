@@ -25,6 +25,21 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-reolink v0.1.4, 2026-11-14
+
+- **Spotlights follow the camera.** A spotlight turned on or off by
+  anything other than homeCore (the camera's own motion lighting or
+  schedule, its timer, Reolink's app) now shows in homeCore within a
+  second or two: the plugin listens for the camera's light message on the
+  push connection, as it already did for sirens. Each spotlight is also
+  read again with every poll, every 30 s while push is up, as a backstop.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.4`.
+
+---
+
 ## App v0.1.69, 2026-11-14
 
 - **Scenes is in the gear menu,** between Devices and Plugins, so the new
