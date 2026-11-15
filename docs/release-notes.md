@@ -25,6 +25,316 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.71, 2026-11-15
+
+**Theme:** the iPad.
+
+- **Portrait:** from 761 to 900 px wide, an iPad held upright, the sidebar
+  is the rail of icons and pages get the whole width. Home shows three
+  columns of rooms and the weather band side by side. Tap Rooms or the
+  sidebar button and the sidebar slides over the page; it goes on the
+  next tap elsewhere or the next page. Your saved sidebar choice on a
+  desktop is unchanged.
+- **Cameras:** on a screen taller than wide, the live picture runs across
+  the top with the snapshots in rows under it. Beside the picture, two
+  snapshots across are at least 228 px each, so their names fit, and the
+  controls sit right under the picture.
+- **Room media bar:** on a tablet, Plays through sits beside its picker,
+  so the bar takes two rows instead of three.
+- **By touch:** a scene chip's menu button stands beside the chip, since
+  there is no hover to bring it up. The small dots menus take a larger
+  tap. The Everywhere views scroll as one page, as on a phone. Ctrl K is
+  no longer shown in the search bar.
+- **Weather band:** the conditions stay on one line.
+
+No core change needed.
+
+### Release matrix
+
+**Tagged:** `v0.1.71` (hc-web-svelte).
+
+---
+
+## hc-plugin-sdk-dotnet v0.4.3, 2026-11-15
+
+- A plugin started by homeCore stops when that homeCore is gone. See core
+  v0.1.107. Plugins started any other way are unaffected.
+
+### Release matrix
+
+**Tagged:** `v0.4.3` (hc-plugin-sdk-dotnet). Not published to NuGet.
+
+---
+
+## hc-plugin-sdk-js v0.4.3, 2026-11-15
+
+- A plugin started by homeCore stops when that homeCore is gone. See core
+  v0.1.107. Plugins started any other way are unaffected.
+
+### Release matrix
+
+**Tagged:** `v0.4.3` (hc-plugin-sdk-js). Not published to npm.
+
+---
+
+## hc-plugin-sdk-py v0.5.3, 2026-11-15
+
+- A plugin started by homeCore stops when that homeCore is gone. See core
+  v0.1.107. Plugins started any other way are unaffected.
+
+### Release matrix
+
+**Tagged:** `v0.5.3` (hc-plugin-sdk-py). Not published to PyPI.
+
+---
+
+## hc-zwave v0.1.22, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+
+### Release matrix
+
+**Tagged:** `hc-zwave-v0.1.22`.
+
+---
+
+## hc-yolink v0.1.21, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- The Catalog lists it under Hubs.
+
+### Release matrix
+
+**Tagged:** `hc-yolink-v0.1.21`.
+
+---
+
+## hc-wled v0.1.25, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category.
+
+### Release matrix
+
+**Tagged:** `hc-wled-v0.1.25`.
+
+---
+
+## hc-weather v0.1.3, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- A failed read says why: a refused connection, a timeout and the like,
+  where it used to say only "no answer". The address it asked is left out,
+  since it holds the house's latitude and longitude.
+
+### Release matrix
+
+**Tagged:** `hc-weather-v0.1.3`.
+
+---
+
+## hc-thermostat v0.1.22, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+
+### Release matrix
+
+**Tagged:** `hc-thermostat-v0.1.22`.
+
+---
+
+## hc-sonos v0.1.20, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category.
+
+### Release matrix
+
+**Tagged:** `hc-sonos-v0.1.20`.
+
+---
+
+## hc-roku v0.1.15, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category.
+
+### Release matrix
+
+**Tagged:** `hc-roku-v0.1.15`.
+
+---
+
+## hc-reolink v0.1.5, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.5`.
+
+---
+
+## hc-nuheat v0.1.2, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category. It is named Nuheat Signature,
+  the thermostats it serves.
+
+### Release matrix
+
+**Tagged:** `hc-nuheat-v0.1.2`.
+
+---
+
+## hc-mysa v0.1.1, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category.
+
+### Release matrix
+
+**Tagged:** `hc-mysa-v0.1.1`.
+
+---
+
+## hc-lutron v0.1.25, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+
+### Release matrix
+
+**Tagged:** `hc-lutron-v0.1.25`.
+
+---
+
+## hc-isy v0.1.13, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category.
+
+### Release matrix
+
+**Tagged:** `hc-isy-v0.1.13`.
+
+---
+
+## hc-hue v0.2.8, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+
+### Release matrix
+
+**Tagged:** `hc-hue-v0.2.8`.
+
+---
+
+## hc-ecowitt v0.1.25, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+
+### Release matrix
+
+**Tagged:** `hc-ecowitt-v0.1.25`.
+
+---
+
+## hc-caseta v0.1.16, 2026-11-15
+
+- **Stops when homeCore does.** If the homeCore that started it is killed
+  or crashes, it now exits within a few seconds. It used to keep running
+  beside the copy the next homeCore starts, and the two knocked each other
+  off the broker every few seconds. Needs core v0.1.107 or later, which
+  tells it who started it.
+- Its manifest names its Catalog category.
+
+### Release matrix
+
+**Tagged:** `hc-caseta-v0.1.16`.
+
+---
+
+## v0.1.107, 2026-11-15
+
+**Theme:** plugins don't outlive the homeCore that started them.
+
+### What changed
+
+- Core sets `HOMECORE_SUPERVISED` to its own process id on each plugin it
+  starts. A plugin built on this round's SDKs watches for that process and
+  exits once it is gone. Stopped normally, core already stopped its
+  plugins; this covers core being killed or crashing, after which the old
+  plugins used to run beside the next core's copies.
+- Under systemd the service's plugins are stopped with it anyway; this
+  matters most when homeCore is run by hand.
+
+### Upgrade
+
+- Nothing to change. Plugins pick it up as each is updated to its release
+  of this round.
+
+### Release matrix
+
+**Tagged:** `v0.1.107` (core).
+
+---
+
 ## App v0.1.70, 2026-11-15
 
 - **Home has a weather band.** It shows the current conditions, the next
