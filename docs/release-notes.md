@@ -25,6 +25,114 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-mcp v0.1.1, 2026-11-16
+
+**Theme:** the Assistant, a chat about the house inside homeCore.
+
+- **hc-mcp is now also a homeCore plugin, "Assistant".** Install it from the
+  Catalog into a Python runtime. It adds an **Ask** button to the app: ask
+  what's on, why something happened, or to set up an automation, and it
+  answers from the house as it is now. It uses the Claude API; an admin adds
+  the API key and picks the model in **Settings › Plugins › Assistant**.
+- **It never does more than the person asking may do.** A household member can
+  ask questions and turn things on and off but can't change automations. Every
+  change waits on a card that says what it will do, unless an admin turns that
+  off. Locks, doors and other devices marked Security need their own switch,
+  which is off by default.
+- **A new automation is shown before it's saved**, as When / Only if / Do, with
+  Save and turn on, Save turned off, or a reply asking for changes.
+- **Chats belong to the person who had them**, kept by the Assistant for 30
+  days by default (7 days or not at all are the other choices). homeCore
+  doesn't store them.
+- Without an API key, or before homeCore has given it access, the Assistant
+  keeps running and the chat says what's missing.
+- The MCP server for Claude Desktop and Claude Code works as before, with the
+  same tools.
+
+Needs core v0.1.110, app v0.1.74 and a Python runtime.
+
+### Release matrix
+
+**Tagged:** `v0.1.1` (hc-mcp), in the plugin registry as `plugin.mcp`
+(Assistant) for x86_64 and aarch64. The release workflow couldn't notify the
+registry, because GitHub refuses a dispatch with more than 10 fields and a
+Python plugin's had 12, so this version was published to it by hand. The
+workflow now nests those fields, and the registry reads both shapes.
+
+---
+
+## App v0.1.74, 2026-11-16
+
+**Theme:** the Ask button.
+
+- **An Ask button on every page** when a plugin offers an assistant (the
+  Assistant does). On a wide screen it opens a panel beside the page; on a
+  tablet the panel sits over it; on a phone it opens a full page. The panel
+  remembers whether it was open, and Escape closes it.
+- **Plugin screens can stream an action, answer its questions and know who is
+  using them** (`host.stream`, `host.respond`, `host.user`).
+- Plugin actions meant for everyone (`signed_in`) stay off a plugin's admin
+  action list.
+
+Needs core v0.1.110.
+
+### Release matrix
+
+**Tagged:** `v0.1.74` (hc-web-svelte).
+
+---
+
+## hc-plugin-sdk-py v0.5.5, 2026-11-16
+
+- **Who called.** An action's handler gets the verified caller (user, role,
+  scopes): `ctx.caller` for a streaming action, a `caller=` keyword for an
+  immediate one if the handler accepts it.
+- **`RequiresRole.SIGNED_IN`**, for an action anyone signed in may call.
+- **REST access from homeCore.** Declare `api_scopes` in the capabilities and
+  homeCore sends the plugin a key on every start: `on_api_access`,
+  `plugin.api_access` and `wait_for_api_access()`.
+- `progress()` and `awaiting_user()` take a `data=` dict, and every stream
+  event's timestamp is later than the one before.
+
+### Release matrix
+
+**Tagged:** `v0.5.5` (hc-plugin-sdk-py). Not published to PyPI.
+
+---
+
+## v0.1.110, 2026-11-16
+
+**Theme:** plugins that work for everyone in the house.
+
+### What changed
+
+- **Plugins learn who is asking.** homeCore adds the verified caller (user,
+  role, scopes) to every plugin action and replaces any caller a client sends.
+- **A plugin action can be open to anyone signed in**, when the plugin declares
+  it `signed_in`. Only the person who started such an action, or an admin, can
+  read its progress, answer it or cancel it. Every other action still needs an
+  admin, as before.
+- **A plugin can ask homeCore for API access.** A plugin that lists the access
+  it needs gets its own key on every start; the previous key is deleted, and so
+  is the key when the plugin is removed. A plugin key can never manage users or
+  other keys, and one for a plugin running on the homeCore machine only works
+  from that machine. Plugin keys show in the API keys list under their plugin.
+- **The Python plugin runtime image is published** with every core release:
+  `ghcr.io/homecore-io/hc-runtime-python`, tagged with core's version and
+  `latest`. The docker repository has a compose file for it,
+  `compose.runtime-python.yml`, and `compose.yml` now publishes the broker
+  port, which answers only once the broker is opened to the network.
+
+### Fixed
+
+- A plugin's progress stream no longer drops events that share a timestamp.
+
+### Release matrix
+
+**Tagged:** `v0.1.110` (core). Image `hc-runtime-python:0.1.110`.
+
+---
+
 ## hc-plugin-sdk-dotnet v0.4.4, 2026-11-16
 
 - **A stopped plugin's devices go offline at once.** After `ConnectAsync`,

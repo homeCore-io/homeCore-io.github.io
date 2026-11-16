@@ -11,6 +11,28 @@ sidebar_position: 1
 
 The repo lives at [homeCore-io/hc-mcp](https://github.com/homeCore-io/hc-mcp).
 
+## The Assistant: the same tools as a chat in homeCore
+
+Since 0.1.1, hc-mcp is also a homeCore plugin, **Assistant** (`plugin.mcp`).
+Install it from the Catalog into a [Python runtime](../plugins/runtimes). It
+adds an **Ask** button to the app (app 0.1.74 or later, core 0.1.110 or later):
+anyone signed in can ask about the house or ask for an automation, and it
+answers with the house as it is now.
+
+- An admin adds a Claude API key and picks the model in **Settings › Plugins ›
+  Assistant**. Questions, and the house details needed to answer them, go to
+  Anthropic.
+- It never does more than the person asking may do. Changes wait on a card
+  that says what will happen, unless an admin turns that off. Locks, doors and
+  other devices marked Security need a separate switch, off by default.
+- New automations are shown as When / Only if / Do before they're saved.
+- Each person's chats are kept by the Assistant (30 days by default), not by
+  homeCore.
+- homeCore gives the plugin its own API key when it starts. There is nothing to
+  paste besides the Claude key.
+
+The log tools stay with MCP clients, since homeCore serves logs only to admins.
+
 ---
 
 ## Tool surface
