@@ -100,6 +100,7 @@ To move it, remove it from the first homeCore, then paste the new key.
 |---|---|---|
 | `HC_RUNTIME_KEY` | | The connection key. Set it here and the page shows it without offering to change it. |
 | `HC_RUNTIME_PAGE_PORT` | `8790` | The runtime's page. `0` turns it off. |
+| `HC_RUNTIME_PAGE_URL` | | The page's address, for homeCore's link to it. Set it when the runtime runs on another machine on a bridge network, or its page is published on a different port. |
 | `HC_RUNTIME_BROKER_HOST` | | The broker's address, when the runtime reaches it somewhere other than the address in the key. |
 | `HC_RUNTIME_POLL_SECS` | `30` | How often it checks in with homeCore. |
 | `HC_RUNTIME_NETWORK_MODE` | | Shown in homeCore's list (for example `bridge` or `host`). |
