@@ -25,6 +25,79 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-mcp v0.1.2, 2026-11-16
+
+- **No more "Waiting for homeCore to give the assistant access" after
+  installing.** homeCore sends that access a second after the Assistant
+  starts, but the notice went up first and stayed in the app until a reload.
+  It now appears only if access is still missing after 15 seconds, and the
+  Assistant's settings page updates by itself once access arrives.
+- The Catalog lists it as **Assistant**, with a description written for the
+  people using it.
+
+### Release matrix
+
+**Tagged:** `v0.1.2` (hc-mcp), in the plugin registry as `plugin.mcp`.
+
+---
+
+## App v0.1.76, 2026-11-16
+
+- **Installing a Python plugin waits for its runtime.** After Install, the
+  button says it's waiting for the runtime, and the page opens the plugin once
+  it's running, usually within a minute. Coming back to the Catalog before then
+  shows it's still on its way instead of offering Install again.
+- **The version you already have reads "Reinstall"**, as a quiet button,
+  instead of "Install".
+- **A plugin in a runtime offers only Uninstall** on its page. Its runtime
+  starts and stops it, so Turn off, Start, Stop and Restart aren't offered.
+- **Each runtime shows where its own page is**, and **Open its page** opens it
+  in a new tab (runtime image 0.1.112 or later). A runtime on the same machine
+  as homeCore uses the address you reach homeCore at; elsewhere, set
+  `HC_RUNTIME_PAGE_URL` on the runtime if the address shown isn't right.
+- The Assistant is named Assistant in plugin lists.
+- A device's details now load the first time one is opened, and the home
+  page's size budget is 250 KB (it was 200 KB).
+
+v0.1.75 was tagged but never published: its image build stopped at the old
+size budget. Everything in it is in v0.1.76.
+
+Needs core v0.1.112.
+
+### Release matrix
+
+**Tagged:** `v0.1.76` (hc-web-svelte).
+
+---
+
+## v0.1.112, 2026-11-16
+
+- **A runtime tells homeCore where its page is**: its port, and the address
+  set in `HC_RUNTIME_PAGE_URL` if any. The app links to it from the Runtimes
+  list. Runtime host 0.2.1; older runtimes still connect, without the link.
+
+### Release matrix
+
+**Tagged:** `v0.1.112` (core). Image `hc-runtime-python:0.1.112`.
+
+---
+
+## v0.1.111, 2026-11-16
+
+### Fixed
+
+- **Plugins in a runtime showed as "Turned off but still running"**, with a
+  Turn on button. homeCore took "turned on" from homecore.toml, where runtime
+  plugins never appear. A plugin placed on a runtime, and the runtime's own
+  connection, now read as on; turning one off is refused with what to do
+  instead (uninstall it).
+
+### Release matrix
+
+**Tagged:** `v0.1.111` (core). Image `hc-runtime-python:0.1.111`.
+
+---
+
 ## hc-mcp v0.1.1, 2026-11-16
 
 **Theme:** the Assistant, a chat about the house inside homeCore.
