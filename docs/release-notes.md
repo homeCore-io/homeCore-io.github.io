@@ -25,6 +25,22 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.78, 2026-11-16
+
+- **Updating a plugin in a runtime shows that it's on its way.** Update used to
+  send the new version to the runtime and leave the page as it was, with no
+  status and Update still there to press. Now the plugin's page says it's
+  updating in its runtime until the plugin is running the new version (usually
+  within a minute), then says so. The Plugins list shows **Updating to x** for
+  it and leaves it out of **Update all**, and Update all says which plugins
+  went to a runtime.
+
+### Release matrix
+
+**Tagged:** `v0.1.78` (hc-web-svelte).
+
+---
+
 ## App v0.1.77, 2026-11-16
 
 **Security:** SvelteKit 3.2.0 and its Node adapter 6.0.2.
