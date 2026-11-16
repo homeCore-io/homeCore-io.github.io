@@ -649,19 +649,16 @@ unpacking anything. See [Plugins](../plugins/overview.md).
 
 ### `[plugin_runtimes]`
 
-Controls how a container-hosted plugin runtime (for plugins written in
-other languages) may enroll with core. The operator runs the container;
-core never manages it. These settings only govern joining.
+Containers you run yourself that host plugins written in other languages. You
+add one in **Settings › Plugins › Runtimes**, which shows the key to paste into
+it. See [Plugin Runtimes](../plugins/runtimes.md).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Master switch. Off means the enrollment endpoints return 404. |
-| `mode` | string | `"open"` | `"open"`: a runtime may ask, and an admin approves a matching code. `"token"`: only an admin-issued token enrolls, and nothing is ever pending. |
-| `whitelist_only` | bool | `true` | Accept enrollment requests only from `[auth].whitelist` sources. |
-| `pending_ttl_mins` | integer | `15` | How long a pending request stays answerable. |
-| `max_pending` | integer | `5` | Cap on simultaneous pending requests. |
-| `max_denials` | integer | `3` | Denials one identity may collect before it has to wait. |
-| `denial_cooldown_mins` | integer | `60` | How long that wait is. |
+| `enabled` | bool | `true` | Master switch. Off means the runtime endpoints return 404. |
+
+Older files may still have `mode`, `whitelist_only` and the pending and denial
+limits from when runtimes asked to join. They are ignored.
 
 ### `[influx]`
 

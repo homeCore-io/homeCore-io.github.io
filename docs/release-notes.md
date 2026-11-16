@@ -25,6 +25,75 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.72, 2026-11-15
+
+**Theme:** adding a plugin runtime.
+
+- **Settings › Plugins › Runtimes** has a new layout. **Add runtime** asks
+  for a name, the language (Python 3.12) and the address the runtime reaches
+  homeCore at, filled in from the one you're using. It then shows the
+  runtime's **connection key** once, with Copy, the two ways to use it, and
+  **Show details**: the homeCore address, broker, username and password, for
+  setting a runtime up by hand.
+- Each runtime shows whether it has connected, what runs in it, Show details,
+  **Reset login** (a new key; the old one stops at once) and **Remove**.
+- When homeCore's broker answers only on its own machine, the page says so,
+  with a button that opens it to the network and restarts homeCore.
+- Copy works on a page served over plain http on the home network.
+- The waiting list, codes and tokens for runtimes asking to join are gone.
+
+Needs core v0.1.108.
+
+### Release matrix
+
+**Tagged:** `v0.1.72` (hc-web-svelte).
+
+---
+
+## v0.1.108, 2026-11-15
+
+**Theme:** plugin runtimes you add yourself.
+
+A plugin runtime is a container you run that holds plugins written in Python.
+See [Plugin Runtimes](plugins/runtimes.md).
+
+### What changed
+
+- **You add a runtime in homeCore** and paste its key into the runtime,
+  instead of the runtime asking to join and waiting for approval. The key
+  holds everything the runtime needs; homeCore keeps only a hash of its
+  password. Reset login and Remove take effect at once: the runtime is pushed
+  off the broker in the same request, and so are its plugins on Remove.
+- **The broker accepts the logins homeCore makes.** With `[[broker.clients]]`
+  set, the broker used to accept only those, so runtimes and the plugins
+  placed on them could not log in. It now also accepts each runtime's login
+  and the login in each installed or placed plugin's config, checked when
+  they connect. A broker with no `[[broker.clients]]` still asks for no login.
+- **Opening the broker to the network** can be done from the app. It sets
+  `[broker].host = "0.0.0.0"` and adds a login for homeCore itself if there
+  is none.
+- **A broker port that is already in use stops homeCore at startup** with an
+  error naming the port. It used to run on with no broker, retrying forever
+  without starting its API or plugins.
+- **SIGTERM works while homeCore waits for its broker.** That wait used to be
+  the one place it couldn't be stopped except by killing it.
+- A Python runtime image is built from this repo
+  (`docker/Dockerfile.runtime-python`). It is not published yet.
+
+### Upgrade
+
+- `[plugin_runtimes]` is now just `enabled`. The old `mode`,
+  `whitelist_only` and pending and denial settings are ignored and can be
+  deleted.
+- Runtimes added under the old joining flow are not carried over. None were
+  in use; add them again.
+
+### Release matrix
+
+**Tagged:** `v0.1.108` (core). No plugin or SDK changes this round.
+
+---
+
 ## App v0.1.71, 2026-11-15
 
 **Theme:** the iPad.

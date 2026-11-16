@@ -83,6 +83,7 @@ const sidebars = {
         'plugins/capabilities',
         'plugins/plugin-screens',
         'plugins/plugin-alerts',
+        'plugins/runtimes',
         'plugins/hue',
         'plugins/yolink',
         'plugins/lutron',

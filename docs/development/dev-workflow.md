@@ -262,7 +262,7 @@ count. What the layers cover:
 | `hc-core` | Trigger matching, condition evaluation, the action executor (Delay, RepeatUntil, Parallel), the scheduler |
 | `hc-state` | Device registry round-trips, history queries |
 | `hc-api` | Scope guards, handler helpers |
-| `homecore/tests/` | The full stack: MQTT → state bridge → rule fires; scope enforcement, API keys and sessions; atomic rule import; plugin-runtime enrollment; streaming; and the OpenAPI-vs-router check |
+| `homecore/tests/` | The full stack: MQTT → state bridge → rule fires; scope enforcement, API keys and sessions; atomic rule import; plugin runtimes (add, key, reset, remove); streaming; and the OpenAPI-vs-router check |
 
 Plugins and SDKs carry their own suites. `hc-captest` exists to assert
 the capability spec end to end against a running core.

@@ -87,8 +87,9 @@ These routes are public and need no authentication: `GET /health`,
 `GET /system/versions`, `POST /auth/login`, `POST /auth/refresh`,
 `POST /auth/logout` (holding the refresh token is the proof), and
 `POST /webhooks/{path}`. For webhooks the path segment *is* the shared
-secret, so treat it as one. The plugin-runtime enrollment endpoints are
-also outside the token system and have their own checks.
+secret, so treat it as one. A plugin runtime's check-in, placements and
+plugin downloads are outside the token system too: each runtime signs in with
+its own password, from the key homeCore made when it was added.
 
 `GET /metrics` sits outside the token system too. It is gated by
 `[metrics].whitelist` instead and returns 403 to everyone by default. See
