@@ -25,6 +25,25 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.77, 2026-11-16
+
+**Security:** SvelteKit 3.2.0 and its Node adapter 6.0.2.
+
+- SvelteKit fixes four advisories in 3.1.0 and earlier: a server-only module
+  could be inlined into the browser bundle, a protocol-relative import during
+  server route resolution, and two in features the app doesn't use (remote
+  form parsing and batched queries).
+- The Node adapter could crash while passing some requests through `fetch`,
+  which is how the app reaches homeCore.
+
+No other changes.
+
+### Release matrix
+
+**Tagged:** `v0.1.77` (hc-web-svelte).
+
+---
+
 ## hc-mcp v0.1.2, 2026-11-16
 
 - **No more "Waiting for homeCore to give the assistant access" after
