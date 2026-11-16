@@ -25,6 +25,278 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-plugin-sdk-dotnet v0.4.4, 2026-11-16
+
+- **A stopped plugin's devices go offline at once.** After `ConnectAsync`,
+  SIGTERM (how homeCore and a plugin runtime stop a plugin) and Ctrl-C run
+  `StopAsync()`: the plugin's `OnStop` (1 second), every registered device
+  offline, the plugin offline, a disconnect, and then the process exits.
+  Called directly, `StopAsync()` ends `RunAsync()` and leaves the process
+  running.
+
+### Release matrix
+
+**Tagged:** `v0.4.4` (hc-plugin-sdk-dotnet). Not published to NuGet.
+
+---
+
+## hc-plugin-sdk-js v0.4.4, 2026-11-16
+
+- **A stopped plugin's devices go offline at once.** Once `run()` is called,
+  SIGTERM and Ctrl-C call `stop()`: the plugin's `onStop()` (1 second, may
+  return a promise), every registered device offline, the plugin offline, a
+  disconnect once those are sent, and then the process exits.
+
+### Release matrix
+
+**Tagged:** `v0.4.4` (hc-plugin-sdk-js). Not published to npm.
+
+---
+
+## hc-zwave v0.1.23, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-zwave-v0.1.23`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-yolink v0.1.22, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-yolink-v0.1.22`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-wled v0.1.26, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-wled-v0.1.26`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-weather v0.1.4, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-weather-v0.1.4`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-thermostat v0.1.23, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+- Leaving every zone safe now happens in that same step, before its zones
+  are marked offline.
+
+### Release matrix
+
+**Tagged:** `hc-thermostat-v0.1.23`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-sonos v0.1.21, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-sonos-v0.1.21`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-roku v0.1.16, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-roku-v0.1.16`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-reolink v0.1.6, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+- Turning off a siren it started and signing out of each camera now happens
+  in that same step, with the sign-outs done at the same time so they fit.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.6`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-nuheat v0.1.3, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-nuheat-v0.1.3`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-mysa v0.1.2, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-mysa-v0.1.2`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-lutron v0.1.26, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-lutron-v0.1.26`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-isy v0.1.14, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-isy-v0.1.14`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-hue v0.2.9, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-hue-v0.2.9`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-ecowitt v0.1.26, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-ecowitt-v0.1.26`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
+## hc-caseta v0.1.17, 2026-11-16
+
+- **Its devices read offline as soon as it stops.** When homeCore stops or
+  restarts it, the plugin now marks each of its devices offline, reports
+  itself offline and disconnects before it exits. Its devices used to keep
+  reading online with their last state until something noticed. Works with
+  any core; core v0.1.109 or later also shows the plugin offline at once.
+
+### Release matrix
+
+**Tagged:** `hc-caseta-v0.1.17`. Built on plugin-sdk-rs 0.6.4, whose run loop now
+answers SIGTERM and Ctrl-C this way; a plugin's own last steps go in
+`with_stop_handler`.
+
+---
+
 ## App v0.1.73, 2026-11-15
 
 **Theme:** plugin runtimes, the rest of the way.
