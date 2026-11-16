@@ -27,6 +27,10 @@ homeCore itself if there is none, and restarts homeCore. From then on the
 broker asks every connection for a login: homeCore makes one for each runtime
 and each plugin, so you never type one in.
 
+If homeCore runs from the Docker stack, its `compose.yml` publishes port 1883
+for this. Older copies of the file don't; add `- "1883:1883"` under the
+`homecore` service's `ports`.
+
 ## Add a runtime
 
 1. In homeCore, open **Settings › Plugins › Runtimes** and choose
@@ -45,6 +49,14 @@ and each plugin, so you never type one in.
 4. Open `http://<the machine running it>:8790`, paste the key and choose
    **Connect**. The runtime tries homeCore and the broker before saving the
    key, and says which one it couldn't reach.
+
+The [docker repository](https://github.com/homeCore-io/docker) has a ready
+compose file for this, `compose.runtime-python.yml`:
+
+```sh
+mkdir runtime-python-data
+docker compose -f compose.runtime-python.yml up -d
+```
 
 Instead of the page, you can pass the key when the container starts, which
 suits compose files:
