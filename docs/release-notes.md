@@ -25,6 +25,75 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.73, 2026-11-15
+
+**Theme:** plugin runtimes, the rest of the way.
+
+- **The Catalog says what a Python plugin needs before you install it.**
+  Such plugins are marked "Runs in a Python runtime", and the card says what
+  is missing: no runtime yet (with a link to add one), one that hasn't
+  connected, one on another architecture, or one that's full. Install stays
+  off until a runtime can take it.
+- **A plugin limit per runtime.** Set it when adding a runtime or with
+  **Change limit** on its card; blank means no limit. A few plugins suit a
+  Raspberry Pi; a large server takes many.
+- **Outdated runtimes say so**, on their card and in the Catalog before you
+  install into one, with what to do: pull the newer image and restart the
+  container.
+
+Needs core v0.1.109.
+
+### Release matrix
+
+**Tagged:** `v0.1.73` (hc-web-svelte).
+
+---
+
+## hc-plugin-sdk-py v0.5.4, 2026-11-15
+
+- **A stopped plugin's devices go offline at once.** On SIGTERM (how homeCore
+  and a plugin runtime stop a plugin) or Ctrl-C, the SDK runs the plugin's
+  `on_stop()` hook, marks every device offline, reports the plugin offline and
+  disconnects. They used to keep reading online with their last state.
+  `stop()` can also be called directly.
+
+### Release matrix
+
+**Tagged:** `v0.5.4` (hc-plugin-sdk-py). Not published to PyPI.
+
+---
+
+## v0.1.109, 2026-11-15
+
+**Theme:** plugin runtimes you can see into.
+
+### What changed
+
+- **A plugin that says it's going offline reads offline at once**, instead of
+  after its heartbeat times out about 90 seconds later. A plugin homeCore
+  counts as starting, or that was stopped on purpose, is left as it is.
+- **A per-runtime plugin limit.** A full runtime takes no new plugin, and
+  install says which one is full; updates to plugins already on it always go
+  through. An update now goes to the runtime the plugin already runs on.
+- **homeCore says when a runtime is too old**: the oldest it works with is
+  0.2.0, the first that connects with a key.
+- **The runtime's own page shows logs**: the last 500 lines from the runtime
+  and from each plugin, including what a plugin prints before it reaches
+  homeCore. A crash notice in homeCore now includes the plugin's last output.
+  Passwords and keys are masked.
+
+### Also
+
+- The registry now keeps the newest three versions of each plugin; older
+  versions can no longer be installed. Old GitHub releases were pruned the
+  same way. Their git tags remain.
+
+### Release matrix
+
+**Tagged:** `v0.1.109` (core). No plugin changes.
+
+---
+
 ## App v0.1.72, 2026-11-15
 
 **Theme:** adding a plugin runtime.
