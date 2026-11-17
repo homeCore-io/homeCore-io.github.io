@@ -25,6 +25,27 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.115, 2026-11-17
+
+### Fixed
+
+- **Any API key could list who is connected.** `GET /ws/connections`, which
+  shows each open connection's address and user, checked a role that every
+  API key carries as a placeholder, so a display's key or any other key
+  could read it. It now needs an admin, like the other admin pages.
+
+### Changed
+
+- The product is spelled homeCore everywhere people see it, including the
+  default alert title ("homeCore Alert") and the service description. Code
+  names are unchanged.
+
+### Release matrix
+
+**Tagged:** `v0.1.115` (core). Image `hc-runtime-python:0.1.115`.
+
+---
+
 ## App v0.1.81, 2026-11-17
 
 - When the runtime installs a plugin at once (homeCore 0.1.114 and runtime
