@@ -15,6 +15,22 @@ A newer local toolchain has a different clippy lint set, so code that passes
 locally can fail CI. You also need Node.js 24 for plugin screens and the web
 app, and `just`, `gh` and `jq` for the recipes and release steps.
 
+`hc-scripts/devenv/` has a [devenv](https://devenv.sh) shell that provides
+all of this: the pinned Rust toolchain, Python 3.12 with uv, Node 24, `just`,
+`gh` and the build libraries. The workspace root is not a repository, so the
+files are kept in hc-scripts and copied to the root once:
+
+```bash
+cp hc-scripts/devenv/devenv.nix hc-scripts/devenv/devenv.yaml hc-scripts/devenv/devenv.lock .
+cp hc-scripts/devenv/envrc .envrc
+direnv allow        # or run `devenv shell` by hand
+```
+
+The shell sets `HOMECORE_HOME` to `<workspace>/sandbox` and
+`HOMECORE_CONFIG` to `<workspace>/sandbox/config/homecore.toml`, and puts
+`core/target/debug` on `PATH`. `hc-scripts/devenv/README.md` has the
+details.
+
 homeCore picks its base directory from `--home`, then `HOMECORE_HOME`, then
 the current directory (see `core/homecore/src/main.rs`). If your shell sets
 `HOMECORE_HOME`, a bare `cargo run -p homecore` uses it wherever you start
@@ -44,7 +60,11 @@ just sandbox-build   # build the whole workspace, reinstall the sandbox's plugin
 ```
 
 All three run `core/target/debug/homecore` with `--home sandbox` and
-`--config sandbox/homecore.toml`. `sandbox-build` calls
+`--config sandbox/config/homecore.toml`, the same place core looks under
+`--home` when no `--config` is given. Keep the sandbox's config there. If the
+file named by `--config` is missing, core doesn't say so: it uses its
+built-in defaults, which bind the broker to `0.0.0.0` with no logins, and
+then refuses to start an open broker. `sandbox-build` calls
 `sandbox/reinstall-plugins.sh`, which you provide in your sandbox.
 
 For a one-off throwaway instance, point `--home` at a directory with a
@@ -155,13 +175,12 @@ devices (virtual switches, timers and the rest); see
 
 ## Pre-PR check (`just check`)
 
-There are three kinds of Justfile. Core's and the plugins' run clippy
-exactly as CI does; the workspace root's per-plugin and client recipes do
-not.
+There are three kinds of Justfile, and all of them run clippy with CI's
+flags.
 
 | Where | `just check` runs |
 |---|---|
-| Workspace root (`Justfile`, a symlink to `hc-scripts/Justfile.workspace`) | `check-core` (core's `just check`), then `fmt`, `clippy --locked` and `test --locked` for the standalone Rust clients `hc-tui` and `hc-web-leptos` |
+| Workspace root (`Justfile`, a symlink to `hc-scripts/Justfile.workspace`) | `check-core` (core's `just check`), then `fmt`, `clippy --locked` and `test --locked` for the standalone Rust client `hc-tui` |
 | `core/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings -A clippy::type_complexity`, `cargo test --workspace` |
 | `core/plugins/hc-*/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --all-targets --all-features -- -D warnings -A clippy::type_complexity`, `cargo test --all-features` |
 
@@ -175,26 +194,31 @@ cargo clippy --all-targets --all-features -- \
 cargo test --all-features
 ```
 
-Core's `just check` therefore lints as CI does. Its tests run without
+So a green `just check` means a green lint step, as long as you use the
+toolchain CI uses (see Toolchain above). Core's tests run without
 `--all-features`, so run `cargo test --all-features` too if you changed
-feature-gated code. The workspace root's `check-plugin` and the client
-recipes use a looser set (`-D clippy::correctness -D clippy::suspicious`
-with `type_complexity` and `too_many_arguments` allowed), so a green there
-does not mean a green CI. Use the toolchain CI uses (see Toolchain above).
+feature-gated code.
 
 Other workspace recipes:
 
 | Recipe | What it does |
 |---|---|
 | `just check-core` | core's `just check` |
-| `just check-plugin <name>` | `fmt`, `clippy` and `test` for one workspace member (`-p <name>`) |
-| `just check-clients` | the standalone Rust clients only |
+| `just check-plugin <name>` | `fmt`, `clippy` (CI's flags) and `test` for one workspace member (`-p <name>`) |
+| `just check-clients` | the standalone Rust client (`hc-tui`) only |
 | `just fmt` / `just clippy` / `just test` | one step across core and the Rust clients |
 | `just build` / `just build-release` | debug or release build of everything Rust |
 | `just clean` | `cargo clean` for core and the Rust clients |
 | `just clean-release` | `cargo clean --release` only |
-| `just clean-all` | `clean`, `clean-logs` (`logs/*.log`), `clean-env` (the devenv/direnv caches) and the retired `clean-flutter` |
+| `just clean-all` | `clean`, plus `clean-logs` (`logs/*.log`) and `clean-env` (the devenv/direnv caches) |
 | `just deploy-local [args]` | build and install a production-like layout with `hc-scripts/deploy.sh` (default destination `/var/tmp/homeCore`) |
+| `just deploy-local-run [args]` | the same, then run it |
+
+`hc-scripts/deploy.sh` installs core, the Rust plugins and the web app
+(`hc-web-svelte`, built with npm into `web/`, which you start with node) for
+smoke-testing an install before a release. Name components to install only
+those; `--list` prints them, and `--dry-run` checks the sources and prints
+what it would build and install without doing it.
 
 ### Inside a plugin directory
 
@@ -324,10 +348,9 @@ directory of static files from core's root path through the
 used to bake in. That client is retired, the setting defaults to off, and
 the standard deployment leaves it off.
 
-The Flutter app (`clients/hc-web-flutter`) is retired as well. The
-workspace Justfile still has two recipes for it, `just hc-web-dev` and
-`just clean-flutter` (which `clean-all` runs). Both are retired and not
-needed for current UI work.
+The Flutter app (`clients/hc-web-flutter`) is retired as well. Its
+workspace recipes (`just hc-web-dev`, `just clean-flutter`) are gone; older
+notes that mention them predate hc-web-svelte.
 
 ## Debugging with RUST_LOG
 

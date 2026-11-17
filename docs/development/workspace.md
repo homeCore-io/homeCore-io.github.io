@@ -20,8 +20,9 @@ homeCore/
 ├── Justfile                    ← workspace recipes (symlink to hc-scripts/Justfile.workspace)
 │
 ├── hc-scripts/                 ← workspace-clone.sh, run-dev.sh, deploy.sh,
-│                                  build-archive.sh, reusable GitHub Actions workflows
-│                                  (rust-ci.yml, rust-release.yml, node-ci.yml, …)
+│                                  build-archive.sh, devenv/ (the dev shell),
+│                                  reusable GitHub Actions workflows
+│                                  (rust-ci.yml, rust-release.yml, python-release.yml, …)
 │
 ├── core/                       ← THE monorepo (git repo: homeCore-io/homeCore)
 │   ├── Cargo.toml              ← virtual workspace: server + 17 crates + SDK + runtime host + 17 plugins
@@ -99,7 +100,9 @@ homeCore/
 In `core/config/`, `homecore.local.toml` and the `plugins/` directory are
 gitignored because they can hold credentials. A fresh machine gets every
 repo in the list with `./hc-scripts/workspace-clone.sh`, which reads
-`workspace.toml` and clones whatever is missing.
+`workspace.toml` and clones whatever is missing. For the dev shell, copy
+`hc-scripts/devenv/` to the workspace root (see
+[Dev Workflow](./dev-workflow#toolchain)).
 
 ---
 
@@ -155,9 +158,9 @@ The design and history are in
 the three non-Rust SDKs stay separate repos because cargo cannot absorb
 them. `skills` holds the [Agent Skills](../tools/skills.md) for AI assistants;
 hc-mcp ships a copy of them.
-`clients/hc-tui` and `clients/hc-web-leptos` are Rust but separate repos
-too, each with its own lockfile; the workspace `Justfile` builds and
-checks them on their own.
+`clients/hc-tui` is Rust but a separate repo too, with its own lockfile; the
+workspace `Justfile` builds and checks it on its own. `clients/hc-web-leptos`
+is Rust as well, and retired.
 
 A Python, Node.js or .NET plugin points at its SDK's checkout directly:
 
