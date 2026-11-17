@@ -181,7 +181,7 @@ A Roku that stops answering raises homeCore's own Offline alert.
 
 ## Setup
 
-Install it from the registry (Plugins › Add) and set the broker connection.
+Install it from the registry (**Settings › Plugins › Catalog**) and set the broker connection.
 Rokus on the network register themselves within a few seconds.
 
 `[[devices]]` entries in its settings are optional. Add one to pin a device

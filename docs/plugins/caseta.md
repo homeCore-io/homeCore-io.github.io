@@ -139,7 +139,7 @@ own cards.
 
 ## Configuration
 
-Install the plugin from the web UI (**Plugins → Add**), then set the bridge
+Install the plugin from the web UI (**Settings › Plugins › Catalog**), then set the bridge
 address and login on its **Configuration** tab. homeCore owns the config file
 (`config/plugins/plugin.caseta.toml` under homeCore's home directory) and
 restarts the plugin when it changes.

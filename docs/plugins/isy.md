@@ -17,7 +17,7 @@ hc-isy connects a Universal Devices ISY/IoX controller (ISY994i, eisy or Polisy)
 
 ## Configuration
 
-Install the plugin from the web UI (**Plugins → Add**), then open its **Configuration** tab and set the controller's host, port and credentials. homeCore owns the config file (`config/plugins/plugin.isy.toml` under homeCore's home directory) and restarts the plugin when it changes.
+Install the plugin from the web UI (**Settings › Plugins › Catalog**), then open its **Configuration** tab and set the controller's host, port and credentials. homeCore owns the config file (`config/plugins/plugin.isy.toml` under homeCore's home directory) and restarts the plugin when it changes.
 
 ```toml
 [homecore]

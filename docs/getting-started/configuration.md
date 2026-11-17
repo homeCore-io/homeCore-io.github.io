@@ -215,8 +215,8 @@ prune_after_days = 30
 
 # Per-plugin tracing logs are forwarded to the broker on
 # `homecore/plugins/<id>/logs` and merged into core's /logs/stream. The
-# level is set per plugin at runtime — Plugins → the plugin → log level,
-# or PATCH /api/v1/plugins/{id} — not in this file.
+# level is set per plugin at runtime (Settings › Plugins, then the plugin),
+# or PATCH /api/v1/plugins/{id}, not in this file.
 
 # [logging.syslog]
 # enabled   = false
@@ -650,8 +650,8 @@ unpacking anything. See [Plugins](../plugins/overview.md).
 ### `[plugin_runtimes]`
 
 Containers you run yourself that host plugins written in other languages. You
-add one in **Settings › Plugins › Runtimes**, which shows the key to paste into
-it. See [Plugin Runtimes](../plugins/runtimes.md).
+add one on the **Plugin runtimes** screen (the **Plugin runtimes** button on
+**Settings › Plugins**), which shows the key to paste into it. See [Plugin Runtimes](../plugins/runtimes.md).
 
 | Key | Type | Default | Description |
 |---|---|---|---|

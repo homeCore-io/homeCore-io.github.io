@@ -31,7 +31,7 @@ docker run -d --name zwave-js-ui \
 
 ## Setup
 
-Install it from **Settings › Plugins › Add**. On its **Settings** tab, set
+Install it from **Settings › Plugins › Catalog**. On its **Settings** tab, set
 **Server URL** to the WebSocket address (`ws://host:3000`). If you leave the
 setting out entirely, the plugin uses `ws://localhost:3000`. You don't list
 nodes; they come from the server.
