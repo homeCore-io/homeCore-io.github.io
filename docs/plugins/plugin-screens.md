@@ -33,6 +33,7 @@ generic ones.
 | `look.drawing` | how a family of things is drawn, in a [look](../web-ui/looks.md) that chooses it | `host`, `thing`, `deviceId` |
 | `look.piece` | a piece of a page's frame: a room's header, a display's rest view | `host`, `room` or `things` |
 | `look.symbol` | symbols a person can give any device | `host`, `name` |
+| `app.assistant` | a helper anyone signed in can open from any page, from a button in the app's top bar | `host`, `mode` |
 
 The three `look.*` slots draw **any device in the house**, not only the
 plugin's, once a look chooses them, and each needs a `label`, its name in the
@@ -80,8 +81,11 @@ bundled in. Nothing of the app's is shared except `host`. Then add a
 - A `dashboard.card` needs a `label` (its name in "Add a card"). `settings`
   names the element that edits its settings.
 
-homeCore drops a slot it doesn't know, or one that breaks these rules. A UI
-with no valid slot left is not offered at all.
+homeCore passes on slots it doesn't know, for an app that does. It drops only
+a slot whose `slot` isn't a dotted lowercase name, or whose `element` (or
+`settings`) isn't a valid custom element name. A UI with no valid slot left
+is not offered at all. The rest, such as a `dashboard.card` needing a
+`label`, is for the app to enforce.
 
 ## Serving it
 
@@ -132,6 +136,8 @@ checkout of that repository.
 | `host.alerts` | homeCore's alerts on the plugin's devices, live, as the Alerts page shows them: `subscribe(f)`, `list()`. Absent before app 0.1.34. |
 | `host.command(deviceId, body)` | a command to one of its devices |
 | `host.action(id, params)` / `host.query(id, params)` | one of the plugin's actions; `query` for read-only ones, open to anyone who can see devices |
+| `host.stream(action, params, onEvent)` | one of the plugin's [streaming actions](./capabilities#sync-vs-streaming), followed as it runs: `onEvent` gets `started`, then each event the plugin sends, then the one that ends it. Returns `{requestId, cancel(), done}`; `done` resolves with the last event and never rejects. Absent before app 0.1.74. |
+| `host.respond(requestId, response)` | answers a streaming run's `awaiting_user` question, in the shape its `response_schema` asks for. Absent before app 0.1.74. |
 | `host.upload(action, file, params)` | a file sent to one of its actions (up to 32 MiB) |
 | `host.fileUrl(path)` | where a picture the plugin keeps is, for an `<img src>` (see above) |
 | `host.config` | its settings file (admins): `get()`, `patch(section, values)`, `restartPlugin()` |
@@ -140,6 +146,7 @@ checkout of that repository.
 | `host.units` | the units the person reads in: `show(value, unit)`, `toCore(value, unit)`, `subscribe(f)`. Absent before app 0.1.21. |
 | `host.ui` | the app's `confirm(...)`, `openDevice(id)`, `navigate(href)` |
 | `host.me` | who is using it: `name`, `role`, `isAdmin`, `can(scope)` |
+| `host.user` | the same person as homeCore names them: `username` and `role`. Absent before app 0.1.74. |
 | `host.theme` | `sheet` (the app's parts as a stylesheet) and `dark()` |
 | `host.rive` | Rive's runtime, lent by the app: `play(canvas, options)` and `motion()` (see [Rive from code](#rive-from-code)). Absent before app 0.1.47. |
 
@@ -251,6 +258,31 @@ in `currentColor`. They are offered in every card's Symbol choice.
 
 If a look's drawing, piece or symbol doesn't load, the app draws the thing as
 Classic draws it.
+
+**`app.assistant`.** A helper anyone signed in can open from any page:
+
+```json
+{ "slot": "app.assistant", "element": "hc-yours-chat", "label": "Ask" }
+```
+
+The app puts a button with the slot's `label` in its top bar. It opens the
+element in a panel at the right, beside the page on a wide screen, or as a
+page of its own (`/ask`) on a phone, and tells it which with `mode`
+(`panel` or `page`). The element draws everything inside, its header and its
+way to close included. The app closes it when the element sends a `close`
+event (on a page, that goes back), or when Escape is pressed inside it and
+the element didn't `preventDefault` the key. Each browser remembers whether
+the panel was open. Only one plugin's helper is offered at a time: the first
+running plugin with the slot.
+
+A helper usually runs a streaming action with `host.stream` and answers its
+questions with `host.respond`. Declare that action `requires_role:
+"signed_in"` so everyone can use it, and keep what it does within the
+`caller`'s scopes (see
+[Who may run an action](./capabilities#who-may-run-an-action)). The
+slot, `host.stream`, `host.respond` and `host.user` need app 0.1.74 or
+later; check `typeof host.stream === 'function'` before using them. The
+[Assistant](../tools/hc-mcp) is the working example.
 
 ### A drawing made in Rive
 
