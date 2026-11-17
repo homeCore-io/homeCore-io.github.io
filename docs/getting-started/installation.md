@@ -12,15 +12,18 @@ HTTP server built in. A basic install depends on no external services.
 
 There are three ways to install it, in order of preference:
 
-1. **[Binary release](./binary-releases).** A pre-built static tarball
-   you extract and run. This is the right choice for almost everyone.
-2. **[Docker](./docker).** Core (`hc-core`) and the web app
-   (`hc-web-svelte`) as two containers, wired together by compose.
+1. **[Docker](./docker).** Core (`hc-core`) and the web app
+   (`hc-web-svelte`) as two containers, wired together by compose. This is
+   the recommended install: you get the web app, which is where you install
+   plugins, add people and set up the house.
+2. **[Binary release](./binary-releases).** A pre-built static tarball
+   of core you extract and run. It has no web app; run that separately,
+   for example from its container image (see
+   [Web UI overview](../web-ui/overview#getting-it)).
 3. **Build from source.** For plugin authors and core developers. This
    page covers that path.
 
-If you only want to run HomeCore, go to
-[Binary Releases](./binary-releases) instead.
+If you only want to run HomeCore, go to [Docker](./docker) instead.
 
 ---
 

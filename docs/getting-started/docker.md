@@ -7,6 +7,11 @@ sidebar_position: 5
 
 # Docker Deployment
 
+The Docker stack is the recommended way to run homeCore. It runs core and
+the web app together, and the web app is how you install plugins, add people
+and set up the house. The [binary release](./binary-releases) tarball holds
+core alone, with no web app.
+
 HomeCore runs as two containers.
 
 ```
@@ -21,8 +26,8 @@ browser ─▶ host:3001 ─▶ hc-web-svelte:3000 ─┬─ /            the we
 | `ghcr.io/homecore-io/hc-core` | The REST/WebSocket API and the embedded MQTT broker. |
 | `ghcr.io/homecore-io/hc-web-svelte` | The web app. Its Node server serves the app, passes `/api/v1/*` and the event stream through to core on the same origin, keeps sign-ins in httpOnly cookies, and stores the app's own data (pages, layouts, displays) in `/data`. |
 
-Plugins are not containers. Install them from the web app (Plugins →
-Add): core downloads a signed artifact from the
+Plugins are not containers. Install them from the web app
+(**Settings › Plugins › Catalog**): core downloads a signed artifact from the
 [plugin registry](https://github.com/homeCore-io/registry), verifies its
 signature, and runs it as a child process. Adding hardware support never
 means editing a compose file.
@@ -56,6 +61,7 @@ services:
       RUST_LOG: info
     ports:
       - "${HC_API_PORT:-8080}:8080"
+      - "${HC_BROKER_PORT:-1883}:1883"
     networks: [homecore]
     volumes:
       - ./homecore-data:/homecore
@@ -87,7 +93,7 @@ Then start it:
 
 ```bash
 # Create the data dir as your user. The entrypoint detects the owner and
-# drops privileges to match — no chown needed.
+# drops privileges to match; no chown needed.
 mkdir homecore-data
 
 docker compose up -d
@@ -97,7 +103,12 @@ cat homecore-data/INITIAL_ADMIN_PASSWORD
 ```
 
 Open `http://<host-ip>:3001`, sign in as `admin`, change the password,
-and delete `INITIAL_ADMIN_PASSWORD`. Then go to Plugins → Add.
+and delete `INITIAL_ADMIN_PASSWORD`. Then open
+**Settings › Plugins › Catalog** to install plugins.
+
+The repository's file also has a commented-out `HC_GO2RTC_URL` for the app:
+set it to your go2rtc address to get live video from cameras
+([Reolink](../plugins/reolink)). Without it, cameras show snapshots.
 
 The network is declared explicitly so the stack behaves the same when a
 manager such as Portainer or Dockhand deploys it. On Docker's default
@@ -108,13 +119,15 @@ manager such as Portainer or Dockhand deploys it. On Docker's default
 
 ## Which compose file
 
-The docker repository has three variants:
+The docker repository has three variants of the stack, plus a file for a
+plugin runtime:
 
 | File | Networking | Use it when |
 |---|---|---|
 | `compose.yml` | bridge | Start here. |
 | `compose.host.yml` | host | You have Hue, Sonos, WLED, Roku or Ecowitt, or discovery found nothing. |
-| `compose-dev.yml` | bridge | You want the `:dev` images. |
+| `compose-dev.yml` | bridge | You want the `:dev` images. Its services, data directory (`homecore-data-dev`) and volume carry a `-dev` suffix; change its ports to run it beside a stable stack. |
+| `compose.runtime-python.yml` | bridge | You want Python plugins, such as the Assistant. It runs a [plugin runtime](../plugins/runtimes) on port 8790, beside the stack or on another machine. |
 
 The deciding factor is **discovery**. Hue, Sonos, WLED and Roku find
 devices over mDNS and SSDP, which are multicast, and a Docker bridge
@@ -145,8 +158,9 @@ reach the LAN's multicast traffic.
 
 With host networking there are no port mappings. The app listens on
 `PORT` (default `3001`, from `HC_WEB_PORT`) and reaches core at
-`http://127.0.0.1:8080`, because compose service names don't resolve on
-the host network.
+`http://127.0.0.1:8080` (the port from `HC_API_PORT`), because compose
+service names don't resolve on the host network. Core and its broker bind
+whatever `homecore.toml` says.
 
 ---
 
@@ -220,14 +234,20 @@ Docker creates it owned by root, and the entrypoint chowns it to
 
 ## The MQTT broker
 
-Core embeds an MQTT broker on port 1883. The default config binds it to
-loopback, and the compose file does not publish it. Plugins are child
-processes of core in the same network namespace, so nothing outside the
-container needs to reach it.
+Core embeds an MQTT broker on port 1883. `compose.yml` publishes it
+(`HC_BROKER_PORT`, default `1883`), but the mapping does nothing at first:
+the seeded config binds the broker to loopback inside the container, so no
+connection through the mapping reaches it. Plugins that core runs are child
+processes in the same network namespace and need nothing more.
 
-Publish the port only if LAN devices such as Tasmota, Shelly or ESPHome
-publish to the broker directly. In that case also set
-`[broker] host = "0.0.0.0"` and add `[[broker.clients]]` credentials.
+Two things need the broker on the network: [plugin runtimes](../plugins/runtimes)
+and LAN devices such as Tasmota, Shelly or ESPHome that publish to it
+directly. For a runtime, the **Plugin runtimes** screen (a button on
+**Settings › Plugins**) offers **Open the broker to the network**, which sets
+`[broker] host = "0.0.0.0"`, adds the logins homeCore needs and restarts
+core. For LAN devices, set `host = "0.0.0.0"` yourself and add
+`[[broker.clients]]` credentials for them.
+
 Core **refuses to start** if the broker binds a non-loopback address with
 no clients configured, rather than run an open broker.
 `HC_ALLOW_ANONYMOUS_REMOTE_BROKER=1` overrides that check if you really
