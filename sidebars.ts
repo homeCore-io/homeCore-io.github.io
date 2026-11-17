@@ -107,6 +107,7 @@ const sidebars = {
       items: [
         'tools/hc-mcp',
         'tools/hc-tui',
+        'tools/skills',
       ],
     },
     {
