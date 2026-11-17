@@ -25,6 +25,53 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-plugin-sdk-dotnet v0.4.5, 2026-11-17
+
+Catches up with the Python SDK 0.5.5, so a .NET plugin can offer the same
+kind of chat or helper the Assistant does.
+
+- **Who called.** Every action carries the person homeCore verified made it,
+  as a `Caller` (uid, username, role, scopes, kind). Set `OnActionWithCaller`
+  to get it; a streaming action reads `ctx.Caller`. Plugins that set only
+  `OnAction` work as before.
+- **`RequiresRole.SignedIn`** opens an action to anyone signed in, household
+  members included. Every other level still needs an admin.
+- **REST access from homeCore.** List `ApiScopes` in the capabilities and
+  homeCore mints the plugin its own key on every start. It arrives in
+  `OnApiAccess` and `ApiAccess`, or await `WaitForApiAccessAsync`.
+- `ProgressAsync` and `AwaitingUserAsync` take `data` for a plugin's own
+  screen, and stream events are always in order.
+
+Plugins built against 0.4.4 run unchanged with this version.
+
+### Release matrix
+
+**Tagged:** `v0.4.5` (hc-plugin-sdk-dotnet). Not published to NuGet.
+
+---
+
+## hc-plugin-sdk-js v0.4.5, 2026-11-17
+
+Catches up with the Python SDK 0.5.5.
+
+- **Who called.** `onAction(action, params, ctx, caller)` gets the person
+  homeCore verified made the request (uid, username, role, scopes, kind); a
+  streaming action also has `ctx.caller`. Handlers with three parameters work
+  as before.
+- **`RequiresRole.SIGNED_IN`** opens an action to anyone signed in, household
+  members included. Every other level still needs an admin.
+- **REST access from homeCore.** Pass `apiScopes` in the capabilities and
+  homeCore mints the plugin its own key on every start. It arrives in
+  `onApiAccess` and `apiAccess`, or await `waitForApiAccess()`.
+- `progress` and `awaitingUser` take `data` for a plugin's own screen, and
+  stream events are always in order.
+
+### Release matrix
+
+**Tagged:** `v0.4.5` (hc-plugin-sdk-js). Not published to npm.
+
+---
+
 ## App v0.1.79, 2026-11-17
 
 - **The Catalog lists only what you can add.** Installed plugins are hidden;
