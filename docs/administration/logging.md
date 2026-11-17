@@ -311,7 +311,9 @@ curl -s -X PATCH http://localhost:8080/api/v1/plugins/plugin.hue \
 
 This needs `plugins:write`. homeCore sends the level to the running plugin
 at once and writes it to `[logging] level` in the plugin's own config file,
-so it holds after a restart. A plugin in a runtime keeps its config file
+so it holds after a restart. Saving the level doesn't restart the plugin:
+homeCore ignores a config change that touches only `[logging] level`. A
+plugin in a runtime keeps its config file
 there, so for those only the running plugin changes. The change is
 recorded as `plugin.log_level_changed`.
 

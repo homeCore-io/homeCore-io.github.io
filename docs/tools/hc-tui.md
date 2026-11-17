@@ -9,10 +9,10 @@ sidebar_position: 2
 
 `hc-tui` is a keyboard-driven terminal UI for homeCore, written in Rust with `ratatui`. It talks to the same REST and WebSocket API as the [web app](../web-ui/overview.md), so it works over SSH and on headless machines.
 
-The repo is [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui), a separate Rust repo with its own lockfile (the latest release is v0.1.3). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`. You can also build it from source with `cargo build --release`.
+The repo is [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui), a separate Rust repo with its own lockfile (the latest release is v0.1.4). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`. You can also build it from source with `cargo build --release`.
 
-:::caution Helpers don't work yet
-homeCore 0.1.82 replaced the `/timers` and `/switches` endpoints with `/glue`. hc-tui's Switches and Timers sub-tabs still call the old endpoints, so they stay empty and can't create anything. Its helper creator (`g` in Manage) calls `/glue` but sends the type as `glue_type` where core expects `type`, so it fails too. Create and manage helpers in the web app (**Settings → Helpers**) or with the [`/glue` API](../devices/virtual-devices.md#managing-helpers) until hc-tui catches up.
+:::caution Helpers can be created but not listed
+The helper creator (`g` in Manage) works from v0.1.4: it creates any helper type through `POST /glue`. The Switches and Timers sub-tabs under Devices still call the `/switches` and `/timers` endpoints that homeCore 0.1.82 replaced with `/glue`, so they stay empty. To see and manage helpers, use the web app (**Settings → Helpers**) or the [`/glue` API](../devices/virtual-devices.md#managing-helpers).
 :::
 
 ---
@@ -186,6 +186,8 @@ In the detail view, `1` to `4` (or `Left`/`Right`) switch between **Overview**, 
 | Audit | `Enter` expand an entry; `n` / `p` next / previous page; `r` refresh |
 | Backup | `Enter` runs the selected action: download a system backup (`.zip`), export all rules or scenes to JSON, or import rules or scenes from `~/.homecore/imports/rules.json` and `~/.homecore/imports/scenes.json` |
 
+On any Manage panel, `g` opens the helper creator: pick a type and give it an ID and a name. A select also asks for its options, a group for its members, and a threshold for its source device, attribute and threshold. homeCore fills in the rest of the type's settings with their defaults.
+
 The Logs panel opens its log WebSocket only while you are on it, and closes it when you leave.
 
 ---
@@ -229,7 +231,7 @@ WS     /events/stream?token=...                    # live state
 WS     /logs/stream                                # only while Manage → Logs is open
 ```
 
-It also still calls `/switches`, `/timers` and `/glue` as described in the note at the top.
+It also calls `POST /glue` to create a helper, and still calls `/switches` and `/timers` as described in the note at the top.
 
 ---
 
@@ -241,7 +243,7 @@ It also still calls `/switches`, `/timers` and `/glue` as described in the note 
 | Scene activation | yes | yes |
 | Live event stream | yes | yes |
 | Rule editor | yes | no (enable, disable, clone, delete, import, export) |
-| Helpers (timers, switches, counters …) | yes | no (see the note above) |
+| Helpers (timers, switches, counters …) | yes | create only (see the note above) |
 | Plugin actions, including streaming ones | yes | yes (without parameters) |
 | Audit log | yes | yes |
 | Matter commissioning | yes | yes (Manage → Matter) |

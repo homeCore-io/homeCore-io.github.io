@@ -60,7 +60,7 @@ LEDs and current levels, and then follows the repeater's live updates.
 | Port | `lutron.port` | `23` | Telnet port. |
 | Username | `lutron.username` | `lutron` | Integration login. |
 | Password | `lutron.password` | empty | Integration password. |
-| Default fade | `lutron.default_fade_secs` | `1.0` s | Fade for dimmers and fans when a command doesn't give one. `0` is instant. |
+| Default fade | `lutron.default_fade_secs` | `1.0` s | Fade for dimmers when a command doesn't give one. Fan speed changes carry it too. Shades and switches change without a fade. `0` is instant. |
 | Hold threshold | `lutron.hold_threshold_ms` | `500` ms | How long a keypad or Pico button must stay down to count as a hold. |
 | Reconnect delay | `lutron.reconnect_delay_secs` | `5` s | First wait before reconnecting. It doubles after each failure, up to 60 seconds. |
 
@@ -70,7 +70,7 @@ Each row in the Devices table has these columns:
 |---|---|---|
 | Integration ID | `integration_id` | The ID from RadioRA 2 programming and `DbXmlInfo.xml`. |
 | Name | `name` | Display name. |
-| Kind | `kind` | `dimmer`, `switch`, `shade`, `fan_control`, `cco_pulsed`, `keypad`, `pico`, `occupancy_group` or `vcrx`. |
+| Kind | `kind` | `dimmer`, `switch`, `shade`, `fan_control`, `cco_pulsed`, `keypad`, `pico`, `occupancy_group` or `vcrx`. A row with no Kind, or one the plugin doesn't know, is skipped. |
 | Room | `area` | The homeCore area. |
 | Fade | `fade_secs` | This device's fade, in seconds. Empty uses Default fade. |
 | Invert position | `invert_position` | For a shade mounted the other way up. |
@@ -80,7 +80,7 @@ Each row in the Devices table has these columns:
 | Contact inputs | `ccis` | A VCRX's contact closure inputs: 30 Full/Security, 31 Flash, 32 Input 1, 33 Input 2. |
 
 Each row in the Scenes table has a Name (`name`), a Repeater ID
-(`main_repeater_id`, almost always `1`) and a Phantom button
+(`main_repeater_id`, almost always `1`, and `1` when left out) and a Phantom button
 (`button_component`). Each row in the Timeclock events table has a Timeclock
 ID (`timeclock_id`, almost always `1`), an Event index (`event_index`), a Name
 (`name`) and a Room (`area`).
@@ -291,6 +291,7 @@ The plugin raises no device alerts. It shows these notices on its own page:
 | `not_configured` | error | No repeater address is set. |
 | `repeater_unreachable` | error | The repeater isn't answering on the telnet port, so lights, scenes and keypads served by this plugin won't respond. It clears on reconnect. |
 | `no_devices_configured` | warning | No devices, scenes or timeclock events are set up, so nothing is published. Run Import. |
+| `devices_skipped` | warning | One or more device rows have a blank, missing or unknown Kind. The notice names each row by number, name and integration ID. Those rows aren't published; every other device loads. It clears once every row has a Kind. |
 
 ## Screens and cards
 
@@ -335,7 +336,7 @@ back in words, for example "press Outside on Kitchen 6 Button".
 | The login fails | The integration account's username and password in RadioRA 2 programming. |
 | Import fails | homeCore can reach the repeater on port 80. If it can't, paste a copy of `DbXmlInfo.xml`. |
 | A device doesn't appear | It has a row, it's programmed in the RadioRA 2 design, and the repeater is online. Run Import again. |
-| The plugin won't start after a save | Every device row needs a Kind. A row without one stops the whole settings file from loading. |
+| `devices_skipped`, or a device is missing after a save | Choose a Kind for each row the notice names, then save. The plugin skips a row without a usable Kind and logs a warning for it. |
 | A dim level is a little off | The repeater works in hundredths of a percent and homeCore shows tenths, so small rounding differences are normal. |
 
 The plugin sends a keepalive every 60 seconds. If the repeater doesn't answer

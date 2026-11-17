@@ -25,6 +25,119 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.82, 2026-11-17
+
+- An automation's **Recent runs** no longer says homeCore forgets them when
+  it restarts. It keeps each rule's last 20 runs across restarts.
+
+### Release matrix
+
+**Tagged:** `v0.1.82` (hc-web-svelte).
+
+---
+
+## hc-tui v0.1.4, 2026-11-17
+
+- **Making a helper works.** The helper creator in Manage sent a field homeCore
+  didn't accept, so every new helper was refused.
+- The README no longer lists a Dashboards tab.
+
+### Release matrix
+
+**Tagged:** `v0.1.4` (hc-tui).
+
+---
+
+## hc-ecowitt v0.1.27, 2026-11-17
+
+- **A gateway that is only polled no longer gets "no reports received".**
+  A successful poll now counts as a report, and the notice says which address
+  is polled when it does go quiet.
+
+### Release matrix
+
+**Tagged:** `hc-ecowitt-v0.1.27`.
+
+---
+
+## hc-sonos v0.1.22, 2026-11-17
+
+- **The speaker control API answers only the homeCore machine.** It had no
+  sign-in and listened on every network interface, so anyone on the network
+  could play, pause or change the volume. Requests from this machine,
+  including homeCore rules that call it, work as before. The speakers' own
+  event callbacks still reach it from the network.
+
+**Upgrading:** if a script, another system or a browser on a different
+computer calls the API on port 5005, it now gets 403. Turn on **Allow control
+from other machines** in the plugin's settings to allow it again.
+
+### Release matrix
+
+**Tagged:** `hc-sonos-v0.1.22`.
+
+---
+
+## hc-caseta v0.1.18, 2026-11-17
+
+- The **Default fade** help says what happens: only dimmers fade; shades,
+  fans and switches change without one.
+
+### Release matrix
+
+**Tagged:** `hc-caseta-v0.1.18`.
+
+---
+
+## hc-lutron v0.1.27, 2026-11-17
+
+- **One device row without a Kind no longer stops the plugin loading.** The
+  row is skipped, the log says why, and a notice names each row it skipped.
+- A scene without a main repeater ID uses 1, as the settings page shows.
+
+### Release matrix
+
+**Tagged:** `hc-lutron-v0.1.27`.
+
+---
+
+## hc-isy v0.1.15, 2026-11-17
+
+- **The plugin reconnects on its own.** When the connection to the ISY drops,
+  it marks the devices unavailable, raises a notice and tries again (2
+  seconds, doubling to a minute), then reloads everything when it's back.
+  Before, it quit and waited for homeCore to restart it.
+- **A connection that goes quiet counts as dropped.** If nothing arrives for
+  three of the ISY's heartbeats (5 minutes before it says how often), the
+  plugin reconnects instead of showing stale state.
+- If the ISY refuses the login, the plugin says so in a notice and stops, so
+  homeCore restarts it on its usual schedule.
+
+### Release matrix
+
+**Tagged:** `hc-isy-v0.1.15`.
+
+---
+
+## v0.1.116, 2026-11-17
+
+- **Changing a plugin's log level no longer restarts it.** The level reaches
+  the running plugin at once and is still saved for its next start. A change
+  to a plugin's settings file that only touches comments or spacing no longer
+  restarts it either.
+- **Devices named by name work in every part of a rule.** Battery triggers,
+  a notification's picture, alert filters and the steps inside "for each
+  alert" and "if the alert doesn't clear" now accept a device's name, like
+  everywhere else. Before, those quietly never matched.
+- Deleting or repointing a device now finds it in every part of a rule,
+  including "last changed" checks.
+
+### Release matrix
+
+**Tagged:** `v0.1.116` (core). Image `hc-runtime-python:0.1.116`.
+
+---
+
 ## v0.1.115, 2026-11-17
 
 ### Fixed

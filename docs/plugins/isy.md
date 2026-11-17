@@ -35,7 +35,29 @@ On start, the plugin fetches the node list (`/rest/nodes`) and every node's
 current values (`/rest/status`). It registers each enabled node and scene,
 then subscribes to the event stream at `/rest/subscribe` for live updates.
 Disabled nodes are skipped, and a node removed from the controller is removed
-from homeCore the next time the plugin starts.
+from homeCore the next time the plugin starts or reconnects.
+
+## Connection
+
+If the controller drops the connection or can't be reached, the plugin marks
+every ISY device unavailable, raises `controller_unreachable`, and reconnects
+on its own. It waits 2 seconds, then doubles the wait up to 60 seconds. Once a
+connection has stayed up for 60 seconds, the wait goes back to 2 seconds. A
+reconnect loads the node list and every node's values again, so each device's
+state is current, and then clears the notice. Commands sent while the
+controller is offline are dropped, with a line in the log.
+
+The plugin also watches for a connection that stays open but goes quiet. The
+ISY sends a heartbeat on the event stream and says how long until the next
+one. If nothing arrives for three heartbeat intervals (never less than 60
+seconds or more than 15 minutes), or for 5 minutes before the first heartbeat
+says the interval, the plugin treats the connection as dropped and reconnects
+as above.
+
+A refused login is different, because retrying the same username and password
+won't help. The plugin raises `auth_refused`, logs why, and exits with an
+error. homeCore restarts it with its usual backoff, and the notice clears once
+a login succeeds.
 
 ## Settings
 
@@ -201,30 +223,30 @@ The plugin raises no device alerts. It shows these notices on its own page:
 | Code | Level | Meaning |
 |---|---|---|
 | `not_configured` | error | No controller address is set. |
-| `controller_unreachable` | error | The controller isn't answering, so every device it serves is unusable. It clears once the plugin loads the node list again. |
+| `controller_unreachable` | error | The controller isn't answering, or its event stream has gone quiet. Every device it serves is marked unavailable while the plugin reconnects. It clears once the plugin loads the node list again. |
+| `auth_refused` | error | The controller refused the username and password. The plugin exits and homeCore restarts it. It clears once a login succeeds. |
 
 ## Troubleshooting
 
 | Problem | What to check |
 |---|---|
 | `controller_unreachable` | The controller is powered and on the network, and the address and port are right. |
-| The login fails | Use the ISY Admin Console username and password. The account needs REST access. |
+| `auth_refused`, or the login fails | Use the ISY Admin Console username and password. The account needs REST access. |
 | TLS errors | Turn Use HTTPS off unless you turned on HTTPS on the controller. |
 | A device or scene is missing | Only enabled nodes are registered. Check that it's enabled on the ISY, then restart the plugin. |
-| State stops updating | Check the plugin's log for WebSocket errors. |
+| Devices keep going unavailable | Look in the plugin's log for "Lost the connection" or "Nothing from the ISY WebSocket". The second means the event stream went quiet, which points at the controller or the network between them. |
 
-If the plugin can't load the node list, it raises `controller_unreachable` and
-tries again after 2 seconds, doubling the wait up to a minute. If the event
-stream closes after it connected, the plugin stops, and homeCore starts it
-again a few seconds later. REST requests time out after 15 seconds.
+The notice says how long the plugin will wait before it tries again. REST
+requests time out after 15 seconds. When the event stream connects, the log
+says how long a quiet stream may last before the plugin treats it as dropped.
 
 For more detail in the log, set the Logging level to `hc_isy=debug`. That
 logs each API response and WebSocket event.
 
 ## Known limits
 
-- New nodes and scenes appear when the plugin starts. Restart it after you add
-  one on the controller.
+- New nodes and scenes appear when the plugin starts or reconnects. Restart
+  it after you add one on the controller.
 - A scene's `on` is `false` at startup and then follows the scene's events.
   It isn't a reading of whether every device in the scene is on.
 - ISY programs and variables aren't exposed.

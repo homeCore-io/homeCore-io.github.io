@@ -73,7 +73,7 @@ trigger: AlertActiveFor(
 | `plugin_id` | That plugin's alerts and homeCore's own alerts about its devices. `wet` with `plugin.yolink` means any YoLink leak sensor. A filter with only `plugin_id` also matches that plugin's devices going offline or wet. |
 | `topic` | A plugin's kind of alert, such as `firmware_update`. |
 | `key` | What one plugin alert is about, such as a version (`17.0.0`). |
-| `device_ids` | Only these devices' alerts. Use raw device IDs here. |
+| `device_ids` | Only these devices' alerts. Each takes a canonical name, a unique display name or a raw device ID. |
 | `rule_id` | Only this alert rule's. If the rule is deleted and the automation kept, this reads `DELETED:{id}`. |
 | `min_severity` | Only alerts this serious or worse: `info`, `warning`, `error` or `critical`. |
 

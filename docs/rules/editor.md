@@ -61,7 +61,7 @@ Save stays off until the rule is complete. A list above the editor says what's m
 
 **Run it now** runs the rule as if its moment came, even while it's turned off. **Run it** lets its checks decide. **Do its steps, skipping its checks** skips them.
 
-**Recent runs** lists the last 20 times the rule's moment came, by day. Each says **Ran**, **Ran, with a failure**, **Resting** (inside its cooldown), **Paused**, **Skipped** or **Didn't run**, and opens to show the moment, each check and each step. These are the same records as `GET /automations/{id}/history`.
+**Recent runs** lists the last 20 times the rule's moment came, by day. Each says **Ran**, **Ran, with a failure**, **Resting** (inside its cooldown), **Paused**, **Skipped** or **Didn't run**, and opens to show the moment, each check and each step. These are the same records as `GET /automations/{id}/history`, and homeCore keeps them across restarts.
 
 The rule's page also has **Make a copy** (the copy starts turned off), **Export** (one rule as JSON), tags, **Change** and **Delete…**.
 

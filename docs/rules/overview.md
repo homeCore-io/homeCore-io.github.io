@@ -42,13 +42,7 @@ trigger: DeviceStateChanged(
 
 If a reference matches no device, or a display name matches more than one, homeCore disables the rule and puts the problem in its `error` field. Over the API, the save is refused with `422`.
 
-homeCore resolves names in triggers, conditions and device steps, including steps nested in `Parallel`, `Conditional`, the repeat steps and `PingHost`. These places take the raw device ID only:
-
-- Rhai scripts: `device_state("...")` in `ScriptExpression`, `RunScript`, the gates, and script questions in `Conditional`.
-- The `device_id` of `DeviceBatteryLow` and `DeviceBatteryRecovered`.
-- `picture_from` on `Notify`.
-- `device_ids` in an `AlertFilter`.
-- Steps inside `ForEachAlert` and inside the `otherwise` list of `WaitAlertCleared`.
+homeCore resolves names in every device field a rule has: triggers (the battery triggers included), conditions, device steps, `picture_from` on `Notify`, `device_ids` in an `AlertFilter`, and steps nested in `Parallel`, `Conditional`, the repeat steps, `PingHost`, `ForEachAlert` and the `otherwise` list of `WaitAlertCleared`. Rhai scripts are the one place that takes the raw device ID only: `device_state("...")` in `ScriptExpression`, `RunScript`, the gates, and script questions in `Conditional`.
 
 Mode IDs such as `mode_night` are device IDs already.
 

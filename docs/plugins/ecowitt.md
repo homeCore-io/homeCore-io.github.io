@@ -199,8 +199,8 @@ itself once readings arrive.
 | Notice | Level | Raised when |
 |---|---|---|
 | `receiver_unreachable` | warning | At startup, when the receiver is bound to loopback and **Console address** is empty, so no gateway can reach it. |
-| `no_reports_received` | error | No upload has arrived since the plugin started. The plugin checks every 5 minutes. |
-| `gateway_silent` | warning | Uploads were arriving and none has come for 10 minutes. |
+| `no_reports_received` | error | No data has arrived since the plugin started: no upload, and no poll that returned readings. The plugin checks every 5 minutes. When polling, the notice names the address it polls. |
+| `gateway_silent` | warning | Data was arriving, by upload or poll, and none has come for 10 minutes. When polling, the wait is three poll intervals if that is longer, and the notice names the polled address. |
 
 ## Screens and cards
 
@@ -230,8 +230,10 @@ open, check that the gateway's upload settings name this host, the right
 port and path `/data/report/`, and that no firewall blocks the port. Run
 `get_custom_server` to see what the gateway has.
 
-If readings stop, `gateway_silent` appears after 10 minutes. Check that the
-gateway has power and still uploads to this host. A gateway that changed
+If readings stop, `gateway_silent` appears after 10 minutes, or after three
+missed polls with a long poll interval. Check that the gateway has power and
+still uploads to this host. When polling, check that it answers at its
+**Console address**; the plugin's log says why each poll failed. A gateway that changed
 its IP is rejected when **Accept readings from** lists the old address.
 
 On a host with several network interfaces, `discover_gateways` sends its
@@ -245,9 +247,6 @@ homeCore stops the plugin, it marks its devices offline before it exits.
 
 ## Known limits
 
-- Only uploads count as reports for the notices. With polling alone, the
-  plugin still raises `no_reports_received` after 5 minutes even though
-  readings arrive.
 - The AQI readings for PM2.5 come only from polling. Uploads don't carry
   them.
 - The gateway's display units (`units.*`) are published as the gateway's raw
