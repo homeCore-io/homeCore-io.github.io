@@ -264,7 +264,7 @@ Sends a notification through a channel configured in `[[notify.channels]]`.
 action: Notify(
     channel: "telegram",
     message: "Front door opened",
-    title: Some("Security Alert"),   // optional, defaults to "HomeCore Alert"
+    title: Some("Security Alert"),   // optional, defaults to "homeCore Alert"
 ),
 ```
 
@@ -428,7 +428,7 @@ Besides the functions available to conditions (`device_state`, `hub_var`, `curre
 | Function | Description |
 |---|---|
 | `set_device_state(id, map)` | Command a device. |
-| `notify(channel, message)` | Send a notification titled "HomeCore Alert". |
+| `notify(channel, message)` | Send a notification titled "homeCore Alert". |
 | `notify_titled(channel, title, message)` | Send a notification with a title. |
 | `http_get(url)` | Make a GET request. |
 | `http_post(url, json_body_string)` | Make a POST request with a JSON body. |

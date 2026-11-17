@@ -47,7 +47,7 @@ WARN homecore:   Default admin account created.
 WARN homecore:   Username : admin
 WARN homecore:   Password : AbCdEf12GhIj34Kl
 WARN homecore:   Saved to : /home/you/hc-quickstart/INITIAL_ADMIN_PASSWORD
-INFO hc_api: HomeCore API server starting addr=0.0.0.0:8080
+INFO hc_api: homeCore API server starting addr=0.0.0.0:8080
 ```
 
 The password is also in `~/hc-quickstart/INITIAL_ADMIN_PASSWORD`. Core

@@ -55,7 +55,7 @@ The channel name `all` is reserved: sending to `all` sends to every channel.
 RuleAction(action: Notify(
     channel: "telegram",
     message: "Front door opened",
-    title: Some("Security Alert"),   // optional; default "HomeCore Alert"
+    title: Some("Security Alert"),   // optional; default "homeCore Alert"
 )),
 
 // Send to every configured channel
@@ -290,7 +290,7 @@ Rule(
             let t = trigger_value();
             notify_titled("telegram", "Temperature Alert",
                 "Basement temperature is " + t + " °C. Check the HVAC!");
-            notify_titled("email-alerts", "HomeCore Temperature Alert",
+            notify_titled("email-alerts", "homeCore Temperature Alert",
                 "Basement temperature alert: " + t + " °C");
         "#)),
     ],

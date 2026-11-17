@@ -85,7 +85,7 @@ Rule(
 )
 ```
 
-`notify(channel, message)` sends with the default title, "HomeCore Alert". `notify_titled(channel, title, message)` sets one. `device_state(id)` returns a device's current attributes, so `device_state(id)["battery_pct"]` reads the level too. A rule file with the all-zero `id` gets a fresh one when homeCore first loads it.
+`notify(channel, message)` sends with the default title, "homeCore Alert". `notify_titled(channel, title, message)` sets one. `device_state(id)` returns a device's current attributes, so `device_state(id)["battery_pct"]` reads the level too. A rule file with the all-zero `id` gets a fresh one when homeCore first loads it.
 
 ### 3. Any other action
 

@@ -150,10 +150,10 @@ value is in the shared unit.
 
 ```toml
 [ecosystem.state_topics.field_map]
-state        = "on"           # Z2M "state" → HomeCore "on"
+state        = "on"           # Z2M "state" → homeCore "on"
 brightness   = "brightness_pct"  # renamed; scale converted by coerce below
 temperature  = "temperature"  # pass-through
-POWER        = "on"           # Tasmota "POWER" → HomeCore "on"
+POWER        = "on"           # Tasmota "POWER" → homeCore "on"
 "ENERGY.Power" = "power_w"    # nested path using dot notation
 ```
 
