@@ -153,11 +153,12 @@ homeCore makes the plugin an API key with those scopes and sends it with the
 - The key shows in the API keys list as `plugin <id>`, and in the audit log
   as `api_key:plugin <id>`.
 
-There is nothing to paste. The Python, Node.js and .NET SDKs answer
-`api_access` for you and keep the grant (`api_access` /
-`wait_for_api_access` in Python, `apiAccess` / `waitForApiAccess` in Node.js, `ApiAccess` /
-`WaitForApiAccessAsync` in .NET), with a hook that runs when it arrives. In
-Rust, `api_access` reaches the custom handler like any other action. The
+There is nothing to paste. Every SDK answers `api_access` for you and keeps
+the grant: `api_access()` / `wait_for_api_access` on the management handle in
+Rust (0.6.5, core v0.1.113 and later), `api_access` / `wait_for_api_access` in
+Python, `apiAccess` / `waitForApiAccess` in Node.js, and `ApiAccess` /
+`WaitForApiAccessAsync` in .NET, each with a hook that runs when it arrives
+(`with_api_access_handler` in Rust). The
 [Assistant](../tools/hc-mcp) is a working example: it asks for the scopes its
 tools need and acts for each person within their own scopes.
 

@@ -59,12 +59,12 @@ The template (`plugins/hc-plugin-template`) depends on the SDK this way
 too, by path.
 
 For a Rust plugin developed *outside* the homeCore repo, pin a core release
-tag, the newest when you start (v0.1.112 at the time of writing). The SDK
+tag, the newest when you start (v0.1.113 at the time of writing). The SDK
 re-exports `hc-types`, which is the plugin ABI, so the tag keeps it from
 changing under you:
 
 ```toml
-plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.112" }
+plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.113" }
 ```
 
 No `path` key is needed: cargo finds `plugin-sdk-rs` by package name among the
@@ -89,9 +89,9 @@ To pin a release instead:
 
 | | |
 |---|---|
-| Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.5.5` |
-| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.4.5` |
-| .NET | clone at `v0.4.5`, then `dotnet add reference …/HomeCoreSdk.csproj` |
+| Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.5.6` |
+| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.4.6` |
+| .NET | clone at `v0.4.6`, then `dotnet add reference …/HomeCoreSdk.csproj` |
 
 These were the newest tags at the time of writing; each SDK's releases list
 the current one. In a `pyproject.toml`, depend on `homecore-plugin-sdk` and
@@ -102,7 +102,7 @@ tell uv where it is:
 dependencies = ["homecore-plugin-sdk>=0.5.5"]
 
 [tool.uv.sources]
-homecore-plugin-sdk = { git = "https://github.com/homeCore-io/hc-plugin-sdk-py", tag = "v0.5.5" }
+homecore-plugin-sdk = { git = "https://github.com/homeCore-io/hc-plugin-sdk-py", tag = "v0.5.6" }
 ```
 
 NuGet has no equivalent of a git install, which is why .NET clones.
@@ -1126,7 +1126,7 @@ jobs:
     uses: homeCore-io/hc-scripts/.github/workflows/python-release.yml@main
     with:
       plugin_dir: .
-      sdk_ref: v0.5.5   # the SDK tag built into the artifact
+      sdk_ref: v0.5.6   # the SDK tag built into the artifact
     secrets: inherit
 ```
 
