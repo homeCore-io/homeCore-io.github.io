@@ -7,7 +7,7 @@ sidebar_position: 7
 
 # Rule Examples
 
-Complete rules for common automation patterns. Each one can be saved as a `.ron` file in the rules directory as it stands; change the device names to match your house. The all-zero `id` tells HomeCore to assign a real one on first load.
+Complete rules for common automation patterns. Each one can be saved as a `.ron` file in the rules directory as it stands; change the device names to match your house. The all-zero `id` tells homeCore to assign a real one on first load.
 
 ## 1. Door alert during specific hours
 
@@ -137,7 +137,7 @@ A pair of rules with a cancellable `Delay` and `CancelDelays` does **not** work 
 
 One motion trigger starts several independent rules through a custom event.
 
-**Rule 1: motion fires the event**
+The first rule fires the event when there is motion in the bedroom:
 
 ```ron
 Rule(
@@ -162,7 +162,7 @@ Rule(
 )
 ```
 
-**Rule 2: coffee on**
+The second turns on the coffee maker:
 
 ```ron
 Rule(
@@ -179,7 +179,7 @@ Rule(
 )
 ```
 
-**Rule 3: thermostat**
+The third sets the thermostat:
 
 ```ron
 Rule(
@@ -196,7 +196,7 @@ Rule(
 )
 ```
 
-**Rule 4: raise the blinds**
+The fourth raises the blinds:
 
 ```ron
 Rule(
@@ -244,7 +244,7 @@ Rule(
         ])),
         RuleAction(action: SetMode(mode_id: "mode_away", command: Off)),
         RuleAction(action: CallService(
-            url: "http://sonos.local:5005/Entryway/say/Welcome+home",
+            url: "http://192.168.1.20:5005/Entryway/say/Welcome+home",
             method: "GET",
         )),
     ],
@@ -257,13 +257,7 @@ Rule(
 
 Start a named Sonos favorite when a virtual switch turns on.
 
-This is the preferred way to start media in HomeCore:
-
-- target the speaker by its HomeCore canonical name
-- send a structured command
-- let the plugin look up the favorite itself
-
-You don't need to hardcode a speaker IP, a plugin's own HTTP endpoint or a raw transport URI.
+The rule names the speaker by its homeCore canonical name and sends a structured command. The plugin looks up the favorite itself, so the rule needs no speaker IP, plugin HTTP endpoint or raw transport URI, and it keeps working when those change.
 
 ```ron
 Rule(
@@ -291,22 +285,12 @@ Rule(
 ### What the rule does
 
 1. The virtual switch `kitchen.music_switch` turns on.
-2. HomeCore resolves `kitchen.sonos` to the speaker's device ID and publishes the command to `homecore/devices/{device_id}/cmd`.
+2. homeCore resolves `kitchen.sonos` to the speaker's device ID and publishes the command to `homecore/devices/{device_id}/cmd`.
 3. `hc-sonos` receives the command.
 4. The plugin looks up the Sonos favorite named `Morning Jazz`.
 5. The plugin starts playback on the kitchen speaker.
 
-### When to use this pattern
-
-Use it when:
-
-- the target is a HomeCore media player device such as `kitchen.sonos`
-- the content is a named Sonos favorite or playlist
-- you want the rule to keep working if the speaker's IP or the Sonos URI changes
-
-### Related variants
-
-Swap in either of these as the rule's action:
+To play a playlist, or to use the general media command, swap in one of these as the rule's action:
 
 ```ron
 // Play a playlist by name
@@ -452,7 +436,7 @@ The script could also be two more conditions (`DeviceState` on the switch and `M
 
 ## 11. Startup state check
 
-When HomeCore starts, check critical devices and alert if any is in the wrong state.
+When homeCore starts, check critical devices and alert if any is in the wrong state.
 
 ```ron
 Rule(
@@ -484,7 +468,47 @@ A `Conditional` asks either a check written like a rule condition (the first ste
 
 ---
 
+## 12. Bedtime: living room off, back on in the morning
+
+Turn the living room's lights off at 23:00 and bring them back the way they were at 07:00 on weekdays. `RoomOff` saves which lights were on and how, and `RoomOn` restores that.
+
+```ron
+Rule(
+    id: "00000000-0000-0000-0000-000000000000",
+    name: "Living room, lights off at bedtime",
+    enabled: true,
+    priority: 10,
+    tags: ["lighting"],
+
+    trigger: TimeOfDay(time: "23:00", days: []),   // an empty list is every day
+
+    actions: [
+        RuleAction(action: RoomOff(room: "Living Room")),
+    ],
+)
+```
+
+```ron
+Rule(
+    id: "00000000-0000-0000-0000-000000000000",
+    name: "Living room, lights back on",
+    enabled: true,
+    priority: 10,
+    tags: ["lighting"],
+
+    trigger: TimeOfDay(time: "07:00", days: ["Mon", "Tue", "Wed", "Thu", "Fri"]),
+
+    actions: [
+        RuleAction(action: RoomOn(room: "Living Room")),
+    ],
+)
+```
+
+---
+
 ## Debugging rules
+
+The app shows all of this on each automation's page: **Test it**, **Run it now** and **Recent runs**. See [The automation editor](./editor.md#testing-and-running). Over the API:
 
 ```bash
 # Dry run: evaluate the conditions now, run nothing
@@ -507,7 +531,7 @@ curl -s -X POST http://localhost:8080/api/v1/automations/RULE_ID/run \
   -H "Content-Type: application/json" \
   -d '{"checks": true}' | jq
 
-# The last 20 evaluation attempts, oldest first
+# The last 20 evaluation attempts, oldest first (kept across restarts)
 curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
   -H "Authorization: Bearer $TOKEN" | jq
 
@@ -526,4 +550,4 @@ A dry run returns `rule_id`, `rule_name`, `conditions_pass`, `would_fire`, the r
 
 A run answers `202 Accepted` straight away. The run itself appears in the rule's history.
 
-Each history entry has a `timestamp`, the `trigger_type` and `trigger_context`, an `outcome` (`fired`, `condition_failed`, `cooldown`, `paused`, `required_expression_failed`, `trigger_gate_failed` or `skipped`), per-condition results in `conditions`, per-step results in `actions` and `eval_ms`.
+Each history entry has a `timestamp`, the `trigger_type` and `trigger_context`, an `outcome` (`fired`, `condition_failed`, `cooldown`, `paused`, `required_expression_failed`, `trigger_gate_failed` or `skipped`), per-condition results in `conditions`, per-step results in `actions` and `eval_ms`. A run someone asked for has the `trigger_type` `ManualRun`.

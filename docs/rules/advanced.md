@@ -119,7 +119,7 @@ trigger_condition: Some("device_state(\"mode_night\")[\"on\"] == true"),
 required_expression: Some("current_hour() >= 6 && current_hour() < 22"),
 ```
 
-Both gates can read device state (`device_state("id")`, by raw device ID), the time helpers (`current_hour()`, `current_minute()`, `current_weekday()`) and the trigger accessors (`trigger_device()`, `trigger_value()`, `trigger_prev_value()`, `trigger_label()` and the rest). A manual run with `"checks": false` skips both.
+Both gates can read device state (`device_state("id")`, by raw device ID), the time helpers (`current_hour()`, `current_minute()`, `current_weekday()`) and the trigger accessors (`trigger_device()`, `trigger_value()`, `trigger_prev_value()`, `trigger_label()` and the rest). They can't read hub variables (`hub_var()`) or rule variables. A manual run with `"checks": false` skips both. In the app they are under **More**: "Only while (a script)" is `required_expression`, and "Only when its moment also has (a script)" is `trigger_condition`.
 
 ---
 
@@ -196,7 +196,7 @@ Three steps cancel delays:
 
 Keys belong to the rule that set them, so `CancelDelays` in one rule can't reach a delay in another. Use `CancelRuleTimers` with the other rule's ID for that.
 
-Because a cancelled delay lets the run carry on, cancelling the delay above with one of these steps turns the porch light off immediately rather than leaving it on. `run_mode: Restart` is different: it also stops the earlier run, so the steps after the delay don't run. To build "turn off after five quiet minutes, and start the count again on new motion", use one of the patterns under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"command": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
+Because a cancelled delay lets the run carry on, cancelling the delay above with one of these steps turns the porch light off at once. `run_mode: Restart` is different: it also stops the earlier run, so the steps after the delay don't run. To build "turn off after five quiet minutes, and start the count again on new motion", use one of the patterns under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"action": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
 
 ---
 
@@ -229,7 +229,7 @@ actions: [
 
 `rule_var()` is available in `RunScript` only. Conditions, gates and `Conditional` scripts can't read rule variables.
 
-**`VariableOp` values:**
+`op` takes these values:
 
 | Op | Description |
 |---|---|
@@ -244,9 +244,9 @@ actions: [
 
 ## Hub variables
 
-Hub variables are shared by all rules. Use them for counters, flags and other state that several rules read or write. Like rule variables they live in memory, so a restart clears them. `GET /api/v1/automations/variables` lists the current values.
+Hub variables are shared by all rules. Use them for counters, flags and other state that several rules read or write. Like rule variables they live in memory, so a restart clears them. `GET /api/v1/automations/variables` lists the current values, and the app shows them under **House values rules keep** on the Automations page.
 
-**Writing:**
+Write one with `SetHubVariable`:
 
 ```ron
 RuleAction(action: SetHubVariable(name: "alarm_armed", value: true)),
@@ -254,19 +254,19 @@ RuleAction(action: SetHubVariable(name: "alarm_armed", value: true)),
 
 `SetHubVariable` takes the same optional `op` as `SetVariable`.
 
-**Reading in a script condition or `RunScript`:**
+Read one in a script condition or a `RunScript` step:
 
 ```ron
 ScriptExpression(script: "hub_var(\"alarm_armed\") == true"),
 ```
 
-**As a condition:**
+Or check one with a condition:
 
 ```ron
 HubVariable(name: "alarm_armed", op: Eq, value: true),
 ```
 
-**As a trigger.** Setting a hub variable raises a `hub_variable_changed` event, which the `HubVariableChanged` trigger listens for. Leave out `name` to react to any hub variable:
+To react to a change, use a trigger. Setting a hub variable raises a `hub_variable_changed` event, which the `HubVariableChanged` trigger listens for. Leave out `name` to react to any hub variable:
 
 ```ron
 trigger: HubVariableChanged(name: Some("alarm_armed")),
@@ -276,7 +276,7 @@ trigger: HubVariableChanged(name: Some("alarm_armed")),
 
 ## Startup gap pattern
 
-If HomeCore restarts while a sensor is in an alert state (garage door open, water detected), no state change arrives to trigger your rules. The `SystemStarted` trigger, which fires once after startup, catches it:
+If homeCore restarts while a sensor is in an alert state (garage door open, water detected), no state change arrives to trigger your rules. The `SystemStarted` trigger, which fires once after startup, catches it:
 
 ```ron
 trigger: SystemStarted,
@@ -329,7 +329,7 @@ Steps nested inside `Parallel`, `Conditional` and the repeat steps have no `enab
 
 ## Calendar triggers
 
-Rules can fire on events in `.ics` calendar files. HomeCore loads every `.ics` file in the calendar directory, set in `homecore.toml`:
+Rules can fire on events in `.ics` calendar files. homeCore loads every `.ics` file in the calendar directory, set in `homecore.toml`:
 
 ```toml
 [calendars]
@@ -358,13 +358,13 @@ curl -s -X POST http://localhost:8080/api/v1/calendars/fetch \
   -d '{"url": "https://calendar.google.com/calendar/ical/yourfeed/basic.ics", "name": "work", "refresh_hours": 6}'
 ```
 
-HomeCore saves the file as `work.ics` with a `work.meta.json` sidecar recording the source URL, when it was fetched and the refresh interval, and fetches it again every `refresh_hours`.
+homeCore saves the file as `work.ics` with a `work.meta.json` sidecar recording the source URL, when it was fetched and the refresh interval, and fetches it again every `refresh_hours`.
 
 ---
 
 ## Hub mode system (`ModeChanged`, `ModeIs`, `SetMode`)
 
-Modes are named on/off flags such as `mode_night` and `mode_away`, defined in `modes.toml`. Some follow the sun (night, day); others you switch yourself or from rules. They let one rule behave differently depending on the state of the house.
+Modes are named on/off flags such as `mode_night` and `mode_away`. You make and change them in **Settings › Modes** or in `modes.toml`. Renaming a mode keeps its ID, so rules that use it keep working. Some follow the sun (night, day); others you switch yourself or from rules. They let one rule behave differently depending on the state of the house.
 
 ```ron
 // Turn on the porch light when mode_night turns on

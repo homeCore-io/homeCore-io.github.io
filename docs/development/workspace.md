@@ -10,9 +10,10 @@ sidebar_position: 1
 ## Repository structure
 
 The workspace root (`homeCore/`) is not a git repository. Each
-subdirectory under it is its own git repo, and `workspace.toml` lists
-them. The largest is `core/`, which holds the server, its crates, the
-Rust SDK and every Rust plugin as members of a single cargo workspace.
+directory under it is its own git repo, and `workspace.toml` lists them.
+The largest is `core/`. It holds the server, its crates, the Rust SDK,
+the runtime host and every Rust plugin as members of one cargo
+workspace.
 
 ```
 homeCore/
@@ -20,16 +21,18 @@ homeCore/
 ├── Justfile                    ← workspace recipes (symlink to hc-scripts/Justfile.workspace)
 │
 ├── hc-scripts/                 ← workspace-clone.sh, run-dev.sh, deploy.sh,
-│                                  build-archive.sh, devenv/ (the dev shell),
-│                                  reusable GitHub Actions workflows
-│                                  (rust-ci.yml, rust-release.yml, python-release.yml, …)
+│                                  build-archive.sh, build-python-artifact.sh,
+│                                  devenv/ (the dev shell), reusable GitHub Actions
+│                                  workflows (rust-ci.yml, rust-release.yml,
+│                                  python-release.yml, node-ci.yml, …)
 │
-├── core/                       ← THE monorepo (git repo: homeCore-io/homeCore)
+├── core/                       ← the monorepo (git repo: homeCore-io/homeCore)
 │   ├── Cargo.toml              ← virtual workspace: server + 17 crates + SDK + runtime host + 17 plugins
 │   ├── Cargo.lock              ← one lockfile for all of it
 │   ├── config/
 │   │   ├── homecore.toml.example   ← reference config
 │   │   ├── homecore.dev.toml       ← dev config (plugin binaries at target/debug/<name>)
+│   │   ├── glue.toml           ← seed definitions for core's helper devices
 │   │   ├── modes.toml          ← solar + named boolean mode definitions
 │   │   └── profiles/examples/  ← reference topic-mapper profiles (Shelly, Tasmota, Zigbee2MQTT, …)
 │   ├── homecore/               ← the server binary, a member like any other
@@ -40,9 +43,9 @@ homeCore/
 │   │   ├── hc-broker/          ← rumqttd embedded broker
 │   │   ├── hc-mqtt-client/     ← rumqttc async client → internal event bus
 │   │   ├── hc-topic-map/       ← pattern-based topic translation for non-plugin devices
-│   │   ├── hc-core/            ← rule engine, scheduler, state bridge, glue devices
+│   │   ├── hc-core/            ← rule engine, scheduler, state bridge, glue devices, alerts
 │   │   ├── hc-state/           ← device registry (redb), history (SQLite), schemas
-│   │   ├── hc-api/             ← axum HTTP + WebSocket
+│   │   ├── hc-api/             ← axum HTTP + WebSocket, plugin install, runtimes, displays
 │   │   ├── hc-auth/            ← JWT HS256, Argon2id, MQTT creds, API keys
 │   │   ├── hc-scripting/       ← Rhai sandboxed runtime
 │   │   ├── hc-logging/         ← tracing setup, rolling files, log stream
@@ -52,7 +55,7 @@ homeCore/
 │   │   ├── hc-time/            ← configured-timezone helpers (never `chrono::Local`)
 │   │   ├── hc-api-types/       ← request/response types shared with Rust clients
 │   │   ├── hc-web-admin/       ← optional static-file mount for a pre-built UI
-│   │   └── hc-cli/             ← admin CLI (issuance, broker config gen, …)
+│   │   └── hc-cli/             ← admin CLI (setup, users, API keys, broker config gen)
 │   ├── runtime-host/           ← hc-runtime-host: hosts plugins written in other languages
 │   ├── sdk/rust/               ← the Rust plugin SDK (crate `plugin-sdk-rs`)
 │   ├── sdk/ui/                 ← `@homecore/plugin-ui`: types for a plugin's own screens
@@ -83,7 +86,7 @@ homeCore/
 ├── clients/                    ← UI and API consumers
 │   ├── hc-web-svelte/          ← the web app (SvelteKit) and its UI server
 │   ├── hc-tui/                 ← Terminal UI (ratatui)
-│   ├── hc-mcp/                 ← MCP server (Python)
+│   ├── hc-mcp/                 ← MCP server and the Assistant plugin (Python)
 │   ├── hc-web-flutter/         ← retired Flutter app, kept for reference
 │   ├── hc-web-lit/             ← retired, kept for reference
 │   └── hc-web-leptos/          ← retired Leptos/WASM admin, kept for reference
@@ -98,11 +101,10 @@ homeCore/
 ```
 
 In `core/config/`, `homecore.local.toml` and the `plugins/` directory are
-gitignored because they can hold credentials. A fresh machine gets every
-repo in the list with `./hc-scripts/workspace-clone.sh`, which reads
-`workspace.toml` and clones whatever is missing. For the dev shell, copy
-`hc-scripts/devenv/` to the workspace root (see
-[Dev Workflow](./dev-workflow#toolchain)).
+gitignored because they can hold credentials. On a fresh machine,
+`./hc-scripts/workspace-clone.sh` reads `workspace.toml` and clones every
+repo that is missing. For the dev shell, copy `hc-scripts/devenv/` to the
+workspace root (see [Dev Workflow](./dev-workflow#toolchain)).
 
 ---
 
@@ -116,35 +118,33 @@ pass.
 What this gets you:
 
 - Edit `crates/hc-types/src/...` and every plugin picks it up on the next
-  build. There is no commit, tag or reinstall in between.
-- A change that breaks a plugin fails in the same CI run, not weeks later
-  at the plugin's next release. `hc-types` is the plugin ABI, so this
+  build, with no commit, tag or reinstall in between.
+- A change that breaks a plugin fails in the same CI run instead of at
+  the plugin's next release. `hc-types` is the plugin ABI, so this
   catches real breakage.
 - One `Cargo.lock`, so the revision that builds is the revision that
   ships. Cloning `core/` gets you a tree that compiles.
 - Feature unification is honest. A plugin that only compiled because a
-  sibling happened to enable a feature fails here; that is how hc-hue's
+  sibling happened to enable a feature fails here. That is how hc-hue's
   missing `schema` feature was caught.
 
 To add a new plugin, create its directory under `core/plugins/` and add it
-to `[workspace] members` in `core/Cargo.toml`. Nothing else needs
-registering: CI and the release pipeline derive what they need from the
-directory.
+to `[workspace] members` in `core/Cargo.toml`. CI and the release
+pipeline derive everything else from the directory.
 
-:::note This replaced a three-workspace arrangement
-Plugins, clients and SDKs used to be separate git repos absorbed by a
-local-only "meta-layout" workspace (`plugins/Cargo.toml`,
-`clients/Cargo.toml`, `sdks/Cargo.toml`) carrying `[patch]` tables that
-redirected git dependencies to local checkouts. Committed manifests
-pinned git tags, and the patches made local edits visible.
+:::note History: the three-workspace layout
+Plugins, clients and SDKs used to be separate git repos, pulled together
+by a local-only "meta-layout" workspace (`plugins/Cargo.toml`,
+`clients/Cargo.toml`, `sdks/Cargo.toml`). Its `[patch]` tables redirected
+git dependencies to local checkouts. Committed manifests pinned git tags,
+and the patches made local edits visible.
 
-It worked, but a plugin's real dependency graph only existed on a
-developer's machine. The meta-workspaces also hijacked the shipped
-`Cargo.lock` and silently unified features, so a green local build proved
-little. Folding the Rust tree into one repo removed the mechanism
-entirely. The old plugin repos and `hc-plugin-sdk-rs` are archived
-read-only. Their releases still back registry entries, so they are kept
-rather than deleted.
+A plugin's real dependency graph only existed on a developer's machine.
+The meta-workspaces also took over the shipped `Cargo.lock` and quietly
+unified features, so a green local build proved little. Folding the Rust
+tree into one repo removed the mechanism. The old plugin repos and
+`hc-plugin-sdk-rs` are archived read-only. Their releases still back
+registry entries, so they are kept.
 
 The design and history are in
 [`docs/monorepo-plan.md`](https://github.com/homeCore-io/homeCore/blob/develop/docs/monorepo-plan.md).
@@ -152,15 +152,17 @@ The design and history are in
 
 ### The non-Rust components
 
+These stay separate repos because cargo cannot absorb them:
 `plugins/hc-matter` (TypeScript), `plugins-py` (Python plugins),
 `clients/hc-web-svelte` (SvelteKit), `clients/hc-mcp` (Python),
 `extensions` (the UI extensions homeCore makes, built with `pack.sh`) and
-the three non-Rust SDKs stay separate repos because cargo cannot absorb
-them. `skills` holds the [Agent Skills](../tools/skills.md) for AI assistants;
-hc-mcp ships a copy of them.
-`clients/hc-tui` is Rust but a separate repo too, with its own lockfile; the
-workspace `Justfile` builds and checks it on its own. `clients/hc-web-leptos`
-is Rust as well, and retired.
+the three non-Rust SDKs. `skills` holds the
+[Agent Skills](../tools/skills.md) for AI assistants, and hc-mcp ships a
+copy of them.
+
+`clients/hc-tui` is Rust but a separate repo too, with its own lockfile.
+The workspace `Justfile` builds and checks it on its own.
+`clients/hc-web-leptos` is Rust as well, and retired.
 
 A Python, Node.js or .NET plugin points at its SDK's checkout directly:
 
@@ -170,12 +172,12 @@ npm install ../../sdks/hc-plugin-sdk-js
 dotnet add reference ../../sdks/hc-plugin-sdk-dotnet/HomeCoreSdk.csproj
 ```
 
-All three link rather than copy (pip's `-e`, npm's directory install, and
-a .NET project reference), so an SDK edit is live in the plugin without a
-reinstall.
+All three link instead of copying (pip's `-e`, npm's directory install,
+and a .NET project reference), so an SDK edit is live in the plugin
+without a reinstall.
 
-None of the SDKs is published to a package registry: not crates.io, PyPI,
-npm or NuGet. See
+None of the SDKs is published to a package registry (crates.io, PyPI, npm
+or NuGet). See
 [Installing an SDK](../plugins/developing-plugins#installing-an-sdk).
 
 ## The web app (`hc-web-svelte`)
@@ -183,9 +185,11 @@ npm or NuGet. See
 `clients/hc-web-svelte/` is the web app: a SvelteKit application plus the
 small Node UI server it runs in. The UI server serves the app, passes
 `/api/v1` and the event stream through to core on the same origin, and
-keeps the UI's own data (pages, themes, files). It is not part of the
-cargo workspace and builds with `npm`. Tagged releases publish
-`ghcr.io/homecore-io/hc-web-svelte`.
+keeps the UI's own data (pages, themes, files, displays, extensions). It
+is not part of the cargo workspace and builds with `npm`. Tagged releases
+publish `ghcr.io/homecore-io/hc-web-svelte`. See
+[Architecture](./architecture.md#the-ui-server) for how it sits beside
+core.
 
 The other directories under `clients/hc-web-*` are retired.
 `hc-web-flutter` stopped working with core v0.1.94, when core dropped the
@@ -195,37 +199,38 @@ that core used to bake into its own binary; nothing ships it now. See the
 
 ## Crate dependency order
 
-Changing a crate recompiles everything that depends on it, so it helps to
-know the chain. These are the path dependencies declared in each
-`Cargo.toml`:
+Changing a crate recompiles everything that depends on it. These are the
+path dependencies declared in each `Cargo.toml`:
 
 ```
-hc-types, hc-time, hc-notify    ← no hc-* dependencies
+hc-types, hc-time, hc-notify, hc-web-admin    ← no hc-* dependencies
   │
   ├── hc-auth, hc-broker, hc-mqtt-client, hc-topic-map, hc-influx   ← hc-types
   ├── hc-logging, hc-scripting                                      ← hc-types + hc-time
   ├── hc-state                                                      ← hc-types + hc-auth
+  ├── hc-api-types                                                  ← hc-auth
+  ├── hc-cli                                                        ← hc-api-types + hc-auth
   ├── hc-config        ← hc-types, hc-logging, hc-notify, hc-influx
   │
   ├── hc-core          ← hc-types, hc-time, hc-notify, hc-scripting, hc-state,
   │     │                hc-mqtt-client, hc-topic-map
-  │     └── hc-api     ← hc-core and most of the above, plus hc-api-types, hc-web-admin
+  │     └── hc-api     ← hc-core and most of the above, plus hc-api-types, hc-config, hc-web-admin
   │           └── homecore (binary)
   │
   └── sdk/rust (plugin-sdk-rs)   ← hc-types + hc-logging + hc-time
         ├── plugins/hc-*         ← every Rust plugin
-        └── runtime-host
+        └── runtime-host         ← plugin-sdk-rs + hc-api-types
 ```
 
-Rule of thumb: a change to `hc-api` recompiles only `hc-api` and
-`homecore`. A change to `hc-types` recompiles everything, all the plugins
-included. That is intended: `hc-types` is the plugin ABI, and this is
-where an incompatible change gets caught.
+A change to `hc-api` recompiles only `hc-api` and `homecore`. A change to
+`hc-types` recompiles everything, plugins included. That is intended:
+`hc-types` is the plugin ABI, and this is where an incompatible change
+gets caught.
 
 ## Technology stack
 
 Versions are the `[workspace.dependencies]` entries in `core/Cargo.toml`,
-where they are declared once for every member, unless noted otherwise.
+declared once for every member, unless noted otherwise.
 
 | Concern | Library | Version |
 |---|---|---|

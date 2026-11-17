@@ -7,7 +7,7 @@ sidebar_position: 2
 
 # Triggers
 
-A trigger is the event that makes homeCore evaluate a rule. Every rule has one in `trigger`, and it can list more in `triggers`. Any of them starts the rule.
+A trigger is the event that makes homeCore evaluate a rule. Every rule has one in `trigger`, and it can list more in `triggers`. Any of them starts the rule. The app calls triggers "moments" and shows them under **When**.
 
 ## How triggers are written
 
@@ -38,7 +38,7 @@ Two RON details catch people out:
 - Optional fields take `Some(...)` in RON: `attribute: Some("open")`, not `attribute: "open"`. Leave an optional field out entirely to mean "not set". JSON needs no wrapper.
 - A trigger with no fields is written by name alone: `trigger: SystemStarted` in RON, `"trigger": "SystemStarted"` in JSON.
 
-Fields called `device_id` also accept the spelling `device`. Either one takes a canonical name (`living_room.floor_lamp`), a unique display name (`Kitchen Speaker`) or a raw device ID. If a display name matches more than one device, homeCore disables the rule with an ambiguity error instead of guessing. See [Rules overview](./overview.md#device-references).
+Fields called `device_id` also accept the spelling `device`. On `DeviceStateChanged`, `DeviceAvailabilityChanged`, `ButtonEvent` and `NumericThreshold`, either one takes a canonical name (`living_room.floor_lamp`), a unique display name (`Kitchen Speaker`) or a raw device ID. If a display name matches more than one device, homeCore disables the rule with an ambiguity error. The battery triggers take the raw device ID only. See [Rules overview](./overview.md#device-references).
 
 ### Several triggers
 
@@ -88,6 +88,8 @@ trigger: DeviceStateChanged(
 | `change_source` | no | Only fire when the change's source label is exactly this (for example `api`, `rule`, `scene`, `script`, or a label a plugin reports). |
 
 Without `attribute`, the trigger fires on every state update from the device, and `to`, `from`, `not_to` and `not_from` are ignored. With `attribute`, it fires only when that attribute is present in the update and its value differs from the previous one.
+
+`to`, `from`, `not_to` and `not_from` compare JSON values exactly, so `21` and `21.0` are different values. Write the value the way the device reports it.
 
 About `for_duration_secs`: homeCore waits the full time and then looks at the device's current value once. It does not watch the value in between, so a value that changes away and comes back during the wait still counts. When a rule fires this way, the `trigger_*()` Rhai functions return empty values.
 
@@ -243,7 +245,7 @@ trigger: Periodic(
 | `every_n` | yes | How many units between firings. |
 | `unit` | yes | `Minutes`, `Hours`, `Days` or `Weeks`. |
 
-The interval counts from the rule's last firing, which homeCore keeps in memory. A periodic rule added while homeCore is running fires at the next minute tick and then every interval. After a restart, it fires at startup if the interval is no longer than the catch-up window. Otherwise its first firing comes one interval after startup.
+The interval counts from the last time the schedule came due, whether or not the rule's checks then passed. homeCore keeps that time in memory. A periodic rule added while homeCore is running fires at the next minute tick and then every interval. After a restart, it fires at startup if the interval is no longer than the catch-up window. Otherwise its first firing comes one interval after startup.
 
 ---
 
@@ -257,16 +259,16 @@ trigger: WebhookReceived(
 ),
 ```
 
-The URL for this example is `POST http://homecore.local/api/v1/webhooks/front-door-bell-a3f9c2`.
+The URL for this example is `POST http://192.168.1.10:8080/api/v1/webhooks/front-door-bell-a3f9c2`.
 
 ```bash
 # Fire it from any HTTP client: a script, a scheduler, another service
-curl -X POST http://homecore.local/api/v1/webhooks/front-door-bell-a3f9c2 \
+curl -X POST http://192.168.1.10:8080/api/v1/webhooks/front-door-bell-a3f9c2 \
   -H "Content-Type: application/json" \
   -d '{"source": "doorbell", "action": "pressed"}'
 ```
 
-In Rhai, `trigger_value()` returns the JSON request body (or nothing if there was none) and `trigger_extra()` returns the query-string parameters as a map. These functions work in the rule's `trigger_condition` and `required_expression` and in `RunScript` actions, but not in `ScriptExpression` conditions. To accept only requests carrying a PIN:
+homeCore answers `200` with `{"status": "accepted", "path": "..."}` whether or not a rule uses the path. In Rhai, `trigger_value()` returns the JSON request body (send it with `Content-Type: application/json`; otherwise there is none) and `trigger_extra()` returns the query-string parameters as a map. These functions work in the rule's `trigger_condition` and `required_expression` and in `RunScript` actions, but not in `ScriptExpression` conditions. To accept only requests carrying a PIN:
 
 ```ron
 trigger: WebhookReceived(
@@ -558,7 +560,7 @@ trigger: CalendarEvent(
 | `title_contains` | no | Case-insensitive text to look for in the event title. Leave it out to match any event. |
 | `offset_minutes` | no | Negative fires before the event starts, positive after. Defaults to `0`. |
 
-Calendars load from `[calendars] dir` (default `config/calendars`). The scheduler checks once a minute.
+Calendars load from `[calendars] dir` (default `config/calendars`). The scheduler checks once a minute. An all-day event starts at midnight in the house's timezone. If a rule has several calendar triggers, the first event any of them matches fires it, once.
 
 ---
 
@@ -573,6 +575,8 @@ trigger: DeviceBatteryLow(
     device_id: None,   // or Some("yolink_d88b4c0400064299") for one device
 ),
 ```
+
+`device_id` takes the raw device ID here. A canonical or display name is not looked up, so it never matches.
 
 The thresholds live in `[battery]` in `homecore.toml`. See [Battery monitoring](../devices/battery-monitoring.md) for the whole feature.
 
@@ -639,9 +643,18 @@ Rhai scripts can read details of the event that started the rule:
 | `trigger_prev_value()` | The attribute's previous value, when there is one. |
 | `trigger_event_type()` | The event type, such as `device_state_changed`. |
 | `trigger_change_kind()`, `trigger_change_source()`, `trigger_change_actor_id()`, `trigger_change_actor_name()` | Who or what made a device change. |
-| `trigger_extra()` | Webhook query parameters as a map. |
+| `trigger_correlation_id()` | The correlation ID of the change, when it carried one, or `""`. |
+| `trigger_extra()` | Webhook query parameters as a map. For an alert trigger, a map holding the alert under `"alert"`. |
 | `trigger_label()` | The rule's `trigger_label`, or `""`. |
 
-These functions are available in the rule's `trigger_condition` and `required_expression` and in `RunScript` actions. `ScriptExpression` conditions and the expressions in `Conditional`, `RepeatUntil`, `RepeatWhile` and `WaitForExpression` don't receive trigger context.
+These functions are available in the rule's `trigger_condition` and `required_expression` and in `RunScript` actions. `ScriptExpression` conditions get them too, but they return empty values there. The expressions in `Conditional`, `RepeatUntil`, `RepeatWhile` and `WaitForExpression` don't have them at all.
 
-For `DeviceBatteryLow` and `DeviceBatteryRecovered`, `trigger_device()` returns the device and `trigger_value()` returns its battery level. In a `RunScript` action, `device_state(trigger_device())` returns that device's current attributes.
+What each trigger fills in:
+
+- Device triggers set `trigger_device()`, and `trigger_attribute()` when the trigger names an attribute. Without one, `trigger_value()` is the first attribute in the update that changed.
+- `ButtonEvent` sets the attribute to `pushed`, `held`, `double_tapped` or `released`, and the value to the button number.
+- `DeviceAvailabilityChanged` sets the attribute to `available` and the value to `true` or `false`.
+- `DeviceBatteryLow` sets the value to the battery level and `trigger_prev_value()` to the low threshold. `DeviceBatteryRecovered` sets the value to the battery level. In a `RunScript` action, `device_state(trigger_device())` returns that device's current attributes.
+- `MqttMessage` sets the value to the payload as a string and the event type to `mqtt:{topic}`.
+- `CustomEvent`, `HubVariableChanged` and `ModeChanged` set the value to the event's payload. For a mode that is a map with `mode_id` and `on`.
+- Time triggers (`TimeOfDay`, `SunEvent`, `Cron`, `Periodic`), `CalendarEvent`, and a trigger that waited out `for_duration_secs` fill in nothing, not even `trigger_label()`. `AlertActiveFor` fills in the alert, as the other alert triggers do.

@@ -7,113 +7,169 @@ sidebar_position: 9
 
 # ISY / IoX (`hc-isy`)
 
-hc-isy connects a Universal Devices ISY/IoX controller (ISY994i, eisy or Polisy) to HomeCore. It reads the controller's devices and scenes over the ISY REST API and follows changes on its WebSocket event stream, so the Insteon and Z-Wave devices the controller runs show up as HomeCore devices. You don't list devices by hand.
+hc-isy connects a Universal Devices ISY or IoX controller (ISY994i, eisy or
+Polisy) to homeCore. It reads the controller's nodes and scenes over the ISY
+REST API and follows changes on the controller's WebSocket event stream. The
+Insteon and Z-Wave devices the controller runs show up in homeCore without
+you listing them.
 
-## Prerequisites
+## Before you start
 
-- An ISY994i, eisy or Polisy controller on your LAN
-- Firmware 4.2.3 or later, for the WebSocket event stream
-- The controller's address, and the username and password of an account that can use its REST interface (the ISY Admin Console login)
+- You need an ISY994i, eisy or Polisy on your network, with a fixed address.
+- The controller's firmware must offer the WebSocket subscription interface.
+  Universal Devices added it in firmware 4.2.3.
+- You need the username and password of an account that can use the REST
+  interface. That's the login you use for the ISY Admin Console, usually
+  `admin`. Don't leave it on the factory `admin` / `admin` password.
+- homeCore must reach the controller on port 80, or 443 if you turn on HTTPS.
 
-## Configuration
+## Install and set up
 
-Install the plugin from the web UI (**Settings › Plugins › Catalog**), then open its **Configuration** tab and set the controller's host, port and credentials. homeCore owns the config file (`config/plugins/plugin.isy.toml` under homeCore's home directory) and restarts the plugin when it changes.
+1. Install ISY from **Settings › Plugins › Catalog**.
+2. Open **Settings › Plugins › ISY / IoX** and fill in the Controller section:
+   the address (for example `192.168.1.50`), the port, and the login.
+3. Save. homeCore writes `config/plugins/plugin.isy.toml` and restarts the
+   plugin.
+
+On start, the plugin fetches the node list (`/rest/nodes`) and every node's
+current values (`/rest/status`). It registers each enabled node and scene,
+then subscribes to the event stream at `/rest/subscribe` for live updates.
+Disabled nodes are skipped, and a node removed from the controller is removed
+from homeCore the next time the plugin starts.
+
+## Settings
+
+| Setting | Key | Default | What it does |
+|---|---|---|---|
+| Address | `isy.host` | none | IP address or name of the controller. With none set, the plugin raises `not_configured`. |
+| Port | `isy.port` | `80` | Use `443` when HTTPS is on. |
+| Use HTTPS | `isy.tls` | off | Connects over HTTPS and WSS. |
+| Username | `isy.username` | `admin` | An account with REST access. |
+| Password | `isy.password` | none | Its password. Required when a username is set. |
+
+With HTTPS on, the plugin skips certificate checks, because ISY controllers
+ship with a self-signed certificate. The link is encrypted, but the plugin
+can't prove it's talking to your controller.
+
+The Devices section lists every node read from the controller. Names come from
+the ISY. Edit one there to change what homeCore calls it, and assign it a room.
+
+The Logging section sets the log level, what gets forwarded to homeCore, and
+file rotation.
+
+If you edit the file by hand, it looks like this:
 
 ```toml
-[homecore]
-broker_host = "127.0.0.1"
-broker_port = 1883
-plugin_id   = "plugin.isy"
-password    = ""
-
 [isy]
-host     = "192.168.1.x"   # ISY hub IP address
-port     = 80              # 443 with tls = true
+host     = "192.168.1.50"
+port     = 80
 username = "admin"
-password = ""              # your ISY admin password
-tls      = false            # set true if ISY has HTTPS enabled
+password = ""
+tls      = false
 ```
 
-`port` defaults to 80 and `tls` to false. With `tls = true` the plugin uses HTTPS and WSS and skips certificate verification, because ISY controllers usually have a self-signed certificate. That encrypts the link but doesn't prove you're talking to your controller. Don't leave the controller on the factory `admin`/`admin` password.
+## Devices
 
-## Running
-
-The plugin starts with homeCore once it is installed. Run by hand, it takes the config path as its only argument and falls back to `config/config.toml`:
-
-```bash
-cd /path/to/hc-isy
-./hc-isy config/config.toml
-```
-
-It fetches the node list and current values from the REST API, registers every enabled node and scene, then subscribes to the WebSocket event stream for live updates. If the controller stops answering, it reconnects on its own, waiting 2 seconds at first and backing off to a minute.
-
-## Device IDs
-
-A device ID is the ISY node address, lowercased, with spaces and colons turned into underscores:
+A device's ID is the ISY node address in lowercase, with spaces and colons
+turned into underscores, after `isy_`. Scenes (ISY groups) use the same rule
+with the scene's address.
 
 ```
-isy_{address}          ← node or scene address
-isy_13_a6_99_1         ← Insteon address "13 A6 99 1"
-isy_00_3c_89_ab_00_00  ← address "00:3C:89:AB:00:00"
+isy_13_a6_99_1         Insteon address "13 A6 99 1"
+isy_00_3c_89_ab_00_00  address "00:3C:89:AB:00:00"
 ```
 
-Scenes (ISY groups) follow the same rule, using the scene's address. There is no separate scene prefix.
+The plugin picks each device's type from its ISY category, type code and the
+unit of measure (UOM) of its main value:
 
-## Devices and attributes
-
-The plugin picks each device's type from its ISY category, type code and the unit of measure (UOM) of its main value.
-
-| ISY device | HomeCore device_type |
+| ISY device | homeCore type |
 |---|---|
-| Dimmers (category 1, UOM 100 or 51) | `light` |
+| Insteon dimmers (category 1, UOM 100 or 51) | `light` |
 | Relays, switches and outlet modules (UOM 78) | `switch` |
-| Contact, motion and water sensors | `contact_sensor`, `motion_sensor`, `water_sensor` |
-| Binary sensors it can't classify more precisely | `binary_sensor` |
+| Contact, motion and leak sensors | `contact_sensor`, `motion_sensor`, `water_sensor` |
+| Binary sensors it can't classify further | `binary_sensor` |
 | Temperature, humidity, power and other readings | `sensor` |
 | Locks (UOM 11) | `lock` |
 | Garage doors (UOM 97) and motors (category 14) | `cover` |
-| FanLinc | `fan` |
+| FanLinc (type 1.46) | `fan` |
 | Thermostats (category 5) | `thermostat` |
 | ISY scenes | `scene` |
 
+A node that matches none of these is published as a `switch`.
+
+### What each device reports and takes
+
 Names and units follow homeCore's shared device vocabulary. The plugin
-converts from the ISY's own scales, using the UOM and precision the ISY sends
-with each value.
+converts from the ISY's scales using the UOM and precision the ISY sends with
+each value.
 
-| device_type | Attribute | Writable | Unit / values |
-|---|---|---|---|
-| `light` | `on` | yes | `true` with no level goes back to the last level seen |
-| | `brightness_pct` | yes | 0 to 100 %, decimals allowed; 0 turns off; a light that is on never reports 0 % |
-| `switch`, `scene` | `on` | yes | |
-| `contact_sensor` | `open` | | |
-| `motion_sensor` | `motion` | | |
-| `water_sensor` | `water_detected` | | Insteon leak sensors report ON when dry; the plugin inverts it |
-| `binary_sensor` | `on`, `device_class` | | |
-| `sensor` | one reading, see below | | |
-| `lock` | `locked` | yes | |
-| `cover` | `position` | yes | 0 to 100 % open. A barrier (garage door) only opens (above 0) or closes (0) |
-| `fan` | `on`, `speed`, `speed_pct` | yes | `speed` is `off`/`low`/`medium`/`high`; `speed_pct` 0 to 100 % |
-| `thermostat` | `temperature` | | °C |
-| | `humidity` | | % |
-| | `hvac_action` | | `idle`, `heating`, `cooling`, `fan` |
-| | `hvac_mode` | yes | `off`, `heat`, `cool`, `auto`, `fan_only` |
-| | `heat_setpoint`, `cool_setpoint` | yes | °C |
-| | `fan_mode` | yes | `auto`, `on` |
+| Type | Reports | Takes |
+|---|---|---|
+| `light` | `on`, `brightness_pct` (0 to 100, %) | `on`, `brightness_pct` |
+| `switch` | `on` | `on` |
+| `scene` | `on` | `on` |
+| `contact_sensor` | `open` | nothing |
+| `motion_sensor` | `motion` | nothing |
+| `water_sensor` | `water_detected` | nothing |
+| `binary_sensor` | `on`, and `device_class` when known | nothing |
+| `sensor` | one reading (see below) | nothing |
+| `lock` | `locked` | `locked` |
+| `cover` | `position` (0 to 100, % open) | `position` |
+| `fan` | `on`, `speed`, `speed_pct` (%) | `on`, `speed`, `speed_pct` |
+| `thermostat` | `temperature` (°C), `humidity` (%), `hvac_action`, `hvac_mode`, `heat_setpoint` and `cool_setpoint` (°C), `fan_mode` | `hvac_mode`, `heat_setpoint`, `cool_setpoint`, `fan_mode` |
 
-**Levels.** UOM 51 is already a percentage. UOM 100 (Insteon) runs 0 to 255,
-and `pct = round(raw × 100 / 255)`, with a minimum of 1 % when the raw value
-is above zero. `{"on": true}` sends the last level the device reported.
-Before any level has been seen it sends a plain DON, which an Insteon device
-takes to its configured on-level.
+The values:
 
-**Temperatures** are always °C. On the ISY side, UOM 4 is °C, 17 is °F and
-101 is half-degrees in the thermostat's own unit. A setpoint is written back
-in the thermostat's own degrees and precision, so 20 °C becomes `68` on a
-whole-degree °F thermostat and `136` on a half-degree one. Showing °F is up to
-the app, from each person's setting.
+- Fan `speed` is `off`, `low`, `medium` or `high`.
+- `hvac_action` is `idle`, `heating`, `cooling` or `fan`.
+- `hvac_mode` is `off`, `heat`, `cool`, `auto` or `fan_only`.
+- `fan_mode` is `auto` or `on`.
 
-**Generic sensors** publish one reading under the shared name for its UOM,
-converted to the shared unit:
+Every command is an attribute write. ISY devices have no actions.
+
+```json
+{"on": true}
+{"brightness_pct": 75}
+{"speed": "medium"}
+{"locked": true}
+{"position": 0}
+{"hvac_mode": "heat", "heat_setpoint": 20}
+```
+
+From the API, send these to `PATCH /api/v1/devices/<id>/state`:
+
+```bash
+curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_13_a6_99_1/state \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"brightness_pct": 75}'
+```
+
+### How values are converted
+
+Levels: UOM 51 is already a percentage. UOM 100 (Insteon) runs 0 to 255, and
+the plugin converts it as `round(raw × 100 / 255)`, with a minimum of 1% when
+the raw value is above zero, so a lit light never reports 0%. `{"on": true}`
+on a light goes back to the last level the device reported. Before any level
+has been seen, it sends a plain on, which an Insteon device takes to its
+configured on-level. `brightness_pct: 0` is off.
+
+Fans: `{"on": true}` goes back to the last speed, or medium before one has
+been seen.
+
+Covers: a garage door (UOM 97) only opens or closes. Any `position` above 0
+opens it, and 0 closes it. It reports only 0 or 100.
+
+Leak sensors: Insteon leak sensors report on when dry. The plugin inverts
+that, so `water_detected` is `true` when there's water.
+
+Temperatures are always published in °C. On the ISY side, UOM 4 is °C, 17 is
+°F and 101 is half-degrees in the thermostat's own unit. A setpoint is written
+back in the thermostat's own unit and precision, so 20 °C becomes `68` on a
+whole-degree °F thermostat and `136` on a half-degree one. The app shows °F to
+anyone who prefers it.
+
+A generic sensor publishes one reading under the shared name for its UOM:
 
 | UOM | Attribute | Unit |
 |---|---|---|
@@ -127,104 +183,48 @@ converted to the shared unit:
 | 54 | `co2` | ppm |
 | 118, 117, 31, 23 | `pressure` | hPa |
 | 40, 49, 48, 32 | `wind_speed` | m/s |
-| 71 | `uv_index` | |
+| 71 | `uv_index` | none |
 | anything else | `value` | the ISY's own unit |
 
-Commands still accept the old spellings `target_temp_heat`, `target_temp_cool`
+Commands still accept the old names `target_temp_heat`, `target_temp_cool`
 and a cover's `state: open|closed`, but the plugin never publishes them. The
 0 to 255 `brightness` is no longer accepted.
 
-## Commanding devices
+## Actions
 
-```bash
-# Turn on (at the last level seen)
-curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_13_a6_99_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true}'
+The plugin declares no plugin actions.
 
-# Set brightness (brightness_pct, 0–100)
-curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_13_a6_99_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"brightness_pct": 75}'
+## Alerts
 
-# Turn off
-curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_13_a6_99_1/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": false}'
+The plugin raises no device alerts. It shows these notices on its own page:
 
-# Activate a scene
-curl -s -X PATCH http://localhost:8080/api/v1/devices/isy_12345/state \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"on": true}'
-```
-
-## Rule example: ISY light at sunset
-
-```ron
-Rule(
-    id: "00000000-0000-0000-0000-000000000000",
-    name: "Porch light, on at sunset",
-    enabled: true,
-    priority: 0,
-    trigger: SunEvent(event: Sunset, offset_minutes: 0),
-    actions: [
-        RuleAction(action: SetDeviceState(
-            device_id: "isy_13_a6_99_1",
-            state: { "on": true, "brightness_pct": 100 },
-        )),
-    ],
-)
-```
-
-
-## Communication details
-
-- The REST API at `http://{host}/rest/` gives the node list (`/rest/nodes`) and current values (`/rest/status`), and takes commands.
-- The WebSocket at `ws://{host}/rest/subscribe` (`wss://` with TLS) carries live state changes, using the ISY Subscription API's XML event envelope and the `ISYSUB` sub-protocol.
-
-## Notices
-
-The plugin reports problems as notices on its card in the web UI.
-
-| Code | Means |
-|---|---|
-| `not_configured` | No controller address is set, so there is nothing to connect to. |
-| `controller_unreachable` | The ISY isn't answering REST or the event WebSocket, so every device it serves is unavailable. Clears on reconnect. |
+| Code | Level | Meaning |
+|---|---|---|
+| `not_configured` | error | No controller address is set. |
+| `controller_unreachable` | error | The controller isn't answering, so every device it serves is unusable. It clears once the plugin loads the node list again. |
 
 ## Troubleshooting
 
-| Problem | Solution |
+| Problem | What to check |
 |---|---|
-| `Connection refused` | Check the ISY's IP and port, and that the controller is online. |
-| `Authentication failed` | Use the ISY Admin Console username and password. The account needs REST access. |
-| State not updating | Check that the WebSocket can connect. The plugin reconnects on its own after an error; restart it if updates still don't arrive. |
-| TLS errors | Set `tls = false` unless you've turned on HTTPS on the controller. |
-| A device or scene is missing | Only enabled nodes are registered. Check that it is enabled on the ISY. |
+| `controller_unreachable` | The controller is powered and on the network, and the address and port are right. |
+| The login fails | Use the ISY Admin Console username and password. The account needs REST access. |
+| TLS errors | Turn Use HTTPS off unless you turned on HTTPS on the controller. |
+| A device or scene is missing | Only enabled nodes are registered. Check that it's enabled on the ISY, then restart the plugin. |
+| State stops updating | Check the plugin's log for WebSocket errors. |
 
-## Log rotation
+If the plugin can't load the node list, it raises `controller_unreachable` and
+tries again after 2 seconds, doubling the wait up to a minute. If the event
+stream closes after it connected, the plugin stops, and homeCore starts it
+again a few seconds later. REST requests time out after 15 seconds.
 
-hc-isy writes its log to `logs/hc-isy.log`. Rotation and compression are set in the `[logging]` section of its config:
+For more detail in the log, set the Logging level to `hc_isy=debug`. That
+logs each API response and WebSocket event.
 
-```toml
-[logging]
-level       = "info"   # stderr log level; RUST_LOG overrides this
-rotation    = "daily"  # daily | hourly | weekly | never
-max_size_mb = 100      # rotate when file exceeds this MB (0 = time-only)
-compress    = true     # gzip rotated files in a background thread
-```
+## Known limits
 
-| File | Description |
-|---|---|
-| `logs/hc-isy.log` | Active log (never compressed) |
-| `logs/hc-isy.2026-03-27.log.gz` | Rotated daily file (compressed) |
-| `logs/hc-isy.2026-03-27.1.log.gz` | Second rotation in the same period (size limit reached) |
-
-For verbose logging of ISY API responses and WebSocket events:
-
-```bash
-RUST_LOG=hc_isy=debug ./hc-isy config/config.toml
-```
+- New nodes and scenes appear when the plugin starts. Restart it after you add
+  one on the controller.
+- A scene's `on` is `false` at startup and then follows the scene's events.
+  It isn't a reading of whether every device in the scene is on.
+- ISY programs and variables aren't exposed.

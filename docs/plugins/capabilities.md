@@ -7,21 +7,23 @@ sidebar_position: 3
 
 # Plugin Capabilities & Actions
 
-Capabilities are how a plugin tells HomeCore, and any UI or MCP client, which
-plugin-specific commands it supports. The plugin publishes a small JSON
-manifest when it connects. The web UI reads it to list the plugin's actions,
-and hc-mcp exposes the entries as tools so Claude can call them.
+A plugin tells homeCore which commands of its own it supports by publishing a
+capability manifest: "Pair Hue bridge", "Include Z-Wave device", "Rescan
+devices". The web app lists those actions on the plugin's page, and hc-mcp
+offers them as tools. Adding an action to a plugin needs no change to
+homeCore, the SDKs, the web app or hc-mcp.
 
-Everything is driven by the manifest. Adding an action to a plugin needs no
-change to HomeCore, the SDKs, the web UI or hc-mcp.
+The same manifest carries the plugin's settings schema and descriptor, the
+kinds of alert it can raise, its own screens, and the REST scopes it wants.
+This page covers the actions and the REST scopes. The rest is in
+[Developing Plugins](./developing-plugins#configuration-schema-and-descriptor),
+[Alerts from Plugins](./plugin-alerts) and [Screens and Cards](./plugin-screens).
 
----
+## The manifest
 
-## What an action looks like
-
-A plugin publishes a retained manifest after each connect:
-
-**Topic:** `homecore/plugins/{plugin_id}/capabilities`
+The SDK publishes the manifest retained on
+`homecore/plugins/{plugin_id}/capabilities` after each connect. homeCore
+serves it at `GET /api/v1/plugins/{id}/capabilities`.
 
 ```json
 {
@@ -48,62 +50,63 @@ A plugin publishes a retained manifest after each connect:
 
 | Field | Required | Purpose |
 |---|---|---|
-| `spec` | yes | Manifest schema version. v1 is `"1"` (frozen). |
-| `plugin_id` | yes | Must match the MQTT client id. |
+| `spec` | yes | Manifest version. Version 1 is `"1"` and is frozen. |
+| `plugin_id` | yes | Must match the MQTT client id. The SDKs fill it in. |
 | `actions[]` | yes | May be empty. |
-| `api_scopes` | no | REST scopes the plugin wants for calling homeCore's own API. homeCore mints it a key with them; see [The plugin's own REST access](#the-plugins-own-rest-access). |
-| `actions[].id` | yes | Stable snake_case identifier; what the client calls. |
-| `actions[].label` | yes | Human-readable button text. |
-| `actions[].description` | no | Helper text shown with the action in the UI and in MCP. |
-| `actions[].params` | no | JSON-schema-style map (a subset only, see below). |
-| `actions[].result` | no | Advisory shape of the success payload. |
-| `actions[].stream` | no, default `false` | Whether the action emits stage events on a stream topic. |
-| `actions[].cancelable` | no, default `false` | The UI offers Cancel while it runs. |
-| `actions[].concurrency` | no, default `multi` | `single` rejects a second run of a streaming action while one is active (`status:"busy"`). |
-| `actions[].item_key` | no | Field inside `item.data` the UI dedupes by. |
-| `actions[].item_operations` | no | Subset of `["add","update","remove"]`. |
-| `actions[].requires_role` | no, default `user` | `admin` / `user` / `read_only` / `signed_in`. Who may run it; core enforces it before forwarding. See [Who may run an action](#who-may-run-an-action). |
-| `actions[].timeout_ms` | no | How long core waits for the plugin's reply (5 seconds when absent). For a streaming action it is also the deadline after which core ends the stream with `timeout`. |
+| `api_scopes` | no | REST scopes the plugin wants for calling homeCore's API. See [The plugin's own REST access](#the-plugins-own-rest-access). |
+| `actions[].id` | yes | Stable snake_case id. This is what a client calls. |
+| `actions[].label` | yes | Button text. |
+| `actions[].description` | no | Help text shown with the action in the app and in MCP. |
+| `actions[].params` | no | A map of params in a subset of JSON Schema (below). |
+| `actions[].result` | no | The shape of the success payload. Advisory only. |
+| `actions[].stream` | no, default `false` | The action sends stage events on a stream. |
+| `actions[].cancelable` | no, default `false` | The app offers Cancel while it runs. |
+| `actions[].concurrency` | no, default `multi` | `single` refuses a second run of a streaming action while one is active (`status: "busy"`). |
+| `actions[].item_key` | no | The field inside `item.data` that identifies a row. |
+| `actions[].item_operations` | no | Any of `add`, `update`, `remove`. |
+| `actions[].requires_role` | no, default `user` | `admin`, `user`, `read_only` or `signed_in`. See [Who may run an action](#who-may-run-an-action). |
+| `actions[].timeout_ms` | no | How long homeCore waits for the plugin's reply. Without it, 5 seconds. For a streaming action it is also the deadline after which homeCore ends the stream with `timeout`. |
 | `actions[].danger` | no, default `false` | The action can't be undone or interrupts the house (a reboot, unpairing, forgetting devices). Screens ask before running it. |
 
-The Rust SDK also adds the plugin's `config_schema`, `config_descriptor`,
-`alert_kinds` and `ui` (its own screens) to the same manifest when the plugin
-declares them.
+Declare a `timeout_ms` on every action. Five seconds is too short for most
+actions that talk to hardware.
 
-### Params schema subset
+### Params
 
-Only these JSON-Schema keywords are recognised in v1:
-`type` (`"string" | "integer" | "number" | "boolean" | "array" | "object"`),
-`default`, `enum`, `required`, `minimum`, `maximum`, `description`.
+These JSON Schema keywords are recognized in a param: `type` (`string`,
+`integer`, `number`, `boolean`, `array`, `object`), `default`, `enum`,
+`required`, `minimum`, `maximum` and `description`.
 
-The web UI draws an input for each param: a choice for an `enum`, a number
-field for `integer` and `number`, a checkbox for `boolean`, and a text field
-for `string`. Arrays and objects get a JSON field. It also reads a `title` as
-the field's label, `x-options` as labels for `enum` values, and hides the text
-of a string param marked `format: "password"` or `writeOnly`, or whose name
-contains `password`, `secret` or `token`.
-
----
+The web app draws one input per param: a choice for an `enum`, a number field
+for `integer` and `number`, a checkbox for `boolean` and a text field for
+`string`. Arrays and objects get a JSON field. It also reads `title` as the
+field's label and `x-options` as labels for `enum` values. It hides what is
+typed into a string param marked `format: "password"` or `writeOnly`, or
+whose name contains `password`, `secret` or `token`.
 
 ## Who may run an action
 
 | `requires_role` | Who may run it |
 |---|---|
-| `user` (the default) | Callers with `plugins:write`, which in practice means admins and keys that hold that scope. |
-| `read_only` | The same on `command`. It also answers on `POST /api/v1/plugins/{id}/query`, which needs only permission to read devices. |
+| `user` (the default) | Callers with `plugins:write`: admins, and API keys that hold that scope. |
+| `read_only` | The same on `command`. It also answers on `POST /api/v1/plugins/{id}/query`, which needs only `devices:read`. |
 | `admin` | `plugins:write` and the admin role. |
 | `signed_in` | Every signed-in person or API key, whatever their role, through `command` and `upload`. |
 
 An action the manifest doesn't declare is treated like `user`. `signed_in` is
-opt-in and never a default: use it only for an action that is safe for anyone
+opt-in and never a default. Use it only for an action that is safe for anyone
 in the house, or one that limits itself by who asked. The stream of a
 `signed_in` action, and its `respond` and `cancel`, belong to whoever started
-it (and to admins).
+it and to admins.
+
+Each SDK spells it its own way: `RequiresRole::SignedIn` in Rust
+(`device_actions::Role::SignedIn` on a device action), `RequiresRole.SIGNED_IN`
+in Python and Node.js, and `RequiresRole.SignedIn` in .NET.
 
 ### Who asked: `caller`
 
-Every action core forwards (`command`, `query` and `upload`) carries the
-verified caller:
+Every action homeCore forwards (`command`, `query` and `upload`) carries the
+verified caller in its params:
 
 ```json
 {
@@ -116,60 +119,66 @@ verified caller:
 ```
 
 `kind` is `user`, `api_key`, `local_admin` or `whitelist`. `role` is the
-role's wire name. For an API key the role is advisory and `scopes` is what
-the key may do, so judge by `scopes`. `uid` is null for the local transports
-and for a plugin's own key. Core drops any `caller` the client put in the
-request, so a plugin can trust it.
+role's wire name (`admin`, `user`, `household_member`, `read_only` and so
+on). For an API key the role means nothing, so judge a key by `scopes`. `uid`
+is null for the local transports and for a plugin's own key. homeCore drops
+any `caller` the client put in the request, so a plugin can trust it.
 
-Core checks `requires_role` before forwarding, so a plugin never has to check
-whether someone may run the action. It does have to check what the action
-then does for them. A `signed_in` action can be called by a household member
-or a read-only account, so it must stay within `caller.scopes`: an assistant
-that turns on a light for someone should do it only if their scopes include
-`devices:command`.
+homeCore checks `requires_role` before it forwards an action, so a plugin
+never checks whether someone may run it. The plugin does have to check what
+the action then does for that person. A `signed_in` action can be called by a
+household member or a read-only account, so it must stay within
+`caller.scopes`. An assistant that turns on a light for someone should do it
+only if their scopes include `devices:command`.
 
-Core puts `caller` in the action's params. The Python, Node.js and .NET SDKs
-take it out and hand it to the handler on its own (`caller` / `ctx.caller`
-in Python and Node.js, `Caller` / `ctx.Caller` in .NET). A Rust plugin reads
-it from the params (`params["caller"]`).
+How each SDK hands it over:
+
+| SDK | Immediate action | Streaming action |
+|---|---|---|
+| Rust | `Caller::from_cmd(cmd)` in a custom or async handler | `ctx.caller()` |
+| Python | a `caller=` keyword on `on_action` | `ctx.caller` |
+| Node.js | the fourth argument of `onAction(action, params, ctx, caller)` | `ctx.caller` |
+| .NET | `OnActionWithCaller` (its last argument) | `ctx.Caller` |
 
 ### The plugin's own REST access
 
 A plugin that needs homeCore's REST API lists the scopes it wants in its
 manifest's `api_scopes`. Each time the manifest is published (every start),
 homeCore makes the plugin an API key with those scopes and sends it with the
-`api_access` management action, params `{url, key, scopes}`:
+`api_access` management action, params `{url, key, scopes}`.
 
 - `url` is homeCore's REST base as the plugin reaches it, ending in
   `/api/v1`: loopback for a plugin homeCore runs, or the address its
   [runtime](./runtimes) was added with.
 - `users:write` and `api_keys:admin` are never granted, so check `scopes`
-  rather than assuming you got everything.
-- The previous key stops working when a new one is made, and the key is
-  deleted when the plugin is uninstalled. Keep it in memory only. A plugin
-  that doesn't answer `api_access` has its key deleted.
-- A key for a plugin homeCore runs on its own machine only works from
-  loopback.
+  instead of assuming you got everything.
+- A new key replaces the previous one, which stops working. The key is
+  deleted when the plugin is uninstalled, and also when the plugin doesn't
+  answer `api_access`. Keep it in memory only.
+- A key for a plugin that homeCore runs on its own machine works only from
+  that machine.
 - The key shows in the API keys list as `plugin <id>`, and in the audit log
   as `api_key:plugin <id>`.
 
-There is nothing to paste. Every SDK answers `api_access` for you and keeps
-the grant: `api_access()` / `wait_for_api_access` on the management handle in
-Rust (0.6.5, core v0.1.113 and later), `api_access` / `wait_for_api_access` in
-Python, `apiAccess` / `waitForApiAccess` in Node.js, and `ApiAccess` /
-`WaitForApiAccessAsync` in .NET, each with a hook that runs when it arrives
-(`with_api_access_handler` in Rust). The
-[Assistant](../tools/hc-mcp) is a working example: it asks for the scopes its
-tools need and acts for each person within their own scopes.
+There is nothing to paste. Every SDK answers `api_access` itself and keeps the
+grant, with its key kept out of logs:
 
----
+| SDK | Ask for scopes | Read the grant | Wait for it | Hear each new one |
+|---|---|---|---|---|
+| Rust (0.6.5, core v0.1.113 and later) | `Capabilities { api_scopes, .. }` | `mgmt.api_access()` | `mgmt.wait_for_api_access(timeout)` | `with_api_access_handler`, `api_access_updates()` |
+| Python | `Capabilities(api_scopes=[...])` | `self.api_access` | `wait_for_api_access(timeout)` | override `on_api_access(url, key, scopes)` |
+| Node.js | `new Capabilities({ apiScopes })` | `this.apiAccess` | `waitForApiAccess(timeoutMs)` | override `onApiAccess(url, key, scopes)` |
+| .NET | `Capabilities.ApiScopes` | `client.ApiAccess` | `WaitForApiAccessAsync(...)` | `OnApiAccess` |
 
-## Sync vs. streaming
+The [Assistant](../tools/hc-mcp) is a working example. It asks for the scopes
+its tools need and acts for each person within that person's scopes.
+
+## Sync and streaming actions
 
 ### Sync actions (`stream: false`)
 
-A single request and response. The client POSTs the action and waits for the
-plugin's reply.
+One request, one reply. The client POSTs the action and waits for the
+plugin's answer.
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.yolink/command \
@@ -180,22 +189,32 @@ curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.yolink/command \
 # → {"status":"ok"}
 ```
 
-Whatever the plugin replies, including its own `status: "error"`, comes back
-with HTTP 200. Core returns 504 only when the plugin doesn't answer within the
-action's `timeout_ms`.
+Whatever the plugin replies comes back with HTTP 200, including its own
+`status: "error"`. homeCore returns 504 only when the plugin doesn't answer
+within the action's `timeout_ms`.
 
-A `read_only` action can also be run with `POST /api/v1/plugins/{id}/query`,
-which only needs permission to read devices. Core refuses anything on that
-path that the manifest does not declare `read_only`.
+A `read_only` action that doesn't stream can also run through
+`POST /api/v1/plugins/{id}/query`, which needs only permission to read
+devices. homeCore refuses anything else on that path. Use it for catalogs and
+status that a plugin's screens read.
+
+### Files sent to an action
+
+`POST /api/v1/plugins/{id}/upload/{action}` sends a file of up to 32 MiB to an
+action, such as a firmware image or a backup to restore. The action's role
+applies. The SDK receives the file in pieces and runs the action with a local
+`file_path` param, then removes the file once the action has replied. Query
+parameters arrive as params, as strings. Only the Rust SDK supports this so
+far; see [Developing Plugins](./developing-plugins#files-sent-to-an-action).
 
 ### Streaming actions (`stream: true`)
 
-Long-running flows that emit progress and item events. The POST returns
+For long flows that report progress and items. The POST returns
 `{request_id, status: "accepted", stream_topic}` as soon as the plugin
-accepts the action, and the client opens an SSE stream for the stage events.
+accepts the action. The client then opens an SSE stream for the stage events.
 
 ```bash
-# 1. Kick off the action
+# 1. Start the action
 RID=$(curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.zwave/command \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -209,30 +228,30 @@ curl -sN -H "Authorization: Bearer $TOKEN" \
 The plugin publishes the stages on
 `homecore/plugins/{plugin_id}/commands/{request_id}/events`.
 
-### The six stage vocabulary (frozen)
+### The six stages
 
-| Stage | Terminal? | Meaning |
+| Stage | Ends the run? | Meaning |
 |---|---|---|
-| `progress` | no | UI updates the progress bar / status text. |
-| `item` | no | Add / update / remove a row keyed by `item_key`. |
-| `awaiting_user` | no | Emit a prompt; UI may show an inline form. |
-| `warning` | no | Recoverable issue; flow continues. |
-| `complete` | yes | Success terminal. Carries `data` matching `result`. |
-| `error` | yes | Unrecoverable failure terminal. |
+| `progress` | no | Update the progress bar or status text. |
+| `item` | no | Add, update or remove a row keyed by `item_key`. |
+| `awaiting_user` | no | Ask the person something. The app may show a small form. |
+| `warning` | no | A problem the flow recovered from. It continues. |
+| `complete` | yes | Success. Carries `data` in the shape of `result`. |
+| `error` | yes | A failure the flow can't recover from. |
 
-Two more terminal stages exist outside the six:
+Two more stages end a run:
 
-| Stage | Origin |
+| Stage | Where it comes from |
 |---|---|
-| `canceled` | Emitted by the action itself (`ctx.canceled()` in Rust) once it has seen the cancel request and cleaned up. The SDK does not send it for you. |
-| `timeout` | Injected by core when the manifest's `timeout_ms` passes with no terminal stage. |
+| `canceled` | The action itself, once it has seen the cancel request and cleaned up (`ctx.canceled()` in Rust). The SDK doesn't send it for you. |
+| `timeout` | homeCore, when `timeout_ms` passes with no ending stage. |
 
-Core also ends every active stream with an `error` stage
+homeCore also ends every active stream with an `error` stage
 (`data.reason: "plugin_offline"`) when the plugin goes offline. If a Rust
-action returns without emitting a terminal stage, the SDK sends an `error`
-(`data.reason: "plugin_dropped_stream"`).
+action returns without an ending stage, the SDK sends an `error` with
+`data.reason: "plugin_dropped_stream"`.
 
-### Stage envelope
+### The stage envelope
 
 Every stream event has the same shape:
 
@@ -247,7 +266,8 @@ Every stream event has the same shape:
 }
 ```
 
-Item events carry an `op` and `data`:
+`progress` and `awaiting_user` can also carry `data` for a plugin's own
+screen. Item events carry an `op` and `data`:
 
 ```json
 {
@@ -257,13 +277,13 @@ Item events carry an `op` and `data`:
 }
 ```
 
-An `awaiting_user` prompt can include a `response_schema` to drive an
-inline form:
+An `awaiting_user` prompt can include a `response_schema`, which the app turns
+into a small form:
 
 ```json
 {
   "stage": "awaiting_user",
-  "prompt": "Configure node 14 — set a name and area, or check Skip.",
+  "prompt": "Configure node 14: set a name and area, or check Skip.",
   "response_schema": {
     "name": { "type": "string" },
     "area": { "type": "string" },
@@ -272,7 +292,7 @@ inline form:
 }
 ```
 
-The client replies with a `respond` command:
+The client answers with a `respond` command:
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.zwave/command \
@@ -294,97 +314,91 @@ curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.zwave/command \
   -d '{ "action": "cancel", "target_request_id": "'$RID'" }'
 ```
 
----
+### When a single-run action is busy
 
-## In the web UI
+When a `concurrency: single` streaming action is already running, a second
+POST gets HTTP 409 with
+`{status: "busy", active_request_id: "...", stream_topic: "..."}`. The web app
+says the plugin is already doing it and follows the active run, so you can
+watch or cancel it. Nothing retries on its own. An API client can cancel the
+active run by POSTing `{action: "cancel", target_request_id: "..."}` with the
+returned id.
+
+### Ask at the end of a batch
+
+In a flow where each item needs an answer from the person (Z-Wave's
+`include_node` asks for a name and area for each node it included), send the
+questions after the batch, not in the middle of it. A mid-stream
+`awaiting_user` would interleave with a question that stays open for the
+whole run (a "Done" button, say), and the SDK can't tell which question a
+`respond` answers.
+
+The Z-Wave include flow does it this way. It collects the nodes whose
+interview finished during the inclusion window. When the person presses
+**Done**, it asks about each node in turn and applies the answers
+(`node.set_name`, `node.set_location`) before the run's ending stage.
+
+## In the web app
 
 The plugin's page in Settings › Plugins lists its actions under **Actions**,
-built entirely from the manifest. The list appears for people who may change
-plugins (`plugins:write`); `admin` actions are left out for everyone else. A
-plugin that brings [its own page](./plugin-screens) shows that instead.
+built from the manifest. The list appears for people who may change plugins
+(`plugins:write`). `admin` actions are left out for everyone else, and
+`signed_in` actions are left off the list. A plugin that brings [its own page](./plugin-screens)
+shows that page instead.
 
 Opening an action shows a field for each param and a **Run** button (**Start**
-for a streaming action). An action marked `danger`, or whose id starts with
-`remove`, `delete`, `forget`, `unpair`, `reset`, `factory` or `reboot`, asks
-for confirmation first.
+for a streaming action). The app asks for confirmation first when the action
+is marked `danger` or its id starts with `remove`, `delete`, `forget`,
+`unpair`, `reset`, `factory` or `reboot`.
 
-- A sync action's reply is shown in place: a `message` or `result` string as
-  it is, anything else as labelled lines rather than raw JSON.
-- A streaming action shows its state (working, waiting for you, done, didn't
-  work, cancelled, took too long), a progress bar while `percent` is known,
-  and a **Cancel** button if the action is `cancelable`. Progress and warning
-  messages build up as a log. An `awaiting_user` prompt becomes a small form
-  with a **Send** button. Items appear as a list, one row per `item_key`,
-  showing the item's `name` or `label` (else its key) and its `status`. The
-  `complete` data is shown as labelled lines at the end.
+A sync action's reply is shown in place: a `message` or `result` string as
+is, anything else as labeled lines. A streaming action shows its state
+(working, waiting for you, done, didn't work, canceled, took too long), a
+progress bar while `percent` is known, and **Cancel** if the action is
+`cancelable`. Progress and warning messages build up as a log. An
+`awaiting_user` question becomes a small form with a **Send** button. Items
+appear as a list, one row per `item_key`, showing the item's `name` or
+`label` (else its key) and its `status`. The `complete` data is shown as
+labeled lines at the end.
 
 You can leave the page while a streaming action runs. It keeps going, and the
 page picks it up again when you come back.
 
-### Busy → cancel pattern
-
-When a `concurrency: single` streaming action is already running, a second
-POST gets HTTP 409 with
-`{status: "busy", active_request_id: "...", stream_topic: "..."}`. The web UI
-says the plugin is already doing it and starts following the active run, so
-you can watch it or cancel it from there. Nothing retries automatically. A
-client of the API can cancel the active run by POSTing
-`{action: "cancel", target_request_id: "..."}` with the returned id.
-
-### awaiting_user: prompt at the end of the batch
-
-In a multi-item flow where each item needs input from the person (Z-Wave's
-`include_node` asking for a name and area for each node it included, say),
-send the prompts **at the end of the batch** rather than mid-stream. A
-mid-stream `awaiting_user` would interleave with any prompt that stays open
-for the whole run (such as a "Done" gate), and the SDK can't tell which
-prompt a `respond` answers.
-
-The Z-Wave include flow is the reference. It collects the nodes whose
-interview finished during the inclusion window, then goes through them when
-the person presses **Done**, emitting one `awaiting_user_with_schema` per
-node. It applies the answers (`node.set_name` / `node.set_location`) before
-the action's terminal stage.
-
----
+A plugin's own screens run actions through `host.action`, `host.query`,
+`host.stream` and `host.upload`. See [Screens and Cards](./plugin-screens#the-host).
 
 ## In hc-mcp
 
-The MCP server exposes three tools that map directly onto the framework:
+The MCP server has three tools for plugin actions:
 
-- **`list_plugin_actions`** flattens every plugin's manifest into one list.
-  Always available (read-only).
-- **`invoke_plugin_action(plugin_id, action, params)`** POSTs the command for
-  a **non-streaming** action and returns the response. It refuses streaming
-  actions; use the await variant for those. Write-gated behind
-  `HC_MCP_ALLOW_WRITE=plugin_actions`.
-- **`await_streaming_plugin_action(plugin_id, action, params, timeout_secs)`**
-  POSTs a streaming action and reads the SSE stream until a terminal stage,
-  then returns a summary:
+- `list_plugin_actions` flattens every plugin's manifest into one list. It is
+  always available.
+- `invoke_plugin_action(plugin_id, action, params)` runs a sync action and
+  returns the reply. It refuses streaming actions.
+- `await_streaming_plugin_action(plugin_id, action, params, timeout_secs)`
+  starts a streaming action and reads the stream until it ends, then returns
+  a summary:
   `{stage, request_id, data, error, items, warnings, progress_history, elapsed_secs, event_count}`.
-  It is bounded by
-  `timeout_secs` (default 90, max 600). It can't answer `awaiting_user`
-  prompts; those are reported as warnings. Same write gate as
-  `invoke_plugin_action`.
+  `timeout_secs` defaults to 90, at most 600. It can't answer `awaiting_user`
+  questions; it reports them as warnings.
 
-`HC_MCP_ALLOW_WRITE=all` also satisfies the gate. See the
+The last two change things, so they are off until you allow them with
+`HC_MCP_ALLOW_WRITE=plugin_actions` (or `all`). See the
 [hc-mcp guide](../tools/hc-mcp) for setup.
-
----
 
 ## Adding actions to your plugin
 
-See [Developing Plugins](./developing-plugins#capability-manifest) for
-the SDK calls. In short, in Rust:
+[Developing Plugins](./developing-plugins#capability-manifest) shows the SDK
+calls. In short, in Rust:
 
 ```rust
 let mgmt = client
-    .enable_management(60, Some(VERSION.into()), Some(config_path), Some(log_handle))
+    .enable_management(60, Some(VERSION.into()), Some(config_path), None)
     .await?
     .with_capabilities(plugin_sdk_rs::types::Capabilities {
         spec: "1".into(),
-        plugin_id: String::new(),  // SDK fills from configured plugin_id
         actions: vec![/* ... */],
+        ..Default::default() // plugin_id is filled in by the SDK
     })
     .with_custom_handler(/* sync action dispatch */)
     .with_streaming_action(StreamingAction::new(
@@ -393,30 +407,26 @@ let mgmt = client
     ));
 ```
 
----
+## Rules that don't change in spec 1
 
-## Frozen design decisions
+These hold until `spec` becomes `"2"`:
 
-These don't change without bumping `spec` to `"2"`:
-
-1. The six stages are a closed set. Plugin-specific data goes in the
-   `data` field, not in new stages.
-2. `error` is **always terminal**. Recoverable retries emit `warning`
-   and continue; only unrecoverable failures emit `error`.
-3. `item.op` is one of `add`/`update`/`remove`. `item_key` is required
-   when emitting `item` events.
+1. The six stages are a closed set. Plugin-specific data goes in `data`, not
+   in new stages.
+2. `error` always ends the run. A retry the plugin recovers from is a
+   `warning`.
+3. `item.op` is `add`, `update` or `remove`, and `item_key` is required when
+   sending `item` events.
 4. Stage events are published retained, and the plugin clears the retained
-   event once the action ends, so a late subscriber never sees a stale
-   terminal. To keep fast actions from looking empty when the client is slow
-   to connect, core caches each stream's events in memory (up to 256 per
-   request, kept for 60 seconds after the terminal stage) and replays them to
-   an SSE client that attaches late.
-5. `requires_role` is enforced by core **before** forwarding the
-   command, so plugin code never checks who may run an action. A
-   `signed_in` action still has to keep what it does within
-   `caller.scopes`.
-6. Adding a new plugin action requires **zero** changes to core,
-   SDKs, the web UI, or hc-mcp.
+   event when the action ends, so a late subscriber never sees an old ending.
+   So that a fast action doesn't look empty to a client that connects late,
+   homeCore keeps each stream's events in memory (up to 256 per run, for 60
+   seconds after it ends) and replays them to an SSE client that attaches
+   late.
+5. homeCore enforces `requires_role` before it forwards the command. A
+   `signed_in` action still has to keep what it does within `caller.scopes`.
+6. Adding an action needs no change to homeCore, the SDKs, the web app or
+   hc-mcp.
 
-The types are defined in `crates/hc-types/src/plugin_capabilities.rs` in the
-homeCore repository.
+The types are in `crates/hc-types/src/plugin_capabilities.rs` in the homeCore
+repository.

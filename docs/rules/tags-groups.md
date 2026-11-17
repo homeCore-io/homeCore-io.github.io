@@ -7,11 +7,13 @@ sidebar_position: 6
 
 # Tags & Groups
 
-Tags and groups both let you act on many rules at once. Tags are labels stored on each rule; groups are named lists of rules stored separately.
+Tags and groups both let you act on many rules at once. Tags are labels stored on each rule. Groups are named lists of rules stored separately, and the app calls them sets.
 
 ## Tags
 
-Tags are free-form strings on a rule. Use them for open-ended categories: rooms, purposes, anything you want to filter by.
+Tags are free-form strings on a rule. Use them for rooms, purposes or anything else you want to filter by.
+
+In the app, the Automations list is grouped by tag, with **All on** and **All off** for each tag. Add or remove tags on a rule's page, or select several rules and use **Tag** and **Untag**. A rule with two tags shows under both.
 
 ### Adding tags
 
@@ -91,6 +93,8 @@ curl -s -X PATCH "http://localhost:8080/api/v1/automations?tag=vacation-sensitiv
 Groups are named lists of rule UUIDs, kept in `groups.json` in the rules directory. Because a group refers to rules by UUID, renaming a rule doesn't affect it, and you never have to edit the rules themselves to change who is in a group.
 
 A rule can belong to several groups. Groups have no effect on evaluation order or priorities.
+
+In the app, groups are **Sets** on the Automations page. **New set…** makes one, and each set has **Show**, **All on**, **All off** and **Change…**. To put rules in a set, select them and use **Add to set** or **Take out**.
 
 ### Create a group
 
@@ -272,4 +276,6 @@ curl -s -X POST http://localhost:8080/api/v1/automations/import \
   -d @rules-backup.json | jq '{imported}'
 ```
 
-Imported rules get fresh UUIDs, so they never clash with existing rules. An import is all or nothing: if any rule's device references can't be resolved, the server answers `422` with a `failures` list (index, name and error for each) and imports none of them. On success it answers `201` with `{ "imported": N, "rules": [...] }`.
+Imported rules get fresh UUIDs, so importing a file this house exported gives you two of each rule. There is no replace. An import is all or nothing: if any rule's device references can't be resolved, the server answers `422` with a `failures` list (index, name and error for each) and imports none of them. On success it answers `201` with `{ "imported": N, "rules": [...] }`. Send the body with `Content-Type: application/json`, or the server answers `415`.
+
+In the app, **Export all** on the Automations page saves `homecore-rules-YYYY-MM-DD.json`, **Import…** reads such a file, and **Export** on a rule's page saves that one rule.

@@ -2,23 +2,23 @@
 id: notifications
 title: Notifications
 sidebar_label: Notifications
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 # Notifications (`hc-notify`)
 
-HomeCore can send notifications by Telegram, Pushover and email. Channels are configured in `homecore.toml`, and the web app edits them in **Settings → Notifications**, which can also send a test and shows the automations that use each channel. Channels are read when HomeCore starts, so a new or changed channel takes effect after a restart.
+homeCore sends notifications by Telegram, Pushover and email. Channels are set in `homecore.toml`. In the web app, **Settings › Notifications** edits them, sends a test, and shows the automations that use each channel. homeCore reads channels when it starts, so a new or changed channel takes effect after a restart.
 
-What sends notifications:
+These send notifications:
 
 - the `Notify` rule action, and `notify(…)` in a rule script
 - the battery watcher, through `[battery] notify_channel` (see [Battery monitoring](../devices/battery-monitoring.md))
-- HomeCore's built-in alerts for something wet, smoky, jammed or offline, through `[alerts] notify_channel` (unset, they are shown in the app but not sent)
-- a time rule in **Settings → Alerts** that names a channel
+- homeCore's built-in alerts for something wet, smoky, jammed or offline, through `[alerts] notify_channel`. With it unset, those alerts show in the app but aren't sent.
+- a time rule in **Settings › Alerts**, or a plugin's alert kind, that names a channel (see [Alerts](./alerts.md))
 
 ## Configuration
 
-Each channel is a `[[notify.channels]]` entry with a `name` (what rules refer to) and a `type`:
+Each channel is a `[[notify.channels]]` entry with a `name`, which rules refer to, and a `type`: `telegram`, `pushover` or `email`.
 
 ```toml
 # homecore.toml
@@ -38,13 +38,15 @@ user_key  = "your-pushover-user-key"
 [[notify.channels]]
 name      = "email-alerts"
 type      = "email"
-smtp_host = "smtp.yourdomain.com"
+smtp_host = "smtp.example.com"
 smtp_port = 587
-username  = "homecore@yourdomain.com"
+username  = "homecore@example.com"
 password  = "smtp-password"
-from      = "homecore@yourdomain.com"
-to        = ["you@yourdomain.com", "partner@yourdomain.com"]
+from      = "homecore@example.com"
+to        = ["you@example.com", "partner@example.com"]
 ```
+
+The channel name `all` is reserved: sending to `all` sends to every channel.
 
 ## Notify action
 
@@ -61,11 +63,20 @@ RuleAction(action: Notify(
     channel: "all",
     message: "Critical alert!",
 )),
+
+// Send with a fresh snapshot from a camera
+RuleAction(action: Notify(
+    channel: "pushover",
+    message: "Someone is at the front door",
+    picture_from: Some("reolink_front_door"),
+)),
 ```
 
-A failed notification (an unknown channel, a misconfigured provider, a network error) is logged as a warning and doesn't stop the rule: the next action still runs. With `all`, a failure on one channel doesn't stop delivery to the others.
+`picture_from` names a device that keeps its newest picture in a `snapshot` attribute and takes a new one on `take_snapshot`, such as a [Reolink](../plugins/reolink.md) camera. homeCore asks for a fresh picture and sends it with the message. Telegram sends it as a photo with the title and message as its caption, Pushover attaches it (up to 5 MB; a larger picture is left off), and email attaches it. In the rule editor this is **With a picture from**.
 
-The message is sent as written. The exception is a rule started by an alert, where placeholders such as `{alert.message}`, `{alert.device}` and `{alert.raised_at}` are filled in; see [Alerts that start automations](../rules/alert-automations.md). To put a device's current reading in a message, send it from a `RunScript` action: `notify(channel, message)` sends with the default title and `notify_titled(channel, title, message)` sets one.
+A failed notification, whether from an unknown channel, a misconfigured provider or a network error, is logged as a warning and doesn't stop the rule. The next action still runs. With `all`, a failure on one channel doesn't stop delivery to the others.
+
+The message is sent as written, with one exception. In a rule started by an alert, placeholders such as `{alert.message}`, `{alert.device}` and `{alert.raised_at}` are filled in, in both the title and the message; see [Alerts that start automations](../rules/alert-automations.md). To put a device's current reading in a message, send it from a `RunScript` action. In a script, `notify(channel, message)` sends with the default title and `notify_titled(channel, title, message)` sets one.
 
 ## Telegram
 
@@ -92,9 +103,9 @@ chat_id   = "-1001234567890"
 # markdown = true   # optional: send with Telegram's MarkdownV2 formatting
 ```
 
-The title, when there is one, is sent as the first line of the message. If `bot_token` or `chat_id` is still the shipped placeholder `CHANGE_ME`, HomeCore refuses to start rather than drop every notification later.
+The title, when there is one, is sent as the first line of the message. If `bot_token` or `chat_id` is still the example config's placeholder, `CHANGE_ME`, homeCore refuses to start. That is better than silently dropping every notification later.
 
-With `markdown = true`, messages can use MarkdownV2 formatting, which also means MarkdownV2's special characters must be escaped:
+With `markdown = true`, messages can use MarkdownV2 formatting. MarkdownV2's special characters then have to be escaped:
 
 ```ron
 RuleAction(action: Notify(
@@ -110,11 +121,11 @@ RuleAction(action: Notify(
 curl -s -X POST http://localhost:8080/api/v1/notify/test \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"channel": "telegram", "message": "Test from HomeCore"}'
+  -d '{"channel": "telegram", "message": "Test from homeCore"}'
 # → {"sent": true, "channel": "telegram"}
 ```
 
-The test endpoint is for admins. `channel` can also be `all`. Leave `message` out and HomeCore sends a message that identifies itself; the title is always "homeCore". A failure answers `502` with the provider's error, and `503` means no channels are configured at all. Each test is recorded in the audit log.
+Only admins can use the test endpoint. `channel` can also be `all`. Leave `message` out and homeCore sends a message that says where it came from; the title is always "homeCore". A failed send answers `502` with the provider's error, and `503` means no channels are configured at all. Each test is recorded in the audit log. **Send a test** in **Settings › Notifications** does the same.
 
 ## Pushover
 
@@ -132,9 +143,9 @@ user_key  = "your-pushover-user-key"            # your user or group key
 # expire   = 3600          # emergency only: stop repeating after this many seconds (at most 10800); default 3600
 ```
 
-An emergency message (priority 2) repeats until someone acknowledges it or `expire` runs out. HomeCore keeps `retry` and `expire` inside Pushover's limits.
+An emergency message (priority 2) repeats until someone acknowledges it or `expire` runs out. homeCore keeps `retry` and `expire` inside Pushover's limits.
 
-### Multiple Pushover channels
+### Several Pushover channels
 
 Use separate channel entries for different priorities or people:
 
@@ -162,16 +173,16 @@ priority  = 1      # high priority: bypasses the user's quiet hours
 [[notify.channels]]
 name      = "email-alerts"
 type      = "email"
-smtp_host = "smtp.yourdomain.com"
+smtp_host = "smtp.example.com"
 smtp_port = 587               # optional; default 587
-username  = "homecore@yourdomain.com"
+username  = "homecore@example.com"
 password  = "app-password"
-from      = "homecore@yourdomain.com"
-to        = ["you@yourdomain.com"]
+from      = "homecore@example.com"
+to        = ["you@example.com"]
 starttls  = true              # optional; default true (STARTTLS, port 587). false = implicit TLS (port 465)
 ```
 
-The notification's title becomes the email subject. If HomeCore can't set up an email channel at startup, it logs the error and skips that channel rather than refusing to start.
+The notification's title becomes the email subject. If homeCore can't set up an email channel at startup, it logs the error and skips that channel instead of refusing to start.
 
 ### Gmail example
 
@@ -192,8 +203,6 @@ starttls  = true
 
 ### Troubleshooting
 
-Common email failures:
-
 | Error | Likely cause |
 |---|---|
 | `Connection refused` | Wrong SMTP host or port |
@@ -207,12 +216,12 @@ Test email delivery:
 curl -s -X POST http://localhost:8080/api/v1/notify/test \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"channel": "email-alerts", "message": "Test alert from HomeCore"}'
+  -d '{"channel": "email-alerts", "message": "Test alert from homeCore"}'
 ```
 
-## Worked example: door left open for 10 minutes
+## Example: door left open for 10 minutes
 
-A rule that checks every minute and sends to two channels at once, at most once every 10 minutes:
+This rule checks every minute and sends to two channels at once, at most once every 10 minutes:
 
 ```ron
 Rule(
@@ -251,9 +260,9 @@ Rule(
 )
 ```
 
-`TimeElapsed` passes when the attribute hasn't changed for at least `duration_secs`. A rule file with the all-zero `id` gets a fresh one when HomeCore first loads it.
+`TimeElapsed` passes when the attribute hasn't changed for at least `duration_secs`. A rule file with the all-zero `id` gets a fresh one when homeCore first loads it. A [time rule](./alerts.md#time-rules) with `for_minutes: 10` and `notify` does the same job without a rule.
 
-## Worked example: multi-channel temperature alert
+## Example: temperature alert on two channels
 
 The temperature goes into the message from a script, since action text isn't filled in from devices:
 

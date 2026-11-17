@@ -1772,7 +1772,7 @@ unchanged.
 
 - Room on and Room off, in rooms and in rules, need core v0.1.103.
 - Live camera video needs `HC_GO2RTC_URL` on the app's container, as on the
-  [Reolink page](plugins/reolink#the-app). The Stop button for a siren needs
+  [Reolink page](plugins/reolink#screens-and-cards). The Stop button for a siren needs
   hc-reolink v0.1.3; with an older plugin a siren can't be stopped.
 
 ---

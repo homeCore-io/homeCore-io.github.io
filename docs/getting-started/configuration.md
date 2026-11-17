@@ -7,9 +7,9 @@ sidebar_position: 3
 
 # Configuration Reference
 
-HomeCore reads one TOML file. By default that is `config/homecore.toml`
+homeCore reads one TOML file. By default that is `config/homecore.toml`
 under the base directory (the current working directory, or whatever
-`--home` / `HOMECORE_HOME` names).
+`--home` or `HOMECORE_HOME` names).
 
 ```bash
 # Config resolution order:
@@ -22,20 +22,20 @@ A relative `--config` or `HOMECORE_CONFIG` path is resolved against the
 base directory. So are relative paths inside the file, unless a section
 says otherwise.
 
-Start from `config/homecore.toml.example`. Two behaviours are worth
-knowing before you edit:
+Start from `config/homecore.toml.example`. Two things to know before you
+edit:
 
-- If the file is missing, or fails to parse, core logs a warning and
-  runs with built-in defaults for every section. Those defaults bind the
-  MQTT broker to `0.0.0.0` with no credentials, which core
-  [refuses to start with](#broker), so a typo usually shows up as that
-  error.
-- Unknown keys are ignored without a warning. Check spelling against
-  the tables below.
+- If the file is missing or fails to parse, core logs a warning and uses
+  built-in defaults for every section. Those defaults bind the MQTT broker
+  to `0.0.0.0` with no logins, which core [refuses to start with](#broker),
+  so a typo usually shows up as that error.
+- Unknown keys are ignored without a warning. Check spelling against the
+  tables below.
 
-Admins can also read and edit this file from the web app, which uses
-`GET` / `PUT /api/v1/system/config`. Most changes take effect after a
-restart.
+Admins can also edit this file in the web app, in **Settings ›
+Configuration**. It shows the settings as a form, with the raw TOML and a
+restart button. Most changes take effect after a restart. The API behind it
+is `GET` and `PUT /api/v1/system/config`.
 
 ## Full annotated example
 
@@ -48,13 +48,14 @@ port = 8080
 # ── MQTT Broker ───────────────────────────────────────────────────────────────
 [broker]
 # Loopback keeps the broker private to this host; plugins run here too.
-# Bind 0.0.0.0 only if LAN devices (Tasmota, Shelly, ESPHome) publish to it,
-# and then add [[broker.clients]] below, or core refuses to start.
+# Bind 0.0.0.0 only if plugin runtimes or LAN devices (Tasmota, Shelly,
+# ESPHome) need it, and then add [[broker.clients]] below, or core refuses
+# to start.
 host = "127.0.0.1"
 port = 1883
 # v5_port = 1884   # MQTT v5 listener (the default); 0 turns it off
 
-# Optional TLS listener (runs alongside plain-text port)
+# Optional TLS listener (runs alongside the plain-text port)
 # tls_port  = 8883
 # cert_path = "/etc/homecore/broker.crt"
 # key_path  = "/etc/homecore/broker.key"
@@ -62,11 +63,10 @@ port = 1883
 # Use an external broker (Mosquitto, EMQX) instead of the embedded one.
 # external_url = "mqtt://192.168.1.20:1883"
 
-# When [[broker.clients]] entries are present, the embedded broker requires
-# credentials on CONNECT. The `allow_pub` / `allow_sub` patterns are
-# metadata-only on rumqttd — they are NOT enforced at publish/subscribe time.
-# `hc-cli broker generate-mosquitto-config` converts them into a Mosquitto
-# ACL file; see Administration → Broker.
+# With [[broker.clients]] entries, the embedded broker asks every client for
+# a login. The `allow_pub` / `allow_sub` patterns are NOT enforced by the
+# embedded broker. `hc-cli broker generate-mosquitto-config` turns them into
+# a Mosquitto ACL file; see Administration › Broker.
 [[broker.clients]]
 id       = "internal.core"
 password = "a-strong-random-password"
@@ -81,65 +81,65 @@ allow_sub = ["homecore/devices/hue_+/cmd"]
 
 # ── Authentication ────────────────────────────────────────────────────────────
 [auth]
-# Nothing here is required. The HS256 signing secret is generated once and
-# persisted to <state-db-parent>/jwt_secret (0600), so tokens survive
-# restarts with no configuration at all. Setting `jwt_secret` inline still
-# works, takes precedence, and warns at startup — it is deprecated.
+# Nothing here is required. The signing secret is generated once and kept in
+# <state-db-parent>/jwt_secret (0600), so tokens survive restarts with no
+# configuration. An inline `jwt_secret` still works and wins, but it is
+# deprecated and logs a warning.
 token_expiry_hours        = 24     # access token lifetime
 refresh_token_expiry_days = 30     # refresh token lifetime
 audit_retention_days      = 365
 
 # Addresses that get FULL ADMIN with no token at all. Deprecated. Single
-# addresses only: an entry covering a range (e.g. a /24) is skipped with a
+# addresses only: an entry covering a range (such as a /24) is skipped with a
 # warning.
 # whitelist = ["127.0.0.1"]
 
-# The replacement: an admin-only Unix socket for same-host tooling (hc-cli),
-# authorised by filesystem permissions rather than network identity.
+# The replacement: an admin-only Unix socket for same-host tools (hc-cli),
+# allowed by file permissions instead of network address.
 # [auth.admin_uds]
 # enabled = true
 # path    = "/run/homecore/admin.sock"
 # group   = "homecore-admin"
 # mode    = "0660"
 
-# ── Location (required for solar triggers) ───────────────────────────────────
+# ── Location (needed for sunrise and sunset) ─────────────────────────────────
 [location]
-latitude  = 38.9072    # Washington D.C. defaults
+latitude  = 38.9072
 longitude = -77.0369
 timezone  = "America/New_York"
+# temperature_unit = "°F"   # for notifications and alert messages; default °C
 
 # ── Storage ───────────────────────────────────────────────────────────────────
 # Paths are relative to base_dir unless absolute.
 [storage]
-state_db_path   = "data/state.redb"    # device registry, rules, users, scenes
+state_db_path   = "data/state.redb"   # device registry, rules, users, scenes
 history_db_path = "data/history.db"   # time-series attribute history
 
 # ── Rules ─────────────────────────────────────────────────────────────────────
 [rules]
-# Directory containing rule RON files. Hot-reloaded on any file change.
+# Folder of rule RON files. Reloaded on any change.
 dir = "rules"
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 [scheduler]
-# On restart, fire time-based triggers that occurred within this window.
-# Set 0 to disable catch-up entirely.
+# On restart, fire time triggers that were missed within this window.
+# 0 turns catch-up off.
 catchup_window_minutes = 15
 
 # ── Startup ───────────────────────────────────────────────────────────────────
 [startup]
-# Seconds to wait after startup before mode manager publishes initial modes.
-# Gives plugins time to connect and subscribe before receiving cmd messages.
+# Seconds to wait after startup before modes publish their first states,
+# so plugins have time to connect and subscribe.
 plugin_ready_delay_secs = 10
 
 # ── Modes ─────────────────────────────────────────────────────────────────────
-# Not a section here. Modes are defined in <base_dir>/config/modes.toml —
-# a fixed path, hot-reloaded on change. See the modes.toml reference
-# further down.
+# Not a section here. Modes live in <base_dir>/config/modes.toml, a fixed
+# path that is reloaded on change. See the modes.toml reference below.
 
 # ── Calendars ─────────────────────────────────────────────────────────────────
 # [calendars]
-# dir = "config/calendars"   # directory of .ics files; hot-reloaded
-# expansion_days = 400       # how far ahead to expand recurring events
+# dir = "config/calendars"   # folder of .ics files; reloaded on change
+# expansion_days = 400       # how far ahead to expand repeating events
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 [notify]
@@ -158,17 +158,17 @@ user_key  = "your-pushover-user-key"
 [[notify.channels]]
 name      = "email-alerts"
 type      = "email"
-smtp_host = "smtp.yourdomain.com"
+smtp_host = "smtp.example.com"
 smtp_port = 587
-username  = "homecore@yourdomain.com"
+username  = "homecore@example.com"
 password  = "smtp-password"
-from      = "homecore@yourdomain.com"
-to        = ["you@yourdomain.com"]
+from      = "homecore@example.com"
+to        = ["you@example.com"]
 starttls  = true
 
 # ── Alerts ────────────────────────────────────────────────────────────────────
 # Where core sends the alerts it raises itself (wet, smoke, jammed, offline).
-# Unset: alerts are shown in the app but not sent.
+# Unset: alerts show in the app but aren't sent.
 # [alerts]
 # notify_channel = "all"
 
@@ -202,10 +202,10 @@ rotation   = "daily"     # "daily" | "hourly" | "weekly" | "never"
 max_size_mb = 100
 compress   = true
 format     = "json"
-prune_after_days = 30    # delete rotated files older than N days; 0 = never prune
+prune_after_days = 30    # delete rotated files older than N days; 0 = never
 
-# A second log file dedicated to rule-engine output, so the rule trace
-# does not have to be grepped out of everything else.
+# A second log file for the rule engine alone, so the rule trace isn't mixed
+# in with everything else.
 [logging.rules_file]
 enabled          = false
 dir              = "logs"
@@ -213,10 +213,10 @@ prefix           = "rules"
 rotation         = "daily"
 prune_after_days = 30
 
-# Per-plugin tracing logs are forwarded to the broker on
-# `homecore/plugins/<id>/logs` and merged into core's /logs/stream. The
-# level is set per plugin at runtime (Settings › Plugins, then the plugin),
-# or PATCH /api/v1/plugins/{id}, not in this file.
+# Each plugin's log is sent over the broker on `homecore/plugins/<id>/logs`
+# and merged into core's /logs/stream. Set a plugin's level in the app
+# (Settings › Plugins, then the plugin) or with PATCH /api/v1/plugins/{id},
+# not in this file.
 
 # [logging.syslog]
 # enabled   = false
@@ -229,29 +229,23 @@ prune_after_days = 30
 
 # ── Web Admin UI ──────────────────────────────────────────────────────────────
 # Optional static-file mount: serves a pre-built UI bundle from core's root
-# path. Off by default and left off in the standard deployment, where the
-# web app runs in its own container. Originally built for the retired
-# Leptos client.
+# path. Off by default, and left off in the standard install, where the web
+# app runs in its own container.
 [web_admin]
 enabled = false
 # dist_path = "ui/dist"     # bundle directory, relative to the home dir
 
 # ── Shutdown ──────────────────────────────────────────────────────────────────
 [shutdown]
-drain_timeout_secs = 10   # wait this long for in-flight rule actions, then stop
+drain_timeout_secs = 10   # wait this long for running rule actions, then stop
 
-# ── Plugins (managed) ────────────────────────────────────────────────────────
-# Each [[plugins]] entry defines a managed plugin that HomeCore supervises.
+# ── Plugins you run from your own path ───────────────────────────────────────
+# Plugins installed from the Catalog don't go here. Each [[plugins]] entry is
+# a plugin you unpacked or built yourself for homeCore to supervise.
 # [[plugins]]
 # id      = "plugin.hue"
 # binary  = "plugins/hc-hue/bin/hc-hue"    # relative to HOMECORE_HOME
 # config  = "plugins/hc-hue/config/config.toml"
-# enabled = true
-
-# [[plugins]]
-# id      = "plugin.wled"
-# binary  = "plugins/hc-wled/bin/hc-wled"
-# config  = "plugins/hc-wled/config/config.toml"
 # enabled = true
 
 # ── Ecosystem profiles ────────────────────────────────────────────────────────
@@ -261,25 +255,24 @@ drain_timeout_secs = 10   # wait this long for in-flight rule actions, then stop
 dir = "config/profiles"
 
 # ── Prometheus metrics ────────────────────────────────────────────────────────
-# GET /api/v1/metrics is gated by source IP, and the list is empty by default,
-# which means every caller gets 403. Unlike [auth].whitelist this grants
-# nothing but the metrics text, and ranges are allowed.
+# GET /api/v1/metrics is allowed by source address, and the list is empty by
+# default, so every caller gets 403. This grants nothing but the metrics
+# text, and ranges are allowed.
 [metrics]
 whitelist = ["127.0.0.1/32"]
 
 # ── Plugin registry ───────────────────────────────────────────────────────────
-# Both fields must be set for browse + install to work; otherwise those
+# Both must be set for the Catalog and installs to work; otherwise those
 # endpoints return 503.
 [registry]
 url        = "https://homecore.io/registry/index.json"
 public_key = "d64zXOo99GE+uYAPbtbIwLUJHtBaACJB73cUppj93I8="
 
 # ── InfluxDB v2 export (optional) ─────────────────────────────────────────────
-# Streams numeric and boolean device attributes to InfluxDB as line protocol,
-# one measurement per attribute. include_devices is OPT-IN by design: an empty
-# list exports nothing. ["*"] exports everything, which with chatty sensors is
-# a lot — the channel is bounded and drops oldest rather than back-pressuring
-# the event bus.
+# Sends numeric and boolean device attributes to InfluxDB, one measurement
+# per attribute. include_devices is opt-in: an empty list exports nothing,
+# and ["*"] exports everything. The queue is bounded and drops the oldest
+# points instead of slowing down the house.
 # [influx]
 # enabled             = true
 # url                 = "http://192.168.1.20:8086"
@@ -300,128 +293,140 @@ public_key = "d64zXOo99GE+uYAPbtbIwLUJHtBaACJB73cUppj93I8="
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `host` | string | `"0.0.0.0"` | Bind address for the HTTP/WebSocket API |
-| `port` | integer | `8080` | Listen port |
+| `host` | string | `"0.0.0.0"` | Address the HTTP and WebSocket API binds |
+| `port` | integer | `8080` | Port it listens on |
 
 ### `[broker]`
 
 The MQTT broker. By default core runs its embedded broker, and core's own
 MQTT client connects to it on `127.0.0.1` at `port`. With `external_url`
-set, core uses that broker instead and the embedded one isn't started.
+set, core uses that broker instead and doesn't start the embedded one.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `host` | string | `"0.0.0.0"` | Broker bind address. The example config sets `"127.0.0.1"`. |
 | `port` | integer | `1883` | Plain-text MQTT v3.1.1 port |
-| `v5_port` | integer | `1884` | Plain-text MQTT v5 port, for devices such as Shelly Gen2/Gen3. `0` disables it. |
-| `tls_port` | integer | none | TLS MQTT port (requires `cert_path` and `key_path`) |
-| `cert_path` | string | none | Path to TLS certificate file (PEM) |
-| `key_path` | string | none | Path to TLS private key file (PEM) |
-| `external_url` | string | none | An external broker (Mosquitto, EMQX) as `mqtt://host:port`, used instead of the embedded one. The port defaults to `1883`; `tcp://host:port` and a bare `host:port` also work. `mqtts://` is refused at startup. The settings form calls it "External broker". Added in v0.1.97. |
+| `v5_port` | integer | `1884` | Plain-text MQTT v5 port, for devices such as Shelly Gen2/Gen3. `0` turns it off. |
+| `tls_port` | integer | none | TLS MQTT port (needs `cert_path` and `key_path`) |
+| `cert_path` | string | none | TLS certificate file (PEM) |
+| `key_path` | string | none | TLS private key file (PEM) |
+| `external_url` | string | none | An external broker (Mosquitto, EMQX) as `mqtt://host:port`, used instead of the embedded one. The port defaults to `1883`. `tcp://host:port` and a bare `host:port` also work. `mqtts://` is refused at startup. The settings form calls it "External broker". |
 
-Core refuses to start when `host` is not a loopback address and there
-are no `[[broker.clients]]` entries, because that would be an open
-broker reachable from the network. Either bind `127.0.0.1`, add
-credentials, or, on a network you have isolated some other way, set
-the environment variable `HC_ALLOW_ANONYMOUS_REMOTE_BROKER=1` (core then
-logs an error at startup and continues).
+Core refuses to start when `host` isn't a loopback address and there are no
+`[[broker.clients]]` entries, because that would be an open broker on the
+network. Bind `127.0.0.1`, add logins, or, on a network you have closed off
+some other way, set the environment variable
+`HC_ALLOW_ANONYMOUS_REMOTE_BROKER=1`. Core then logs an error at startup and
+carries on. A broker port that is already in use also stops core at
+startup, with an error naming the port.
 
-When `external_url` is set, `host`, `port`, `v5_port` and the TLS keys
-are unused, and the open-broker check above doesn't apply. Core's own
-client logs in as `internal.core` with that entry's password from
-`[[broker.clients]]`. Plugins installed from the registry are given the
-external address; point already installed plugins at it in their own
-configs. See
+The Plugin runtimes screen in the app (Settings › Plugins › Plugin runtimes)
+can open the broker for you: **Open the broker to the network** sets
+`host = "0.0.0.0"`, adds a login for core if there is none, and restarts.
+
+When `external_url` is set, `host`, `port`, `v5_port` and the TLS keys go
+unused, and the open-broker check doesn't apply. Core's own client logs in
+as `internal.core` with that entry's password from `[[broker.clients]]`.
+Plugins installed from the Catalog are given the external address; point
+plugins you already have at it in their own settings. See
 [External Mosquitto deployment](../administration/broker#external-mosquitto-deployment).
-Before v0.1.97 the key was not read.
 
 `[[broker.clients]]` entries:
 
 | Key | Type | Description |
 |---|---|---|
-| `id` | string | Client ID (used as MQTT username) |
+| `id` | string | Client ID, used as the MQTT username |
 | `password` | string | Plain-text password |
-| `allow_pub` | array of strings | Allowed publish topic patterns (MQTT wildcards `+`/`#` supported) |
-| `allow_sub` | array of strings | Allowed subscribe topic patterns |
+| `allow_pub` | array of strings | Topic patterns it may publish to (MQTT wildcards `+` and `#` work) |
+| `allow_sub` | array of strings | Topic patterns it may subscribe to |
 
-Core's internal client uses the entry with `id = "internal.core"`, so
-once you add any clients, add that one too.
+Core's own client uses the entry with `id = "internal.core"`, so once you
+add any clients, add that one too. With clients listed, the broker also
+accepts the logins core makes itself: each plugin runtime's, and the one in
+each installed plugin's settings.
 
 :::warning
-The embedded broker enforces connection credentials but **does not enforce per-topic ACLs**. `allow_pub` and `allow_sub` are metadata only. `hc-cli broker generate-mosquitto-config` converts them to a Mosquitto ACL file; see [the broker deployment guide](../administration/broker#external-mosquitto-deployment).
+The embedded broker checks logins but **does not enforce per-topic access**. `allow_pub` and `allow_sub` are recorded, not enforced. `hc-cli broker generate-mosquitto-config` turns them into a Mosquitto ACL file; see [the broker deployment guide](../administration/broker#external-mosquitto-deployment).
 :::
 
 ### `[storage]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `state_db_path` | string | `"data/state.redb"` | Path to the redb state database (devices, rules, users, audit, battery latches). Relative to `HOMECORE_HOME`. |
-| `history_db_path` | string | `"data/history.db"` | Path to the SQLite time-series history DB. |
+| `state_db_path` | string | `"data/state.redb"` | The redb state database (devices, rules, users, scenes, plugin runtimes, battery latches). Relative to `HOMECORE_HOME`. |
+| `history_db_path` | string | `"data/history.db"` | The SQLite history database. |
 
 ### `[profiles]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `dir` | string | `"config/profiles"` | Directory of ecosystem profile TOML files (Tasmota, Shelly, Zigbee2MQTT, etc.) used by the topic mapper. Core also reads the device type registry from `device-types.toml` in this directory. |
+| `dir` | string | `"config/profiles"` | Folder of ecosystem profile TOML files (Tasmota, Shelly, Zigbee2MQTT and others) that map their topics to homeCore's. Core also reads the device type registry from `device-types.toml` in this folder. |
+
+Topic maps belong in these profile files. A `[[topic_map]]` block in
+`homecore.toml` is not read. See [Topic mapper](../development/topic-mapper).
 
 ### `[rules]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `dir` | string | `"rules"` | Directory of `.ron` rule files (legacy `.toml` rules still load). Hot-reloaded on change. |
+| `dir` | string | `"rules"` | Folder of `.ron` rule files (old `.toml` rules still load). Reloaded on change. |
 
 ### `[auth]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `jwt_secret` | string | _unset_ | **Deprecated.** Inline HS256 secret. If set, overrides `jwt_secret_file` and emits a warning. Prefer the file-managed default. |
-| `jwt_secret_file` | string | `<parent-of-state_db_path>/jwt_secret` | Path to a `0600` file holding the persistent JWT secret. Generated on first startup so issued tokens survive restarts. |
-| `token_expiry_hours` | integer | `24` | Access JWT lifetime in hours. |
-| `refresh_token_expiry_days` | integer | `30` | Refresh token lifetime. Each `/auth/refresh` rotates the token; reusing an old one revokes the whole session. |
-| `audit_retention_days` | integer | `365` | Days of audit history to keep. A background task prunes older entries every 6 hours. |
-| `whitelist` | array of strings | `[]` | **Deprecated.** Source addresses that bypass JWT auth and receive Admin access. IPv4 and IPv6, written bare (`"192.168.1.20"`) or as a single-host prefix (`"192.168.1.20/32"`, `"::1/128"`). An entry covering a range is skipped with a warning. Prefer `[auth.admin_uds]` for same-host tooling. |
-| `initial_admin_password_file` | string | `<base_dir>/INITIAL_ADMIN_PASSWORD` | Where the first-boot admin password is written, `0600`. A relative path is resolved against the base directory. Set to `""` to skip the file and only log the password. Written only when no users exist. |
+| `jwt_secret` | string | unset | **Deprecated.** An inline signing secret. If set, it wins over `jwt_secret_file` and logs a warning. |
+| `jwt_secret_file` | string | `<parent-of-state_db_path>/jwt_secret` | A `0600` file holding the signing secret. Generated on first start so tokens survive restarts. |
+| `token_expiry_hours` | integer | `24` | Access token lifetime in hours. |
+| `refresh_token_expiry_days` | integer | `30` | Refresh token lifetime. Each `/auth/refresh` replaces the token, and reusing an old one ends the whole session. |
+| `audit_retention_days` | integer | `365` | Days of audit history to keep. Older entries are removed every 6 hours. |
+| `whitelist` | array of strings | `[]` | **Deprecated.** Source addresses that skip sign-in and get admin access. IPv4 and IPv6, written bare (`"192.168.1.20"`) or as a single-host prefix (`"192.168.1.20/32"`, `"::1/128"`). An entry covering a range is skipped with a warning. Use `[auth.admin_uds]` for same-host tools instead. |
+| `initial_admin_password_file` | string | `<base_dir>/INITIAL_ADMIN_PASSWORD` | Where the first-boot admin password is written, `0600`. A relative path is resolved against the base directory. Set `""` to only log the password. Written only when no users exist. |
 
-`[auth.admin_uds]` is a Unix domain socket listener for same-host admin
-tooling. It replaces `whitelist`.
+`[auth.admin_uds]` is a Unix socket for admin tools on the same host. It
+replaces `whitelist`.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Listen on the admin UDS. |
+| `enabled` | bool | `false` | Listen on the admin socket. |
 | `path` | string | `"/run/homecore/admin.sock"` | Socket path. |
-| `group` | string | `"homecore-admin"` | POSIX group that owns the socket. Its members can connect. |
-| `mode` | string (octal) | `"0660"` | Filesystem permissions on the socket. An invalid value disables the socket with a warning. |
-| `allowed_uids` | array of integers | `[]` | Extra UIDs allowed to connect. The process UID is always allowed. |
+| `group` | string | `"homecore-admin"` | Group that owns the socket. Its members can connect. |
+| `mode` | string (octal) | `"0660"` | File permissions on the socket. An invalid value turns the socket off with a warning. |
+| `allowed_uids` | array of integers | `[]` | Extra user IDs allowed to connect. Core's own user is always allowed. |
 
 ### `[location]`
 
-Required for `SunEvent` triggers and solar modes.
+Needed for sunrise and sunset triggers and solar modes.
 
 | Key | Type | Description |
 |---|---|---|
-| `latitude` | float | Decimal degrees, e.g. `38.9072` |
-| `longitude` | float | Decimal degrees, e.g. `-77.0369` |
-| `timezone` | string | IANA timezone name, e.g. `"America/New_York"` |
+| `latitude` | float | Decimal degrees, such as `38.9072` |
+| `longitude` | float | Decimal degrees, such as `-77.0369` |
+| `timezone` | string | IANA time zone name, such as `"America/New_York"` |
+| `temperature_unit` | string | `"°C"` or `"°F"` (`"C"`, `"F"`, `"celsius"` and `"fahrenheit"` also work). What notifications and alert messages show temperatures in. Devices and rules always keep °C. Unset or unreadable means °C. |
 
 If the section is missing, core uses latitude `38.9072` and longitude
-`-77.0369`. `timezone` drives every user-facing timestamp (logs and the
-API's local times); storage stays in UTC. If it is unset or can't be
-parsed, core uses UTC and logs why at startup.
+`-77.0369`. `timezone` sets every time people see, in logs and the API's
+local times; storage stays in UTC. If it is unset or can't be read, core
+uses UTC and logs why at startup.
+
+The app's own setting, Settings › System › Units and region, sets the
+household's temperature unit for the app and for notifications too.
 
 ### `[battery]`
 
-Drives the battery alert watcher. The watcher synthesizes
-`device_battery_low` and `device_battery_recovered` events from device
-state changes, with hysteresis enforced in core (latches at
-`threshold_pct`, clears at `threshold_pct + recover_band_pct`). See
-[Battery monitoring](../devices/battery-monitoring.md) for the full picture.
+Settings for the battery watcher. It raises `device_battery_low` and
+`device_battery_recovered` events from device state changes. It latches at
+`threshold_pct` and clears at `threshold_pct + recover_band_pct`, so a
+battery hovering at the line doesn't flap. See
+[Battery monitoring](../devices/battery-monitoring.md).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `threshold_pct` | float | `20.0` | Battery percentage at or below which the latch engages. |
-| `recover_band_pct` | float | `5.0` | Recovery band added to threshold to clear the latch. Recovery fires at `threshold_pct + recover_band_pct`. |
-| `notify_channel` | string | _unset_ | Optional notification channel name. When set, the watcher sends a notification on each low edge, with no rule required. |
-| `notify_on_recovered` | bool | `false` | When `true` and `notify_channel` is set, recovery edges also notify. |
+| `threshold_pct` | float | `20.0` | Battery percentage at or below which it latches. |
+| `recover_band_pct` | float | `5.0` | Added to the threshold to clear the latch. |
+| `notify_channel` | string | unset | A notification channel. When set, each low battery is sent there, with no rule needed. |
+| `notify_on_recovered` | bool | `false` | With `notify_channel` set, also send a message when a battery recovers. |
 
 ```toml
 [battery]
@@ -433,45 +438,45 @@ recover_band_pct    = 5.0
 
 ### `[alerts]`
 
-What core does with the alerts it raises itself, such as wet, smoke,
-jammed or offline.
+What core does with the alerts it raises itself, such as wet, smoke, jammed
+or offline.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `notify_channel` | string | _unset_ | A notification channel (or `"all"`) to send each built-in alert to. Unset means alerts are shown but not sent. Low battery uses `[battery].notify_channel` instead. |
+| `notify_channel` | string | unset | A notification channel (or `"all"`) to send each built-in alert to. Unset means alerts show in the app but aren't sent. Low battery uses `[battery].notify_channel` instead. |
 
 ### `[backup]`
 
-Backups core makes on its own schedule. Each is the same zip archive
-`POST /api/v1/system/backup` produces; see
+Backups core makes on a schedule. Each is the same zip archive that
+`POST /api/v1/system/backup` and Settings › Data & backups produce; see
 [Backup & Restore](../administration/backup-restore).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `every_hours` | integer | `24` | How often to make one. `0` turns scheduled backups off. |
 | `keep` | integer | `7` | How many to keep. Older ones are deleted. |
-| `dir` | string | `"backups"` | Where they are kept, relative to the base directory. |
+| `dir` | string | `"backups"` | Where they go, relative to the base directory. |
 
-Kept backups are listed by `GET /api/v1/system/backups` and downloaded
-with `GET /api/v1/system/backups/{name}`.
+`GET /api/v1/system/backups` lists the kept backups, and
+`GET /api/v1/system/backups/{name}` downloads one.
 
 ### `[scheduler]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `catchup_window_minutes` | integer | `15` | On restart, fire missed time-based triggers (`SunEvent`, `TimeOfDay`) that fell within this many minutes. Set `0` to disable. |
+| `catchup_window_minutes` | integer | `15` | On restart, fire missed time triggers (`SunEvent`, `TimeOfDay`) from within this many minutes. `0` turns it off. |
 
 ### `[startup]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `plugin_ready_delay_secs` | integer | `10` | Grace period before the mode manager publishes initial states, so plugins have subscribed before commands arrive. Raise it if a plugin is slow to start. |
+| `plugin_ready_delay_secs` | integer | `10` | How long modes wait before publishing their first states, so plugins have subscribed before commands arrive. Raise it if a plugin is slow to start. |
 
 ### `[shutdown]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `drain_timeout_secs` | integer | `10` | Seconds to wait for in-flight rule action tasks to finish on graceful shutdown before force-stopping. |
+| `drain_timeout_secs` | integer | `10` | Seconds to wait for running rule actions to finish on shutdown before stopping anyway. |
 
 ### `[logging]`
 
@@ -480,62 +485,67 @@ Top-level keys:
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `level` | string | `"info"` | Global log level (`error`, `warn`, `info`, `debug`, `trace`). |
-| `targets` | table of string→string | `{}` | Per-target overrides keyed by Rust module path with underscores (e.g. `hc_core = "debug"`). Same syntax as `RUST_LOG` directives. |
-| `time_display` | string | `"local"` | Timestamp display: `"local"` or `"utc"`. |
+| `targets` | table of string to string | `{}` | Levels per module, keyed by Rust module path with underscores (such as `hc_core = "debug"`). Same syntax as `RUST_LOG`. |
+| `time_display` | string | `"local"` | Timestamps in `"local"` time or `"utc"`. |
 
-The `RUST_LOG` environment variable, when set, takes precedence over
-these levels for stderr and file output.
+When the `RUST_LOG` environment variable is set, it overrides these levels
+for stderr and file output. Settings › System in the app can also change
+core's log level while it runs.
 
 `[logging.stderr]`:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Emit to stderr. |
-| `format` | string | `"pretty"` | `"pretty"`, `"compact"`, or `"json"`. |
-| `ansi` | bool | `true` | ANSI color codes (set `false` when piping to the systemd journal). |
+| `enabled` | bool | `true` | Write to stderr. |
+| `format` | string | `"pretty"` | `"pretty"`, `"compact"` or `"json"`. |
+| `ansi` | bool | `true` | Color codes (set `false` when writing to the systemd journal). |
 
-`[logging.file]` controls rolling file output:
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | `true` | Enable rolling file output. |
-| `dir` | string | `"logs"` | Log directory (created if missing). |
-| `prefix` | string | `"homecore"` | The active file is `<prefix>.log`; rotated files become `<prefix>.<period>.log` (for daily rotation, `homecore.YYYY-MM-DD.log`). |
-| `rotation` | string | `"daily"` | `"daily"`, `"hourly"`, `"weekly"`, or `"never"`. |
-| `max_size_mb` | integer | `100` | Size limit before rotation, combined with `rotation` (whichever comes first). `0` disables size-based rotation. |
-| `compress` | bool | `true` | Gzip rotated files (background thread). |
-| `prune_after_days` | integer | `0` | Delete rotated files older than N days. `0` = never prune. |
-| `format` | string | `"json"` | `"json"`, `"compact"`, or `"pretty"`. |
-
-`[logging.rules_file]` is a separate rule-engine log that captures only
-`hc_core` at `debug`, whatever the global level. It is disabled by
-default. It takes the same keys as `[logging.file]`, with its own
-defaults (prefix `"rules"`, format `"pretty"`), and uses the
-`[logging.file]` directory when `dir` is unset.
-
-`[logging.stream]` controls the live `/api/v1/logs/stream` WebSocket:
+`[logging.file]` controls the rolling log file:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Enable the streaming endpoint. |
-| `ring_buffer_size` | integer | `500` | Recent log lines retained for new subscribers. |
+| `enabled` | bool | `true` | Write a rolling log file. |
+| `dir` | string | `"logs"` | Log folder (created if missing). |
+| `prefix` | string | `"homecore"` | The current file is `<prefix>.log`. Rotated files become `<prefix>.<period>.log` (for daily rotation, `homecore.YYYY-MM-DD.log`). |
+| `rotation` | string | `"daily"` | `"daily"`, `"hourly"`, `"weekly"` or `"never"`. |
+| `max_size_mb` | integer | `100` | Also rotate at this size, whichever comes first. `0` turns size rotation off. |
+| `compress` | bool | `true` | Gzip rotated files. |
+| `prune_after_days` | integer | `0` | Delete rotated files older than this many days. `0` keeps them all. |
+| `format` | string | `"json"` | `"json"`, `"compact"` or `"pretty"`. |
 
-`[logging.syslog]` forwards logs to a syslog server:
+`[logging.rules_file]` is a separate log for the rule engine. It records
+only `hc_core` at `debug`, whatever the global level, and is off by
+default. It takes the same keys as `[logging.file]`, with its own defaults
+(prefix `"rules"`, format `"pretty"`), and uses the `[logging.file]` folder
+when `dir` is unset.
+
+`[logging.stream]` controls the live `/api/v1/logs/stream` WebSocket that
+Settings › Logs reads:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Enable syslog output. |
+| `enabled` | bool | `true` | Turn the stream on. |
+| `ring_buffer_size` | integer | `500` | Recent lines kept for new viewers. |
+
+`[logging.syslog]` sends logs to a syslog server:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Turn syslog output on. |
 | `transport` | string | `"udp"` | `"udp"` (recommended) or `"tcp"`. |
 | `host` | string | `"127.0.0.1"` | Syslog server. |
 | `port` | integer | `514` | Syslog port. |
 | `protocol` | string | `"rfc5424"` | `"rfc5424"` or `"rfc3164"`. |
 | `facility` | string | `"user"` | Syslog facility name (`daemon`, `local0` to `local7`, …). |
 | `app_name` | string | `"homecore"` | App name in each message. |
-| `level` | string | global level | Level for syslog only, e.g. send `warn` and above remotely while keeping `debug` locally. |
+| `level` | string | global level | Level for syslog only. For example, send `warn` and above to the server while keeping `debug` locally. |
 
 ### `[notify]`
 
-Channels are declared as a list under `[[notify.channels]]`. The `name` is what a rule's `Notify` action refers to. The reserved name `"all"` sends to every registered channel.
+Channels go in a list under `[[notify.channels]]`. A rule's `Notify` action
+names a channel by its `name`. The reserved name `"all"` sends to every
+channel. Settings › Notifications in the app lists the channels, sends a
+test, and shows which automations use each.
 
 ```toml
 [[notify.channels]]
@@ -561,104 +571,115 @@ bot_token = "..."
 chat_id   = "..."
 ```
 
-Built-in providers are `email` (SMTP), `pushover` and `telegram`. Optional fields:
+The built-in types are `email` (SMTP), `pushover` and `telegram`. Optional
+fields:
 
-- `email`: `smtp_port` defaults to `587` and `starttls` to `true`. Set `starttls = false` for implicit TLS on port 465.
-- `pushover`: `device` (send to one device), `priority` (`-2` to `2`), and for emergency priority `retry` (seconds, at least 30, default 60) and `expire` (seconds, at most 10800, default 3600).
+- `email`: `smtp_port` defaults to `587` and `starttls` to `true`. Set
+  `starttls = false` for implicit TLS on port 465.
+- `pushover`: `device` (send to one device), `priority` (`-2` to `2`), and
+  for emergency priority, `retry` (seconds, at least 30, default 60) and
+  `expire` (seconds, at most 10800, default 3600).
 - `telegram`: `markdown = true` sends messages as MarkdownV2.
 
-A Telegram channel still set to the example placeholder `CHANGE_ME` stops core from starting, so a forgotten placeholder is caught at boot. Other channels that fail to initialise are logged and skipped without blocking the rest of the system.
+A Telegram channel still set to the placeholder `CHANGE_ME` stops core from
+starting, so a forgotten placeholder shows up at once. Other channels that
+fail to start are logged and skipped, and the rest of the system carries on.
 
 ### `[web_admin]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `false` | Serve a directory of static files from core's root path, via tower-http `ServeDir`. |
-| `dist_path` | string | none | The bundle directory, relative to `HOMECORE_HOME`. |
+| `enabled` | boolean | `false` | Serve a folder of static files from core's root path. |
+| `dist_path` | string | none | The folder, relative to `HOMECORE_HOME`. |
 
-When enabled, core serves that bundle at `/`. API routes under `/api/v1`
-take priority, and anything unmatched falls back to `index.html`.
+When it's on, core serves that folder at `/`. API routes under `/api/v1`
+come first, and anything else falls back to `index.html`.
 
-It is off by default and the standard deployment leaves it off. The web
-app is [`hc-web-svelte`](../web-ui/overview.md), which runs in its own
-container and passes `/api/v1` through to core. This section was built
-for the Leptos client that core used to bundle, and it remains as a
-generic static mount for anyone self-hosting a bundle.
+It is off by default, and the standard install leaves it off. The web app
+is [`hc-web-svelte`](../web-ui/overview.md), which runs in its own container
+and passes `/api/v1` through to core. This section stays as a generic
+static mount for anyone hosting their own bundle.
 
 ### `[calendars]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `dir` | string | `"config/calendars"` | Directory of `.ics` calendar files. Hot-reloaded on file changes. |
-| `expansion_days` | integer | `400` | How many days ahead to expand recurring events into individual occurrences. |
+| `dir` | string | `"config/calendars"` | Folder of `.ics` calendar files. Reloaded on change. You can also add calendars in Settings › Data & backups. |
+| `expansion_days` | integer | `400` | How many days ahead to expand repeating events. |
 
-### Glue devices
+### Helpers (glue devices)
 
-Glue device definitions live at `<base>/config/glue.toml`, a fixed path that `homecore.toml` can't change. Devices listed there are created at startup if they don't already exist. See [Virtual / glue devices](../devices/virtual-devices.md) for the file format (timers, switches, counters and more).
+Helper definitions can also live in `<base>/config/glue.toml`, a fixed path
+that `homecore.toml` can't change. Devices listed there are created at
+startup if they don't already exist. Most people add helpers in Settings ›
+Helpers instead. See [Virtual devices](../devices/virtual-devices.md) for
+the file format.
 
 ### `[[plugins]]`
 
-Each entry declares a plugin for homeCore to supervise: spawn it, watch its
-heartbeat, start, stop and restart it, and push its configuration.
+Each entry declares a plugin for homeCore to supervise: start it, watch its
+heartbeat, stop and restart it, and hand it its settings.
 
-You rarely need to write one. A registry install records itself in
-`config/plugins/managed.toml`, which homeCore owns and rewrites; your
-`homecore.toml` is never touched. At boot, the plugins core runs are the
-static entries plus the managed records, minus any ids that have been
-uninstalled. A managed record wins when both name the same id, so
-uninstalling a statically declared plugin sticks (it leaves a tombstone)
-without homeCore editing your file.
+You rarely need one. A plugin installed from the Catalog records itself in
+`config/plugins/managed.toml`, which homeCore owns; your `homecore.toml` is
+never touched. At startup, the plugins core runs are the entries here plus
+the managed records, minus any that have been uninstalled. A managed record
+wins when both name the same id, so uninstalling a plugin declared here
+sticks without homeCore editing your file. Plugins on a
+[plugin runtime](../plugins/runtimes.md) never appear here.
 
 Write a `[[plugins]]` block for a plugin you built or unpacked yourself and
-want supervised from a path you control.
+want run from a path you control.
 
 | Key | Type | Description |
 |---|---|---|
-| `id` | string | Plugin ID (matches the plugin's `plugin_id` config) |
+| `id` | string | Plugin ID (matches the plugin's `plugin_id` setting) |
 | `binary` | string | Path to the plugin binary (relative to `HOMECORE_HOME`) |
-| `config` | string | Path to the plugin config file (relative to `HOMECORE_HOME`), passed to the plugin as its first argument |
-| `enabled` | boolean | Whether the plugin should be started automatically. Defaults to `true`. |
+| `config` | string | Path to the plugin's config file (relative to `HOMECORE_HOME`), passed to the plugin as its first argument |
+| `enabled` | boolean | Whether the plugin starts automatically. Defaults to `true`. |
 
-On first start, core copies each plugin's config file into its own store
-at `config/plugins/<id>.toml` and from then on hands the plugin that
-copy. The `config` path stays the import source, and `homecore.toml` is
-not rewritten.
+On first start, core copies each plugin's config file into its own store at
+`config/plugins/<id>.toml` and from then on gives the plugin that copy. The
+`config` path stays the import source, and `homecore.toml` isn't rewritten.
+When a plugin's settings change, from the app or the file, core restarts the
+plugin to use them.
 
 ### `[metrics]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `whitelist` | array of strings | `[]` | Source IPs or CIDR ranges allowed to scrape `GET /api/v1/metrics`. Empty, the default, means every caller gets `403`. IPv4 and IPv6. |
+| `whitelist` | array of strings | `[]` | Source addresses or CIDR ranges allowed to read `GET /api/v1/metrics`. Empty, the default, means every caller gets `403`. IPv4 and IPv6. |
 
-Opening the endpoint is always an explicit step. Metrics expose device,
-rule and plugin counts, and opening them by default to whatever subnet
-the host sits on would widen the attack surface without anyone noticing.
-The `403` body names the exact line to add. See
+Metrics show device, rule and plugin counts, so opening them is always a
+step you take yourself. The `403` response names the exact line to add. See
 [Metrics](../administration/metrics.md).
 
 ### `[registry]`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | none | URL (or local path / `file://`) of the signed `index.json`. |
+| `url` | string | none | URL (or local path, or `file://`) of the signed `index.json`. |
 | `public_key` | string | none | Base64 ed25519 public key that signs the index. |
 
-**Both** must be set, or `/registry/plugins` and `/plugins/install` return
-`503`. Core verifies the index signature and each artifact's SHA-256 before
-unpacking anything. See [Plugins](../plugins/overview.md).
+Both must be set, or the Catalog can't load and `/registry/plugins` and
+`/plugins/install` return `503`. Core checks the index signature and each
+artifact's SHA-256 before unpacking anything. See
+[Plugins](../plugins/overview.md).
 
 ### `[plugin_runtimes]`
 
-Containers you run yourself that host plugins written in other languages. You
-add one on the **Plugin runtimes** screen (the **Plugin runtimes** button on
-**Settings › Plugins**), which shows the key to paste into it. See [Plugin Runtimes](../plugins/runtimes.md).
+Plugin runtimes are containers you run yourself that host plugins written
+in Python. You add one on the **Plugin runtimes** screen (a button on
+**Settings › Plugins**), which shows the key to paste into it. See
+[Plugin Runtimes](../plugins/runtimes.md).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Master switch. Off means the runtime endpoints return 404. |
+| `enabled` | bool | `true` | Off makes the runtime endpoints return 404. |
 
-Older files may still have `mode`, `whitelist_only` and the pending and denial
-limits from when runtimes asked to join. They are ignored.
+Older files may still have `mode`, `whitelist_only` and pending or denial
+limits from when runtimes asked to join. They are ignored and can be
+deleted.
 
 ### `[influx]`
 
@@ -666,31 +687,28 @@ Optional InfluxDB v2 export of device state. Off unless `enabled = true`.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Turn the exporter on. |
-| `url` | string | none | InfluxDB base URL; writes go to `<url>/api/v2/write`. |
+| `enabled` | bool | `false` | Turn the export on. |
+| `url` | string | none | InfluxDB base URL. Writes go to `<url>/api/v2/write`. |
 | `token` | string | none | API token with write access to the bucket. |
-| `org` / `bucket` | string | none | Influx organisation and bucket. |
-| `include_devices` | array of strings | `[]` | Device-id patterns to export. **Opt-in**: empty exports nothing. `["*"]` exports everything. |
-| `exclude_attributes` | array of strings | `[]` | Attributes to drop (e.g. `last_seen`). |
-| `export_bools` | bool | `true` | Write boolean attributes as `0`/`1`. |
-| `flush_interval_secs` | integer | `10` | Flush even when the batch is not full. |
-| `batch_size` | integer | `1000` | Maximum points per write. |
-| `channel_capacity` | integer | `10000` | Bounded backlog. When it is full, the oldest events are dropped rather than slowing the event bus. |
+| `org` / `bucket` | string | none | InfluxDB organization and bucket. |
+| `include_devices` | array of strings | `[]` | Device ID patterns to export. Opt-in: empty exports nothing, and `["*"]` exports everything. |
+| `exclude_attributes` | array of strings | `[]` | Attributes to leave out (such as `last_seen`). |
+| `export_bools` | bool | `true` | Write boolean attributes as `0` and `1`. |
+| `flush_interval_secs` | integer | `10` | Send a batch at least this often, even when it isn't full. |
+| `batch_size` | integer | `1000` | Most points per write. |
+| `channel_capacity` | integer | `10000` | How many points can wait. When it's full, the oldest are dropped. |
 
-Each attribute is written as its own measurement, with a single field
-called `value` and a `device_id` tag. Area, plugin and device type are
-not added as tags; join them from HomeCore's device data if you need
-them.
-
----
+Each attribute is written as its own measurement, with one field called
+`value` and a `device_id` tag. Area, plugin and device type are not tags;
+join them from homeCore's device data if you need them.
 
 ## modes.toml reference
 
 Modes live in a separate file, `config/modes.toml` under the base
-directory, which core reloads when it changes. API calls that create or
-change modes write to the same file. `mode_night` and `mode_day` are
-built in: core writes them on first start if they are missing, and the
-API won't delete them.
+directory, which core reloads when it changes. The API and Settings › Modes
+write to the same file. `mode_night` and `mode_day` are built in: core
+writes them on first start if they're missing, and the API won't delete
+them.
 
 ```toml
 # Solar modes follow sun events, with optional offsets in minutes
@@ -730,12 +748,15 @@ kind = "manual"
 | `on_event` / `off_event` | Solar only: `Sunrise`, `Sunset`, `SolarNoon`, `CivilDawn` or `CivilDusk`. |
 | `on_offset_minutes` / `off_offset_minutes` | Solar only: minutes after the event (negative for before). Default `0`. |
 
-**Solar mode behavior:**
-- `mode_night` is on from sunset to sunrise and off during daylight.
-- Offsets move the transition: `on_offset_minutes = -30` turns night mode on 30 minutes *before* sunset.
-- Each mode is also a device (plugin `core.mode`) with an `on` attribute, so rules can trigger on it and the devices API lists it.
+How solar modes behave:
 
-**Mode API:**
+- `mode_night` is on from sunset to sunrise and off in daylight.
+- Offsets move the change: `on_offset_minutes = -30` turns night mode on 30
+  minutes before sunset.
+- Each mode is also a device (plugin `core.mode`) with an `on` attribute, so
+  rules can trigger on it and the devices API lists it.
+
+The mode API:
 
 ```bash
 # Get all modes
@@ -760,21 +781,23 @@ curl -s -X PATCH http://localhost:8080/api/v1/modes/mode_night \
   -d '{"on_offset_minutes": -30}'
 ```
 
-`PATCH /api/v1/modes/{id}` changes a mode's name, and for a solar mode
-its events and offsets. It does not switch a mode on or off; use the
-device state call for that.
+`PATCH /api/v1/modes/{id}` changes a mode's name, and for a solar mode its
+events and offsets. It doesn't switch a mode on or off; use the device
+state call for that.
 
 ## Environment variables
 
-Core reads only a few environment variables. Everything else, including
-the JWT secret and location, comes from the config file.
+Core reads only a few environment variables. Everything else, including the
+signing secret and location, comes from the config file.
 
 | Variable | Effect |
 |---|---|
 | `HOMECORE_HOME` | Base directory (see [Installation](./installation#override-paths-with-environment-variables)). |
 | `HOMECORE_CONFIG` | Config file path. |
-| `RUST_LOG` | Log filter; overrides `[logging]` levels. |
+| `RUST_LOG` | Log filter; overrides the `[logging]` levels. |
 | `HC_ALLOW_ANONYMOUS_REMOTE_BROKER` | Set to `1` to allow a non-loopback broker with no clients (see [`[broker]`](#broker)). |
 
 The Docker image's entrypoint reads a few more (`HOMECORE_UID`,
-`HOMECORE_GID`, `HC_BROKER_BIND`); see [Docker](./docker).
+`HOMECORE_GID`, `HC_BROKER_BIND`); see [Docker](./docker). The web app's
+server has its own; see the
+[Web UI overview](../web-ui/overview#ui-server-settings).

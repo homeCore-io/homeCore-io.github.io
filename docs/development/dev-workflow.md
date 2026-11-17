@@ -9,15 +9,17 @@ sidebar_position: 2
 
 ## Toolchain
 
-Use the Rust version CI and the release builds use (1.99.1 at the time of
-writing; `rust_version` in hc-scripts' `rust-ci.yml` and `rust-release.yml`).
-A newer local toolchain has a different clippy lint set, so code that passes
-locally can fail CI. You also need Node.js 24 for plugin screens and the web
-app, and `just`, `gh` and `jq` for the recipes and release steps.
+Use the Rust version CI and the release builds use. CI pins 1.99 (the
+`rust_version` default in hc-scripts' `rust-ci.yml` and
+`rust-release.yml`), and the Dockerfiles build from `rust:1.99-alpine`. A
+newer local toolchain has a different clippy lint set, so code that passes
+locally can fail CI. You also need Node.js 24 for plugin screens and the
+web app, Python 3.12 for Python plugins and hc-mcp, and `just`, `gh` and
+`jq` for the recipes and release steps.
 
 `hc-scripts/devenv/` has a [devenv](https://devenv.sh) shell that provides
-all of this: the pinned Rust toolchain, Python 3.12 with uv, Node 24, `just`,
-`gh` and the build libraries. The workspace root is not a repository, so the
+all of this: Rust 1.99.1, Python 3.12 with uv, Node 24, `just`, `gh` and
+the build libraries. The workspace root is not a repository, so the
 files are kept in hc-scripts and copied to the root once:
 
 ```bash
@@ -43,8 +45,8 @@ it from.
 Test against a sandbox homeCore: its own `--home` and `--config`, its own
 broker port, and plugins pointed at stand-ins (small local emulators of
 the device) instead of real hardware. Never test against the real house.
-That means no discovery from a sandbox, since it would find real devices,
-and no commands to real devices. Section 9 of
+Don't run discovery from a sandbox, since it would find real devices, and
+don't send commands to real devices. Section 9 of
 [`core/docs/plugin-development.md`](https://github.com/homeCore-io/homeCore/blob/develop/docs/plugin-development.md)
 has the details.
 
@@ -61,16 +63,15 @@ just sandbox-build   # build the whole workspace, reinstall the sandbox's plugin
 
 All three run `core/target/debug/homecore` with `--home sandbox` and
 `--config sandbox/config/homecore.toml`, the same place core looks under
-`--home` when no `--config` is given. Keep the sandbox's config there. If the
-file named by `--config` is missing, core doesn't say so: it uses its
-built-in defaults, which bind the broker to `0.0.0.0` with no logins, and
-then refuses to start an open broker. `sandbox-build` calls
+`--home` when no `--config` is given. Keep the sandbox's config there. The
+recipes still pass `--config` because `HOMECORE_CONFIG` outranks that
+default. If the file named by `--config` is missing, core doesn't say so:
+it uses its built-in defaults, which bind the broker to `0.0.0.0` with no
+logins, and then refuses to start an open broker. `sandbox-build` calls
 `sandbox/reinstall-plugins.sh`, which you provide in your sandbox.
 
-For a one-off throwaway instance, point `--home` at a directory with a
-small config. With no config file, core's built-in default binds the broker
-to `0.0.0.0` with no `[[broker.clients]]`, and core refuses to start an open
-broker. Bind it to loopback:
+For a throwaway instance, point `--home` at a directory with a small
+config that binds the broker to loopback, for the reason above:
 
 ```bash
 mkdir -p /tmp/hc-dev/config
@@ -88,8 +89,8 @@ rm -rf /tmp/hc-dev/data/
 cargo run -p homecore -- --home /tmp/hc-dev
 ```
 
-On first run, copy the admin password from the startup output (it is
-also written to `INITIAL_ADMIN_PASSWORD` in the home directory).
+On first run, copy the admin password from the startup output. Core also
+writes it to `INITIAL_ADMIN_PASSWORD` in the home directory.
 
 ### `run-dev.sh`
 
@@ -108,8 +109,7 @@ workspace root:
 :::caution run-dev.sh is not sandboxed
 It starts a real homeCore with `config/homecore.dev.toml` and the real
 plugin configs, so it connects to whatever hubs, bridges and cloud accounts
-those configs name. Do not use it to test anything destructive. Use a
-sandbox instead.
+those configs name. Use a sandbox for anything destructive.
 :::
 
 What it does:
@@ -194,10 +194,10 @@ cargo clippy --all-targets --all-features -- \
 cargo test --all-features
 ```
 
-So a green `just check` means a green lint step, as long as you use the
-toolchain CI uses (see Toolchain above). Core's tests run without
-`--all-features`, so run `cargo test --all-features` too if you changed
-feature-gated code.
+A green `just check` means a green lint step, as long as you use the
+toolchain CI uses (see [Toolchain](#toolchain)). Core's `just test` runs
+without `--all-features`, so run `cargo test --all-features` too if you
+changed feature-gated code.
 
 Other workspace recipes:
 
@@ -236,9 +236,10 @@ Each plugin under `core/plugins/` keeps a Justfile with these recipes:
 | `just clean` | `cargo clean` |
 | `just package` | `$HC_SCRIPTS/build-archive.sh --kind plugin --name <self> --build` |
 
-Because the plugin is a workspace member, some of these act on the whole
-workspace, not the plugin: `cargo fmt --all` formats every member, and
-`cargo clean` empties core's shared `target/`.
+Because the plugin is a workspace member, two of these act on the whole
+workspace: `cargo fmt --all` formats every member, and `cargo clean`
+empties core's shared `target/`. To check one plugin alone, run
+`just check-plugin <name>` from the workspace root.
 
 `just package` wraps `hc-scripts/build-archive.sh`. `BIN_NAME` comes from
 the directory name, so the same Justfile works for every plugin. The
@@ -286,10 +287,9 @@ cargo test -p hc-core                # one crate
 cargo test -p homecore --test integration_test   # one integration binary
 ```
 
-There are several hundred test functions in core's crates and server
-alone, and well over a thousand once the plugins and SDK are counted. Any
-number written here would go stale quickly, so treat `cargo test` as the
-count. What the layers cover:
+Core's crates and server have several hundred test functions, and the
+plugins and SDK bring the total well over a thousand. Run `cargo test`
+for the current count. What each layer covers:
 
 | Layer | What its tests are for |
 |---|---|
@@ -300,8 +300,8 @@ count. What the layers cover:
 | `hc-api` | Scope guards, handler helpers |
 | `homecore/tests/` | The full stack: MQTT → state bridge → rule fires; scope enforcement, API keys and sessions; atomic rule import; plugin runtimes (add, key, reset, remove); streaming; and the OpenAPI-vs-router check |
 
-Plugins and SDKs carry their own suites. `hc-captest` exists to assert
-the capability spec end to end against a running core.
+Plugins and SDKs carry their own suites. `hc-captest` checks the
+capability spec end to end against a running core.
 
 ## Web UI development
 
@@ -321,7 +321,7 @@ core it starts (see [above](#run-devsh)).
 The dev server mounts the same pass-through to core that the production
 UI server uses (`server/proxy.js`), so `/api/v1` and the event stream
 reach core on the app's own origin, with sessions held in httpOnly
-cookies. Point `HC_CORE_URL` at a sandbox core, not the house.
+cookies. Point `HC_CORE_URL` at a sandbox core.
 
 Set `HC_CORE_URL` in the shell, as above. The pass-through reads it from
 the process environment (`server/config.js`), and a `.env` file never
@@ -342,15 +342,35 @@ The repo's README covers the production server and the container image.
 
 ### The retired clients
 
-`[web_admin]` in `homecore.toml` still exists and still serves a
-directory of static files from core's root path through the
-`hc-web-admin` crate. It was built for the Leptos/WASM admin that core
-used to bake in. That client is retired, the setting defaults to off, and
-the standard deployment leaves it off.
+`[web_admin]` in `homecore.toml` still serves a directory of static files
+from core's root path through the `hc-web-admin` crate. It was built for
+the Leptos/WASM admin that core used to bake in. That client is retired,
+and the setting defaults to off.
 
-The Flutter app (`clients/hc-web-flutter`) is retired as well. Its
-workspace recipes (`just hc-web-dev`, `just clean-flutter`) are gone; older
-notes that mention them predate hc-web-svelte.
+The Flutter app (`clients/hc-web-flutter`) is retired too. Its workspace
+recipes (`just hc-web-dev`, `just clean-flutter`) are gone.
+
+## Python plugins and hc-mcp
+
+Python plugins run in a [plugin runtime](../plugins/runtimes), never as
+children of core. To try one against a sandbox, run the runtime image
+(`ghcr.io/homecore-io/hc-runtime-python`, tagged with core's version) or
+the `hc-runtime-host` binary built from `core/runtime-host/`. Add the
+runtime in the sandbox's web app and paste the key it shows into the
+runtime's page on port 8790. [Architecture](./architecture.md#plugin-runtimes)
+explains how core places a plugin on a runtime.
+
+A Python plugin ships as one artifact: the plugin and every dependency as
+wheels, which the runtime installs offline.
+`hc-scripts/build-python-artifact.sh` builds it locally the same way the
+release workflow (`python-release.yml`) does. For hc-mcp:
+
+```bash
+./hc-scripts/build-python-artifact.sh --plugin clients/hc-mcp --sdk sdks/hc-plugin-sdk-py
+```
+
+While you work on one, you can also run a Python plugin by hand with its
+config file, for example `hc-mcp plugin /path/to/config.toml`.
 
 ## Debugging with RUST_LOG
 
@@ -382,11 +402,11 @@ This usually means a reference is held across an `.await`. Clone the
 value before the await:
 
 ```rust
-// ❌ fails
+// fails
 let name = &self.state.get_name();
 self.state.update().await?;  // borrow problem
 
-// ✅ fix
+// fix
 let name = self.state.get_name().clone();
 self.state.update().await?;
 ```
@@ -425,12 +445,12 @@ the same lock, the task waits on itself. Take what you need, drop the
 lock, then do the async work:
 
 ```rust
-// ❌ deadlock
+// deadlock
 let mut rules = self.rules.write().await;
 rules.push(new_rule);
-persist_to_db(&new_rule).await?;  // deadlock — write lock still held
+persist_to_db(&new_rule).await?;  // deadlock: write lock still held
 
-// ✅ fix
+// fix
 {
     let mut rules = self.rules.write().await;
     rules.push(new_rule.clone());
@@ -495,8 +515,8 @@ on pull requests into either. Besides the Rust checks, it builds every
 plugin's `ui/` that has a `package.json`. When `develop` goes red, the
 shared workflow opens a tracking issue in the repo and closes it when CI
 recovers. A weekly `canary.yml` runs the same checks against the latest
-stable Rust. It gates nothing; a red canary is a preview of what the next
-toolchain bump will demand.
+stable Rust. It blocks nothing; a red canary previews what the next
+toolchain bump will need.
 
 The reusable workflows in hc-scripts are referenced as `@main` by every
 repo, so a change to them is live for the whole org once it merges to
@@ -511,7 +531,8 @@ Day-to-day pushes to `develop` need no ceremony. Cutting a release does:
   `gh workflow run release.yml --ref develop` (add `-f plugin=hc-<name>`
   for a plugin): it builds and archives without creating a Release.
 - The tag names the component. `v<version>` releases the server
-  (tarball, checksum, and the `ghcr.io` `hc-core` image).
+  (tarball, checksum, the `ghcr.io` `hc-core` image, and the
+  `hc-runtime-python` runtime image).
   `hc-<name>-v<version>` releases one plugin as a signed registry
   artifact. A core release that changes plugins tags them on the same
   commit.
@@ -523,10 +544,9 @@ Day-to-day pushes to `develop` need no ceremony. Cutting a release does:
 - **Every release gets an entry in
   [Release Notes](../release-notes.md)**, written as part of cutting it,
   for the people running a house: what they can now do, what they must
-  change on upgrade, and what is deliberately unchanged. A round with
+  change on upgrade, and what stays the same on purpose. A round with
   nothing an operator would notice still gets an entry saying so.
 
 If a tag's artifacts are already published and CI then fails, fix
-forward with a new version rather than moving the tag.
-`hc-scripts/README.md` and the workspace `AGENTS.md` have the history
-behind these rules.
+forward with a new version instead of moving the tag.
+`hc-scripts/README.md` has the history behind these rules.

@@ -21,18 +21,17 @@ When at least one profile is loaded, core subscribes to every topic
 (`#`). The state bridge offers each incoming message to the
 `EcosystemRouter` before its own handling:
 
-1. **Match.** The topic is compared against the `state_topics` patterns
-   of every loaded profile, then the `availability_topics` patterns. The
+1. The router compares the topic with the `state_topics` patterns of
+   every loaded profile, then the `availability_topics` patterns. The
    first match wins, so of two entries with the same pattern only the
    first is ever used.
-2. **Capture.** `{name}` placeholders in the pattern capture parts of the
-   topic, such as `{device}`.
-3. **Transform.** The payload is parsed as JSON (or kept as a scalar), its
-   keys are renamed by `field_map`, and `coerce` converts values to
-   homeCore's units.
-4. **Hand over.** The result is applied as the state (or availability) of
-   the device ID `{prefix}{device}`, exactly as if a plugin had published
-   it to `homecore/devices/{id}/state`.
+2. `{name}` placeholders in the pattern capture parts of the topic, such
+   as `{device}`.
+3. The payload is parsed as JSON (or kept as a scalar), `field_map`
+   renames its keys, and `coerce` converts values to homeCore's units.
+4. The result becomes the state (or availability) of the device ID
+   `{prefix}{device}`, exactly as if a plugin had published it to
+   `homecore/devices/{id}/state`.
 
 A device the registry has not seen is created on its first state message,
 so no registration step is needed. Its plugin ID is the part of the
@@ -117,7 +116,7 @@ The device ID defaults to `prefix` followed by the `device` capture (or
 `nodeId`, or else the first capture). Characters awkward in topics and
 URLs (`:`, space and `/`) become `_`.
 
-| Pattern | Topic | Captured `{device}` | HomeCore device ID (prefix=`t_`) |
+| Pattern | Topic | Captured `{device}` | homeCore device ID (prefix=`t_`) |
 |---|---|---|---|
 | `stat/{device}/POWER` | `stat/kitchen/POWER` | `kitchen` | `t_kitchen` |
 | `zigbee2mqtt/{device}` | `zigbee2mqtt/living_room_light` | `living_room_light` | `t_living_room_light` |
@@ -211,7 +210,7 @@ fails on a mapped key is logged and the raw value is kept.
 ```toml
 [ecosystem.state_topics.coerce]
 on           = "onoff_to_bool"    # "ON"/"OFF" → true/false
-brightness_pct = "pct255_to_100"  # 0–255 integer → 0–100 percentage
+brightness_pct = "pct255_to_100"  # 0 to 255 integer → 0 to 100 percentage
 color_temp   = "mired_to_kelvin"  # mired → Kelvin
 battery_pct  = "scalar_int"       # ensure integer type
 ```
@@ -240,10 +239,8 @@ battery_pct  = "scalar_int"       # ensure integer type
 | `uppercase` | `"toggle"` | `"TOGGLE"` |
 | `ms_to_secs` / `secs_to_ms` | Milliseconds / seconds | Seconds / milliseconds |
 
-Map to homeCore's shared names and units (`brightness_pct` 0 to 100,
-`color_temp` in kelvin, `open`, `occupied`, `battery_pct`, temperatures
-in °C) and convert the device's own scale here. Automations and the app
-then treat a mapped device like any plugin's.
+With the device's values converted to the shared units, automations and
+the app treat a mapped device like any plugin's.
 
 ---
 
@@ -416,7 +413,8 @@ for clean IDs.
 
 7. Add a test beside the existing ones in `crates/hc-topic-map/` (the
    router's unit tests load every example profile, and
-   `tests/shelly_profiles.rs` checks real topics end to end), then commit
+   `tests/shelly_profiles.rs` and `tests/tasmota_profile.rs` check real
+   topics end to end), then commit
    the file to `config/profiles/examples/`. Operators copy it into
    `config/profiles/` to activate it.
 

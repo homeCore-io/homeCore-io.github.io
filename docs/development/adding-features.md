@@ -9,7 +9,8 @@ sidebar_position: 4
 
 Checklists for the most common extension points. Paths are relative to
 `core/`. Work through the steps in order, since later ones build on
-earlier ones.
+earlier ones. For a new plugin, see
+[Developing Plugins](../plugins/developing-plugins.md) instead.
 
 ---
 
@@ -46,7 +47,8 @@ earlier ones.
 
    If it needs a new `StateStore` method, add it to the right `*_store.rs`
    file in `crates/hc-state/src/` and expose it from `StateStore` in that
-   crate's `lib.rs`.
+   crate's `lib.rs`. Request and response types that a Rust client
+   (`hc-cli`, the runtime host) also needs belong in `crates/hc-api-types`.
 
 2. Register the route in `router()` in `crates/hc-api/src/lib.rs`.
    Paths are relative to `/api/v1`, which the router nests everything
@@ -115,10 +117,10 @@ earlier ones.
 
    ```rust
    Action::MyNewAction { device_id, value, .. } => {
-       // ctx.publish  — MQTT publish handle (device commands)
-       // ctx.event_bus — the typed event bus (pub_bus)
-       // ctx.state    — the state store, when present
-       // ctx.device_cache — live device attributes
+       // ctx.publish: MQTT publish handle (device commands)
+       // ctx.event_bus: the typed event bus (pub_bus)
+       // ctx.state: the state store, when present
+       // ctx.device_cache: live device attributes
    }
    ```
 
@@ -265,8 +267,13 @@ earlier ones.
    #[async_trait]
    pub trait NotifyChannel: Send + Sync {
        async fn send(&self, title: &str, message: &str) -> Result<()>;
+       async fn send_picture(&self, title: &str, message: &str, picture: &Picture) -> Result<()>;
    }
    ```
+
+   `send_picture` has a default that sends the words alone. Override it
+   if the service can attach an image, as the email, Pushover and
+   Telegram channels do.
 
 2. Add a variant to `ProviderConfig` in `crates/hc-notify/src/lib.rs`.
    It is tagged by `type`, lowercased, so the variant name becomes the
@@ -277,9 +284,32 @@ earlier ones.
 
 4. Add `pub mod <name>;` to `lib.rs`.
 
-Config parsing, the executor and the rule engine need no changes. Then
-update [Notifications](../events/notifications.md) with setup
-instructions.
+Config parsing, the executor and the rule engine need no changes.
+`[[notify.channels]]` is left out of the config descriptor on purpose,
+because the web app's Notifications screen edits it by channel type. A
+new type needs its fields on that screen in hc-web-svelte. Then update
+[Notifications](../events/notifications.md) with setup instructions.
+
+---
+
+## Adding a config setting
+
+1. Add the field to the right section struct in
+   `crates/hc-config/src/lib.rs`, with `#[serde(default)]` or a default
+   function so older files still load. Path fields are relative to the
+   base directory unless absolute; keep that for new ones.
+2. Add it to `system_config_descriptor()` in
+   `crates/hc-config/src/descriptor.rs`. The web app draws the
+   Configuration screen from the descriptor, so a key it leaves out can't
+   be edited there. `crates/hc-config/tests/descriptor_covers_the_config.rs`
+   fails until every field is covered or listed, with a reason, in
+   `JUSTIFIED_OMISSIONS`.
+3. Wire the value up in `homecore/src/main.rs`.
+4. Add it, with a comment, to `config/homecore.toml.example`.
+
+   ```bash
+   cargo test -p hc-config
+   ```
 
 ---
 

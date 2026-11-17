@@ -38,12 +38,14 @@ const sidebars = {
       collapsed: false,
       items: [
         'rules/overview',
+        'rules/editor',
         'rules/triggers',
         'rules/conditions',
         'rules/actions',
         'rules/advanced',
         'rules/tags-groups',
         'rules/examples',
+        'rules/alert-automations',
       ],
     },
     {
@@ -71,6 +73,7 @@ const sidebars = {
       label: 'Events & Notifications',
       items: [
         'events/event-stream',
+        'events/alerts',
         'events/notifications',
       ],
     },
@@ -84,6 +87,7 @@ const sidebars = {
         'plugins/plugin-screens',
         'plugins/plugin-alerts',
         'plugins/runtimes',
+        'plugins/assistant',
         'plugins/hue',
         'plugins/yolink',
         'plugins/lutron',

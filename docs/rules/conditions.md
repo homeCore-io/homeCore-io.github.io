@@ -7,7 +7,7 @@ sidebar_position: 3
 
 # Conditions
 
-Conditions are optional checks that all have to pass before a rule's actions run. A rule with no conditions (`conditions: []`) acts on every matching trigger event.
+Conditions are optional checks that all have to pass before a rule's actions run. A rule with no conditions (`conditions: []`) acts on every matching trigger event. The app calls them checks and shows them under **Only if**.
 
 homeCore evaluates conditions in order and stops at the first one that fails. The rest are not evaluated.
 
@@ -65,7 +65,7 @@ DeviceState(
 | `Lt` | Less than |
 | `Lte` | Less than or equal to |
 
-`Eq` and `Ne` compare any JSON value exactly. `Gt`, `Gte`, `Lt` and `Lte` only work on numbers: if either side isn't a number, the condition fails. The condition also fails when the device or the attribute is missing.
+`Eq` and `Ne` compare any JSON value exactly, so `21` and `21.0` are different values. `Gt`, `Gte`, `Lt` and `Lte` only work on numbers: if either side isn't a number, the condition fails. The condition also fails when the device or the attribute is missing.
 
 Examples:
 
@@ -518,4 +518,4 @@ curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
   -H "Authorization: Bearer $TOKEN" | jq '.[-1].conditions'
 ```
 
-Each entry has `condition_type`, `passed`, `actual`, `expected` and a readable `reason`. Evaluation stops at the first failure, so later conditions don't appear.
+Each entry has `condition_type` (in snake case, such as `device_state` or `time_window`), `passed`, `actual`, `expected` and a readable `reason`. Evaluation stops at the first failure, so later conditions don't appear.

@@ -7,59 +7,59 @@ sidebar_position: 5
 
 # Metrics
 
-homeCore exposes a Prometheus-compatible metrics endpoint at
-`GET /api/v1/metrics`. It takes no token. Access is controlled by source
-IP instead, through `[metrics].whitelist`, and the whitelist is empty by
-default, so the endpoint returns 403 to everyone until you open it.
+homeCore serves Prometheus metrics at `GET /api/v1/metrics`. The endpoint
+takes no token. Access goes by source IP, through `[metrics].whitelist`,
+and the whitelist is empty by default, so every caller gets 403 until you
+add one.
 
 ## Allowing a scraper
 
-List the address of each Prometheus server (or other scraper) in
-`homecore.toml` and restart homeCore:
+List each Prometheus server (or other scraper) in `homecore.toml` and
+restart homeCore:
 
 ```toml
 [metrics]
-whitelist = ["10.0.0.5/32"]
+whitelist = ["192.168.1.5/32"]
 ```
 
-Entries can be single addresses or CIDR ranges, IPv4 or IPv6. Unlike
-`[auth].whitelist`, ranges are accepted here, because this endpoint is
-read-only and grants nothing else. homeCore never opens the endpoint on
-its own based on the networks the host is on.
+Entries can be single addresses or CIDR ranges, IPv4 or IPv6. Ranges are
+fine here, unlike in `[auth].whitelist`, because this endpoint is read
+only and grants nothing else. homeCore never opens it by itself based on
+the networks the machine is on.
 
-A denied request gets a 403 whose body names the caller's IP and the
-exact line to add. homeCore also logs at startup whether the endpoint is
+A refused request gets a 403 whose body names the caller's IP and the
+exact line to add. At startup homeCore logs whether the endpoint is
 closed or which addresses may scrape it.
 
 ## Quick check
 
-From a whitelisted host:
+From a whitelisted machine:
 
 ```bash
-curl http://localhost:8080/api/v1/metrics
+curl http://<homecore-host>:8080/api/v1/metrics
 ```
 
-## Exposed metrics
+## Metrics
 
 | Metric | Type | Description |
 |---|---|---|
 | `homecore_uptime_seconds` | Gauge | Seconds since homeCore started |
-| `homecore_devices_total` | Gauge | Registered devices, including timers, switches and modes |
-| `homecore_rules_total` | Gauge | Automation rules (enabled and disabled) |
-| `homecore_rules_enabled_total` | Gauge | Enabled rules only |
+| `homecore_devices_total` | Gauge | Devices in the registry, including helpers and modes |
+| `homecore_rules_total` | Gauge | Automation rules, on and off |
+| `homecore_rules_enabled_total` | Gauge | Rules that are on |
 | `homecore_plugins_total` | Gauge | Registered plugins |
 | `homecore_rule_fires_total` | Counter | Rule fires since startup |
-| `homecore_device_state_changes_total` | Counter | `DeviceStateChanged` events since startup |
+| `homecore_device_state_changes_total` | Counter | Device state changes since startup |
 | `homecore_scene_activations_total` | Counter | Scene activations since startup |
-| `homecore_events_total` | Counter | Internal bus events, labelled by `type` |
+| `homecore_events_total` | Counter | Internal events, labelled by `type` |
 | `homecore_ws_connects_total` | Counter | WebSocket connections accepted, labelled by `endpoint` (`events_stream` or `logs_stream`) |
 | `homecore_ws_disconnects_total` | Counter | WebSocket disconnects, labelled by `endpoint` and `reason` |
 
-Gauges are refreshed on every scrape. The disconnect `reason` label is one
-of `client_close`, `socket_closed`, `recv_error`, `pong_timeout`,
+Gauges are read fresh on every scrape. The disconnect `reason` is one of
+`client_close`, `socket_closed`, `recv_error`, `pong_timeout`,
 `ping_send_failed`, `event_send_failed` or `bus_closed`. A rising
-`pong_timeout` rate usually points at a network or proxy problem, while
-`client_close` is just people closing tabs.
+`pong_timeout` rate usually means a network or proxy problem, while
+`client_close` is people closing tabs.
 
 ## Prometheus scrape config
 
@@ -68,12 +68,12 @@ of `client_close`, `socket_closed`, `recv_error`, `pong_timeout`,
 scrape_configs:
   - job_name: homecore
     static_configs:
-      - targets: ['homecore.local:8080']
+      - targets: ['<homecore-host>:8080']
     metrics_path: /api/v1/metrics
     scrape_interval: 30s
 ```
 
-## Grafana dashboard suggestions
+## Grafana panels
 
 | Panel | Query |
 |---|---|
@@ -84,7 +84,7 @@ scrape_configs:
 | Events / 5 min | `sum(rate(homecore_events_total[5m])) * 300` |
 | WebSocket drops by reason | `sum by (reason) (rate(homecore_ws_disconnects_total[5m]))` |
 
-## Running Prometheus and Grafana locally (Docker)
+## Prometheus and Grafana in Docker
 
 ```yaml
 # docker-compose.monitoring.yml
@@ -109,18 +109,19 @@ docker compose -f docker-compose.monitoring.yml up -d
 ```
 
 Add the address homeCore sees for the Prometheus container to
-`[metrics].whitelist`. If you're unsure what that is, scrape once and read
+`[metrics].whitelist`. If you aren't sure what it is, scrape once and read
 the 403 body, which names it.
 
 Then:
-1. Open Grafana at `http://localhost:3000` (admin/admin)
-2. Add a Prometheus data source: `http://prometheus:9090`
-3. Build dashboards with the queries above
 
-## Security note
+1. Open Grafana at `http://localhost:3000` (admin/admin).
+2. Add a Prometheus data source: `http://prometheus:9090`.
+3. Build panels with the queries above.
 
-The metrics expose device counts, rule counts and plugin numbers. Keep the
-whitelist to the hosts that actually scrape. If homeCore sits behind a
-reverse proxy, homeCore sees the proxy's address, so whitelisting the
-proxy opens the endpoint to everyone who can reach the proxy. In that
-case restrict `/api/v1/metrics` at the proxy too.
+## Security
+
+The metrics show device, rule and plugin counts. Keep the whitelist to the
+machines that scrape. Behind a reverse proxy, homeCore sees the proxy's
+address, so whitelisting the proxy opens the endpoint to everyone who can
+reach the proxy. In that case also restrict `/api/v1/metrics` at the
+proxy.
