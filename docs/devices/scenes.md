@@ -7,14 +7,14 @@ sidebar_position: 3
 
 # Scenes
 
-A scene is a saved set of device states that you can apply in one step, from the API, a rule, or the web app's **Scenes** page.
+A scene is a saved set of device states that you apply in one step, from the API, a rule, or the web app's **Scenes** page.
 
-HomeCore has two kinds:
+homeCore has two kinds:
 
-- **Native scenes** are stored in HomeCore. Activating one sends each device its saved state as a command.
-- **Plugin scenes** are defined in the device ecosystem (Hue, Lutron, Caséta, ISY). They appear as devices with `device_type = "scene"`, and HomeCore activates them by commanding that device.
+- Native scenes are stored in homeCore. Activating one sends each device its saved state as a command.
+- Plugin scenes are defined in the device's own system (Hue, Lutron, Caséta, ISY). They appear as devices with `device_type = "scene"`, and homeCore activates one by commanding that device.
 
-In the web app, **Settings → Scenes** edits native scenes.
+In the web app, **Settings › Scenes** lists both kinds, says which plugin provides each one, and opens a native scene's editor or a plugin scene's device page. A Hue scene that exists in several rooms is one row that opens to each room's copy. The star on a row puts the scene on the Home page's scenes row.
 
 ## Native scenes
 
@@ -32,7 +32,7 @@ A native scene has an `id`, a `name`, and `states`: a map from device ID to the 
 }
 ```
 
-A state of the form `{"actions": [ … ]}` sends each item to that device in turn, for a device that needs more than one command.
+A state written as `{"actions": [ … ]}` sends each item to that device in turn, for a device that needs more than one command. Use the [shared attribute names](./overview.md#shared-attribute-names-and-units) in states: `color_temp` is in kelvin and `brightness_pct` runs from 0 to 100.
 
 ### List scenes
 
@@ -57,7 +57,7 @@ SCENE_ID=$(curl -s -X POST http://localhost:8080/api/v1/scenes \
   }' | jq -r .id)
 ```
 
-`GET /scenes/{id}` reads one scene, `PUT /scenes/{id}` replaces its name and states, and `DELETE /scenes/{id}` removes it.
+`GET /scenes/{id}` reads one scene, `PUT /scenes/{id}` replaces its name and states, and `DELETE /scenes/{id}` removes it. Creating, editing and deleting emit `scene_changed` and `scene_removed`. Reading scenes needs `scenes:read`, and changing them needs `scenes:write`.
 
 ### Activate a scene
 
@@ -67,7 +67,7 @@ curl -s -X POST http://localhost:8080/api/v1/scenes/$SCENE_ID/activate \
 # → {"activated": "Movie night"}
 ```
 
-Activation publishes each device's state to its command topic and emits a `scene_activated` event. Running a scene needs the `scenes:run` scope (`scenes:write` also works), which is what lets a wall display run scenes without being able to edit them.
+Activation publishes each device's state to its command topic and emits a `scene_activated` event. It needs the `scenes:run` scope, and `scenes:write` also works. That split lets a wall display run scenes without being able to edit them.
 
 ### Export and import scenes
 
@@ -84,7 +84,7 @@ curl -s -X POST http://localhost:8080/api/v1/scenes/import \
 # → {"imported": 3}
 ```
 
-Import gives every scene a fresh ID, so importing a file twice makes two copies.
+Import gives every scene a new ID, so importing the same file twice makes two copies.
 
 ## Activating scenes from rules
 
@@ -100,7 +100,7 @@ RuleAction(action: ActivateScenePerMode(
 )),
 ```
 
-With an empty `modes` list, it simply activates the default scene, which is how a rule runs one native scene.
+With an empty `modes` list it activates the default scene, which is how a rule runs one native scene.
 
 A plugin scene is a device, so a rule activates it with `SetDeviceState`:
 
@@ -111,9 +111,11 @@ RuleAction(action: SetDeviceState(
 )),
 ```
 
+The `RoomOn` action also brings back the scenes a room was showing when `RoomOff` last turned it off. See [Room on and Room off](./overview.md#room-on-and-room-off).
+
 ## Plugin scenes
 
-Plugin scenes are devices with `device_type = "scene"`, and their IDs follow each plugin's conventions:
+Plugin scenes are devices with `device_type = "scene"`, and their IDs follow each plugin's pattern:
 
 | Plugin | Scene device ID pattern |
 |---|---|
@@ -122,7 +124,7 @@ Plugin scenes are devices with `device_type = "scene"`, and their IDs follow eac
 | hc-caseta | `caseta_scene_{name}` |
 | hc-isy | `isy_{address}`, like other ISY nodes |
 
-`{"action": "activate"}` works across Hue, Lutron and Caséta scenes. Hue also accepts the older `{"action": "activate_scene"}`, and Lutron and Caséta accept `{"activate": true}`. ISY scenes are turned on and off with `on`.
+`{"action": "activate"}` works for Hue, Lutron and Caséta scenes. They also accept `{"activate": true}`, and Hue accepts the older `{"action": "activate_scene"}`. ISY scenes are turned on and off with `on`.
 
 Activate a Hue scene:
 
@@ -142,11 +144,11 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/lutron_scene_movie/state \
   -d '{"action": "activate"}'
 ```
 
-A scene device that can tell reports `active`: whether its devices currently show the scene. A Lutron phantom scene reports its button's LED this way, and one whose button has no LED state declares no state at all. Caséta scenes go offline when the bridge does.
+A scene device that can tell reports `active`: whether its devices currently show the scene. A Lutron phantom scene reports its button's LED this way. One whose button has no LED state declares no state at all. Caséta scenes go offline when the bridge does.
 
 ## Filtering scenes from device lists
 
-`device_type = "scene"` separates scene entries from controllable devices:
+Use `device_type = "scene"` to separate scenes from controllable devices:
 
 ```bash
 # List only scenes

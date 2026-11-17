@@ -7,8 +7,15 @@ sidebar_position: 2
 
 # Quick Start
 
-This walkthrough gets HomeCore running with a working automation in about
-ten minutes. It uses a virtual switch, so you don't need any hardware.
+This walkthrough runs homeCore and builds a working automation through the
+API in about ten minutes. It uses a virtual switch, so you don't need any
+hardware.
+
+:::tip Setting up a real house?
+Use the [Docker stack](./docker) instead. It runs core with the web app, and
+you do everything below from the app: helpers in Settings › Helpers, rules in
+Settings › Automations. This page is for seeing how the API works.
+:::
 
 ## 1. Start the server
 
@@ -28,10 +35,10 @@ If you installed a [binary release](./binary-releases), run
 `./bin/homecore --config config/homecore.toml` from your `homecore/`
 directory instead. The rest of the steps are the same.
 
-A separate home keeps the walkthrough's data out of the repository. The
-repository's own `config/homecore.toml` is a working house config that
-declares real plugins, so running the server from the repo root without
-`--home` would try to start them.
+The scratch home keeps the walkthrough's data out of the repository. The
+repository's own `config/homecore.toml` is a real house's config that
+declares plugins, so running from the repo root without `--home` would try
+to start them.
 
 Watch for the first-start banner:
 
@@ -44,10 +51,11 @@ INFO hc_api: HomeCore API server starting addr=0.0.0.0:8080
 ```
 
 The password is also in `~/hc-quickstart/INITIAL_ADMIN_PASSWORD`. Core
-creates it only on the first start, when no users exist.
+creates the account only on the first start, when no users exist.
 
-On first run, HomeCore creates its working files under the home
-directory, including:
+On first run, homeCore creates its working files under the home directory,
+including:
+
 - `data/state.redb`: device registry, users and other state
 - `data/history.db`: time-series history
 - `config/modes.toml`: the built-in `mode_night` and `mode_day` modes
@@ -62,15 +70,14 @@ TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
 echo $TOKEN   # should print a JWT string
 ```
 
-Access tokens last 24 hours by default (`[auth].token_expiry_hours`).
-To make signing in again easier, keep the password in a file for the
-session:
+Access tokens last 24 hours by default (`[auth].token_expiry_hours`). To
+sign in again more easily, keep the password in a file for the session:
 
 ```bash
 echo 'export HC_PASS="AbCdEf12GhIj34Kl"' > /tmp/hc-dev.env
 ```
 
-Then re-authenticate with:
+Then get a new token with:
 
 ```bash
 source /tmp/hc-dev.env
@@ -96,8 +103,8 @@ curl -s http://localhost:8080/api/v1/system/status \
 
 ## 4. Create a virtual switch
 
-Glue devices are virtual devices that live inside core. Create a switch
-to experiment with:
+Helpers (the API calls them glue devices) are virtual devices that live
+inside core. Create a switch to experiment with:
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/glue \
@@ -106,9 +113,8 @@ curl -s -X POST http://localhost:8080/api/v1/glue \
   -d '{"type": "switch", "id": "quickstart", "name": "Quickstart Switch"}' | jq
 ```
 
-Core adds the type prefix to the id, so the device is
-`switch_quickstart`, with an `on` attribute that starts as `false`.
-Check that it appeared:
+Core adds the type prefix to the id, so the device is `switch_quickstart`.
+It has an `on` attribute that starts as `false`. Check that it appeared:
 
 ```bash
 curl -s http://localhost:8080/api/v1/devices \
@@ -123,12 +129,12 @@ In a second terminal (install `websocat` once with `cargo install websocat`):
 websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN"
 ```
 
-Leave it running. Events appear here as you work through the next steps.
+Leave it running. Events show up here as you work through the next steps.
 
 ## 6. Create your first automation rule
 
-This rule fires when `switch_quickstart` turns on and writes a line to
-the log:
+This rule fires when `switch_quickstart` turns on and writes a line to the
+log:
 
 ```bash
 RULE_ID=$(curl -s -X POST http://localhost:8080/api/v1/automations \
@@ -174,42 +180,42 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/switch_quickstart/state \
   -d '{"on": true}'
 ```
 
-The event stream shows a `device_state_changed` event followed by
-`rule_fired`, and the server log shows the message from the
-`LogMessage` action, logged by `hc_core::executor`.
+The event stream shows a `device_state_changed` event and then
+`rule_fired`. The server log shows the message from the `LogMessage`
+action.
 
-## 8. Check rule fire history
+## 8. Check the rule's history
 
 ```bash
 curl -s http://localhost:8080/api/v1/automations/$RULE_ID/history \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-This returns the rule's most recent firings (up to 20), with the
-condition and action trace for each.
+This returns the rule's last 20 firings, with the condition and action
+trace for each.
 
-## 9. Dry-run the rule (test without executing)
+## 9. Dry-run the rule
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/automations/$RULE_ID/test \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-The response says whether the conditions pass and which actions would
-run, without running any of them.
+The response says whether the conditions pass and which actions would run,
+without running any of them.
 
 ## Next steps
 
 - [Configuration reference](./configuration): every config option
 - [Rules overview](../rules/overview): triggers, conditions and actions
 - [Connect a real device](../plugins/overview): Hue, YoLink, Z-Wave and more
-- [Virtual devices](../devices/virtual-devices): timers, switches and modes for more involved automations
+- [Virtual devices](../devices/virtual-devices): timers, switches and modes for bigger automations
 
-## Resetting to a clean state
+## Starting over
 
 ```bash
 # Stop the server (Ctrl-C), then remove the scratch home
 rm -rf ~/hc-quickstart
 ```
 
-Recreate it as in step 1. The next start generates a new admin password.
+Set it up again as in step 1. The next start makes a new admin password.

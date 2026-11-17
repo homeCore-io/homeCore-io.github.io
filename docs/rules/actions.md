@@ -7,7 +7,9 @@ sidebar_position: 4
 
 # Actions
 
-Actions are what a rule does when it fires. They run one after another in the order listed. Use `Parallel` to run a group at the same time.
+Actions are what a rule does when it fires. The app calls them steps and shows them under **Do**. They run one after another in the order listed. Use `Parallel` to run a group at the same time.
+
+If a step fails, for example an HTTP call that gets an error response, the steps after it don't run, and the fire history marks the step `error`. Some steps only log a warning and let the rule carry on: `Notify` when sending fails, and steps that name a room, scene, capture or alert that doesn't exist.
 
 Each entry in a rule's `actions` list is a `RuleAction` that wraps one action and an `enabled` flag:
 
@@ -70,7 +72,7 @@ action: SetDeviceState(
 | `state` | yes | The command, as a JSON object. |
 | `track_event_value` | no | `true` sends the value from the triggering event instead of `state`. Defaults to `false`. |
 
-If a display name matches more than one device, homeCore marks the rule invalid instead of guessing.
+If a display name matches more than one device, homeCore marks the rule invalid.
 
 `track_event_value` makes one device follow another. The trigger's new value is sent under the single key in `state`, so with `state: { "on": true }` a trigger value of `false` sends `{"on": false}`. If the trigger value is itself an object, it is sent as it is. If `state` has more than one key, the trigger's attribute name is used as the key.
 
@@ -205,6 +207,33 @@ action: ActivateScenePerMode(
 ),
 ```
 
+This is also how a rule runs one scene whatever the mode. Leave `modes` empty and put the scene in `default_scene_id`. The app's **Run a scene** step writes exactly that:
+
+```ron
+action: ActivateScenePerMode(
+    modes: [],
+    default_scene_id: Some("33333333-0000-0000-0000-000000000003"),
+),
+```
+
+A scene ID that doesn't exist is logged as a warning and the rule carries on.
+
+---
+
+### `RoomOn` / `RoomOff`
+
+`RoomOff` turns off every light in a room. First, if at least one is on, it saves how they were: which lights were on, at what level and color, and any active Hue scene. `RoomOn` brings that back: the saved scenes first, then each saved light that was on. With nothing saved, every light in the room comes on fully. These are the room header's **Room on** and **Room off** buttons, and the app's **A room's lights** step.
+
+```ron
+action: RoomOff(room: "Living Room"),
+```
+
+```ron
+action: RoomOn(room: "living_room"),
+```
+
+`room` is the room's ID, slug, an alias or its name. The lights are the room's lights plus switches marked as lights in the app. A camera's spotlight isn't one. The saved state survives a restart, and pressing `RoomOff` twice doesn't lose it. A room that doesn't exist is logged as a warning and the rule carries on.
+
 ---
 
 ### `SetMode`
@@ -223,7 +252,7 @@ action: SetMode(
 | `mode_id` | yes | The mode's device ID, such as `"mode_away"`. |
 | `command` | yes | `On`, `Off` or `Toggle`. |
 
-The command goes to the mode device, and other rules can react through a `ModeChanged` trigger.
+The step sends `{"action": "on"}` (or `off`, `toggle`) to the mode device, and other rules can react through a `ModeChanged` trigger.
 
 ## Messages and integrations
 
@@ -299,7 +328,7 @@ Makes an outbound HTTP request.
 
 ```ron
 action: CallService(
-    url: "http://sonos.local:5005/Kitchen/say/Dinner+is+ready",
+    url: "http://192.168.1.20:5005/Kitchen/say/Dinner+is+ready",
     method: "GET",
     timeout_ms: Some(5000),
 ),
@@ -308,7 +337,7 @@ action: CallService(
 ```ron
 // POST with a JSON body
 action: CallService(
-    url: "http://external-api.local/v1/lights",
+    url: "http://192.168.1.30/v1/lights",
     method: "POST",
     body: { "id": "kitchen", "brightness": 200 },
 ),
@@ -317,7 +346,7 @@ action: CallService(
 ```ron
 // Retries, and the response published for other rules
 action: CallService(
-    url: "http://weather.local/api/current",
+    url: "http://192.168.1.40/api/current",
     method: "GET",
     retries: Some(3),
     response_event: Some("weather_update"),
@@ -333,7 +362,7 @@ action: CallService(
 | `retries` | no | Extra attempts after a network error or a 5xx response. Defaults to 0. A 4xx response is not retried. |
 | `response_event` | no | Publish the JSON response body to the MQTT topic `homecore/events/{response_event}`. |
 
-Retries wait 500 ms, then 1 s, 2 s, and 4 s for every later attempt. A request that still fails counts as an action error.
+Retries wait 500 ms, then 1 s, 2 s, and 4 s for every later attempt. A request that still fails, or gets a 4xx, is an action error, and the rule's remaining steps don't run.
 
 The response from `response_event` goes out over MQTT only, so a `CustomEvent` trigger won't see it. React to it with an `MqttMessage` trigger on `homecore/events/weather_update`.
 
@@ -375,7 +404,7 @@ action: PingHost(
 ),
 ```
 
-`timeout_ms` is rounded up to whole seconds (at least 1) and passed to `ping -W`. With `response_event`, homeCore also fires a custom event carrying `host`, `reachable` and, when `ping` reports it, `rtt_ms`. A `CustomEvent` trigger can pick it up.
+`timeout_ms` is rounded up to whole seconds (at least 1) and passed to `ping -W`. With `response_event`, homeCore also fires a custom event carrying `host`, `reachable` and, when `ping` reports it, `rtt_ms`. A `CustomEvent` trigger can pick it up, and the same event goes out over MQTT on `homecore/events/{response_event}`.
 
 ---
 
@@ -406,6 +435,10 @@ Besides the functions available to conditions (`device_state`, `hub_var`, `curre
 | `publish_mqtt(topic, payload)` | Publish an MQTT message. |
 | `rule_var(name)` | Read one of this rule's variables. |
 | `trigger_device()`, `trigger_value()` and the other `trigger_*()` functions | Details of the event that started the rule. See [Trigger context in Rhai](./triggers.md#trigger-context-in-rhai). |
+
+A script action can also read hub variables with `hub_var()`. `http_get` and `http_post` don't return the response, and a failed request is only logged. They time out after 10 seconds.
+
+Scripts run in a sandbox: at most 100,000 operations, 32 levels of function calls, strings of 64 KB, arrays of 4,096 items and maps of 1,024 entries. A script that goes past a limit stops with an error.
 
 Device commands, notifications, HTTP requests and MQTT publishes don't happen while the script is running. homeCore collects them and carries them out after the script finishes, in the order they were made. `device_state()` takes a raw device ID and returns the states as they were when the rule fired (when its turn came, for a `Queued` rule; at the start of the pass, inside a `RepeatUntil` or `RepeatWhile` loop).
 
@@ -476,7 +509,7 @@ action: Parallel(
 
 ### `Conditional`
 
-Runs one of several branches. The question can be any [condition](./conditions.md) or a Rhai expression written as a string.
+Runs one of several branches. The app calls it **If / otherwise**. The question can be any [condition](./conditions.md) or a Rhai expression written as a string.
 
 ```ron
 action: Conditional(
@@ -678,7 +711,7 @@ action: CancelDelays(),
 
 ### `CancelRuleTimers`
 
-Cancels every cancelable delay pending for a rule, the current one or another.
+Cancels every cancelable delay pending for a rule, the current one or another. Waits (`WaitForEvent`, `WaitForExpression`, `WaitAlertCleared`) are not cut short.
 
 ```ron
 action: CancelRuleTimers(
@@ -808,7 +841,7 @@ action: ResumeRule(
 
 ## Alert actions
 
-These act on homeCore's alerts. With no `alert_id`, an alert action works on "the alert": the one a surrounding `ForEachAlert` is on, otherwise the one that started the rule. See [Alerts that start automations](./alert-automations.md) for the `AlertFilter` fields.
+These act on homeCore's alerts. With no `alert_id`, an alert action works on "the alert": the one a surrounding `ForEachAlert` is on, otherwise the one that started the rule. With no such alert, the step does nothing and the rule carries on. See [Alerts that start automations](./alert-automations.md) for the `AlertFilter` fields. Device names inside `ForEachAlert` and `otherwise` aren't looked up, so use raw device IDs there.
 
 ```ron
 // Install each waiting WLED update, one at a time

@@ -7,40 +7,43 @@ sidebar_position: 6
 
 # Plugin Runtimes
 
-A **plugin runtime** is a container you run yourself that holds plugins
-written in Python. homeCore never starts or stops it. You add it in homeCore,
+A plugin runtime is a container you run yourself that holds plugins written
+in Python. homeCore never starts or stops it. You add the runtime in homeCore,
 paste the key homeCore gives you into the runtime, and from then on you
-install, update and remove its plugins from the Catalog like any other.
+install, update and remove its plugins from the Catalog like any other
+plugin. The [Assistant](../tools/hc-mcp) is a Python plugin and runs this way.
 
-One runtime holds any number of plugins. Each gets its own process and its own
-Python environment, so two plugins that want different versions of a library
-never share one. They are not walled off from each other beyond that: a plugin
-you want kept apart from the rest goes in a runtime of its own.
+One runtime holds any number of plugins, up to a limit you can set. Each
+plugin gets its own process and its own Python environment, so two plugins
+that want different versions of a library don't conflict. That is the only
+separation between them. Put a plugin you want kept apart from the rest in a
+runtime of its own.
 
 Runtimes are managed on the **Plugin runtimes** screen: open
-**Settings › Plugins** and choose the **Plugin runtimes** button beside
-**Catalog**.
+**Settings › Plugins** and choose **Plugin runtimes**, beside **Catalog**.
 
 ## Before you start: the broker
 
 The runtime and its plugins talk to homeCore's broker over the network. If the
-broker answers only on homeCore's own machine (`[broker] host = "127.0.0.1"`,
-as the example config and the Docker image's config have it), the **Plugin runtimes** screen says so and offers **Open the
-broker to the network**. That sets `host = "0.0.0.0"`, adds a login for
-homeCore itself if there is none, and restarts homeCore. From then on the
-broker asks every connection for a login: homeCore makes one for each runtime
-and each plugin, so you never type one in.
+broker listens only on homeCore's own machine (`[broker] host = "127.0.0.1"`,
+as in the example config and the Docker image's config), the
+**Plugin runtimes** screen says so and offers **Open the broker to the
+network**. That sets `host = "0.0.0.0"`, adds a login for homeCore itself if
+there is none, and restarts homeCore. From then on the broker asks every
+connection for a login. homeCore makes one for each runtime and each plugin,
+so you never type one in.
 
 If homeCore runs from the Docker stack, its `compose.yml` publishes port 1883
-for this (`HC_BROKER_PORT` changes the host side). Older copies of the file don't; add `- "1883:1883"` under the
-`homecore` service's `ports`.
+for this (`HC_BROKER_PORT` changes the host side). Older copies of the file
+don't publish it; add `- "1883:1883"` under the `homecore` service's `ports`.
 
 ## Add a runtime
 
 1. In homeCore, open **Settings › Plugins**, choose **Plugin runtimes**, then
-   **Add runtime**. Give it a name, and check the address the runtime will
-   reach homeCore at. It's filled in from the address you're using.
-2. homeCore shows a **connection key**, once. Copy it. If it's lost, use
+   **Add runtime**. Give it a name and check the address the runtime will
+   reach homeCore at. It is filled in from the address you're using. You can
+   also set a plugin limit here; blank means no limit.
+2. homeCore shows a **connection key** once. Copy it. If you lose it, use
    **Reset login** to make a new one.
 3. Start the container:
 
@@ -51,7 +54,7 @@ for this (`HC_BROKER_PORT` changes the host side). Older copies of the file don'
    ```
 
 4. Open `http://<the machine running it>:8790`, paste the key and choose
-   **Connect**. The runtime tries homeCore and the broker before saving the
+   **Connect**. The runtime tries homeCore and the broker before it saves the
    key, and says which one it couldn't reach.
 
 The [docker repository](https://github.com/homeCore-io/docker) has a ready
@@ -62,8 +65,8 @@ mkdir runtime-python-data
 docker compose -f compose.runtime-python.yml up -d
 ```
 
-Instead of the page, you can pass the key when the container starts, which
-suits compose files:
+You can also pass the key when the container starts instead of using the
+page, which suits compose files:
 
 ```yaml
 services:
@@ -75,22 +78,59 @@ services:
       - pyhost-01:/var/lib/hc-runtime
 ```
 
-**Show details** next to the key lists what is inside it (homeCore's address,
-the broker, the runtime's username and password) for anyone setting a runtime
-up by hand.
+**Show details** next to the key lists what is inside it: homeCore's address,
+the broker, and the runtime's username and password, for anyone setting a
+runtime up by hand.
+
+The image is published with every core release as
+`ghcr.io/homecore-io/hc-runtime-python`, tagged with core's version and
+`latest`. It runs Python 3.12. The published image is x86_64 (amd64) only for
+now, although Python plugins are released for both x86_64 and aarch64.
 
 ## Install plugins into it
 
-Install a Python plugin from the Catalog as usual. If one runtime can run it,
-it goes there; if several can, homeCore asks which. The runtime downloads it
-from homeCore (homeCore checks the signature first), installs it offline into
-its own environment and starts it. Its settings are edited in homeCore, the
-same as any plugin's.
+Install a Python plugin from the Catalog as usual. The Catalog marks such
+plugins "Runs in a Python runtime" and says before you install if no runtime
+can take it: there is none yet, it hasn't connected, it runs on another
+architecture, or it is full. If one runtime can take the plugin, it goes
+there. If several can, homeCore asks which.
 
-## Reset login and Remove
+homeCore checks the plugin's signature, then asks the runtime to check in.
+The runtime downloads the plugin from homeCore, installs it offline into its
+own environment and starts it, usually within seconds. You edit its settings
+in homeCore, the same as any plugin's; homeCore sends them to the runtime.
 
-- **Reset login** makes a new key and stops the old one working. The runtime
-  stops its plugins and waits; paste the new key on its page and they come
+An update goes to the runtime the plugin already runs on, even when that
+runtime is full. The plugin's page shows that it is updating until the new
+version is running.
+
+A plugin in a runtime offers only **Uninstall** on its page. The runtime
+starts and stops it, so Turn off, Start, Stop and Restart aren't offered. The
+runtime restarts a plugin that exits, waiting 2 seconds at first and doubling
+up to 60, the same as homeCore does for its own plugins.
+
+## Watching a runtime
+
+The runtime shows up in homeCore's plugin list as a plugin of its own, named
+by its runtime id. Its page in homeCore has a **Check in now** action
+(runtime 0.2.2 and later). When a hosted plugin keeps exiting, the runtime
+raises a notice there with the plugin's last output.
+
+The runtime's own page, on port 8790, lists the plugins homeCore placed there
+and keeps the last 500 log lines from the runtime and from each plugin,
+including what a plugin printed before it reached homeCore. Passwords and
+keys are masked. **Open its page** on the Plugin runtimes screen links to it.
+
+The oldest runtime homeCore works with is 0.2.0. An older one is marked as
+outdated on its card and in the Catalog. To update a runtime, pull the newer
+image and restart the container.
+
+## Change limit, Reset login and Remove
+
+- **Change limit** sets how many plugins the runtime takes. A few suit a
+  Raspberry Pi; a large server takes many.
+- **Reset login** makes a new key and stops the old one at once. The runtime
+  stops its plugins and waits. Paste the new key on its page and they come
   back.
 - **Remove** uninstalls the plugins in the runtime, with their devices and
   settings, and ends its key. Stop the container yourself.
@@ -102,13 +142,15 @@ To move it, remove it from the first homeCore, then paste the new key.
 
 | Variable | Default | What it does |
 |---|---|---|
-| `HC_RUNTIME_KEY` | | The connection key. Set it here and the page shows it without offering to change it. |
+| `HC_RUNTIME_KEY` | | The connection key. When set here, the page shows it and doesn't offer to change it. |
 | `HC_RUNTIME_PAGE_PORT` | `8790` | The runtime's page. `0` turns it off. |
 | `HC_RUNTIME_PAGE_URL` | | The page's address, for homeCore's link to it. Set it when the runtime runs on another machine on a bridge network, or its page is published on a different port. |
-| `HC_RUNTIME_BROKER_HOST` | | The broker's address, when the runtime reaches it somewhere other than the address in the key. |
+| `HC_RUNTIME_BROKER_HOST` | | The broker's address, when the runtime reaches it somewhere other than the host in the key. |
 | `HC_RUNTIME_POLL_SECS` | `30` | How often it checks in with homeCore. homeCore 0.1.114 and runtime 0.2.2 also check in at once when a plugin is installed, updated or uninstalled there. |
 | `HC_RUNTIME_NETWORK_MODE` | | Shown in homeCore's list (for example `bridge` or `host`). |
 
 The volume at `/var/lib/hc-runtime` holds the key and the installed plugins.
-Losing it costs nothing but pasting the key again; homeCore sends every plugin
-back.
+If you lose it, paste the key again and homeCore sends every plugin back.
+
+For how to package a Python plugin for a runtime, see
+[Releasing a Python plugin](./developing-plugins#releasing-a-python-plugin).

@@ -10,7 +10,7 @@ sidebar_position: 4
 A [UI extension](./extensions.md) is a folder: an `extension.json` that says
 what it offers, and the files it draws with. The ones homeCore makes are in
 [hc-extensions](https://github.com/homeCore-io/hc-extensions), one directory
-each. `hc-thermostat` is a Rive drawing; `hc-gauge` is code.
+each. `hc-thermostat` is a Rive drawing, and `hc-gauge` is code.
 
 ## The manifest
 
@@ -18,8 +18,10 @@ each. `hc-thermostat` is a Rive drawing; `hc-gauge` is code.
 {
 	"id": "hc-gauge",
 	"name": "Gauges",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"values": 1,
+	"min_app": "0.1.47",
+	"preview": "preview.png",
 	"description": "Readings drawn as a gauge: temperature or humidity on a dial, in your units.",
 	"category": "Readings",
 	"elements": [
@@ -40,43 +42,44 @@ each. `hc-thermostat` is a Rive drawing; `hc-gauge` is code.
   An app that only knows an older version leaves the extension out.
 - `description` and `category` are what the Catalog shows and groups by.
 - `min_app` is the oldest app that can use it (a code drawing needs
-  `0.1.47`). An older app's Catalog leaves it out and says which app it
-  needs, and won't install it from a file.
+  `0.1.47`). An older app's Catalog leaves it out, says which app it needs,
+  and won't install it from a file.
 - `preview` is a picture or a short silent video of how it looks (`.png`,
-  `.jpg`, `.webp`, `.gif`, `.mp4` or `.webm`; square, 480 pixels, works
-  best). The Catalog shows it before anything is installed, and Settings ›
-  Extensions shows it beside what is. A video plays on a loop, muted, and
-  stays on its first frame for someone who asks for less motion. For a Rive
-  drawing, `hc-thermostat/preview.sh` renders one from the `.riv` itself, so
-  it is always the real thing; prefer `.mp4`, which keeps glows and gradients
-  smooth where animated `.webp` and `.gif` band.
+  `.jpg`, `.jpeg`, `.webp`, `.gif`, `.mp4` or `.webm`). Square, 480 pixels,
+  works best. The Catalog shows it before anything is installed, and
+  Settings › Extensions shows it beside what is. A video plays on a loop,
+  muted, and stays on its first frame for someone who asks for less motion.
+  For a Rive drawing, `hc-thermostat/preview.sh` renders one from the `.riv`
+  itself, so it always shows the real thing. Prefer `.mp4`, which keeps glows
+  and gradients smooth where animated `.webp` and `.gif` band.
 - Each element has an `id`, a `label` (its name in the look editor), the
   family it `draws`, and a `kind`:
   - `rive`: `file`, a `.riv`, with an optional `artboard` and
-    `stateMachine` (the file's defaults otherwise);
-  - `code`: `module`, a `.js` file, and the custom `element` it defines.
-- An element may offer `options`: up to eight on-or-off choices, each with an
-  `id` (lowercase first), a `label` and a `default`, shown under the drawing
-  in the look editor once a look chooses it. The look keeps what was chosen.
-  A Rive file is given each as a view model **boolean** of the same name;
-  code is given them as `options` (`{ pulse: true }`).
+    `stateMachine` (otherwise the file's defaults);
+  - `code`: `module`, a `.js` or `.mjs` file, and the custom `element` it
+    defines.
+- An element may offer `options`: up to eight on/off choices, each with an
+  `id` (starting lowercase), a `label` and a `default`. They show under the
+  drawing in the look editor once a look chooses it, and the look keeps what
+  was chosen. A Rive file gets each one as a view model **boolean** of the
+  same name. Code gets them as `options` (`{ pulse: true }`).
 
   ```json
   "options": [{ "id": "pulse", "label": "Pulse while it works", "type": "boolean", "default": true }]
   ```
 
 The families are `lights`, `switches`, `scenes`, `doors`, `readings`,
-`watching`, `media` and `climate` (thermostats). Code can draw any of them;
-Rive drawings draw `climate` so far.
+`watching`, `media` and `climate` (thermostats). Code can draw any of them.
+So far, Rive drawings draw `climate`.
 
 ## Rive drawings
 
 Make the animation in [Rive](https://rive.app), in its editor or with its
 CLI, which builds a file from markup (`hc-thermostat/rive/` is a whole
-project). The app fills the file's **view model** by property name, so give
-the artboard a view model with the names below, of the types below, and a
-state machine that reacts to them. A file may use as few names as it likes;
-the app ignores the rest.
+project). The app fills the file's **view model** by property name. Give the
+artboard a view model with the names and types below, and a state machine
+that reacts to them. A file can use as few of the names as it likes; the app
+ignores the rest.
 
 For `climate`:
 
@@ -91,32 +94,33 @@ For `climate`:
 | `moving` | boolean | the look's motion is lively, so loops may play |
 | `unit` | string | `°F` or `°C` |
 
-The look's motion decides how the file runs. **Still** settles each state at
-once and draws one frame. **Gentle** plays a change, such as heating starting
-or a new target, and stops once it settles. **Lively** keeps running, so
-loops play while `moving` is true. Someone who asks for less motion always
-gets still, and nothing is drawn off screen. So make each state's settled
-pose look right on its own, and keep loops in states that `moving` gates.
+The look's motion decides how the file runs. Still settles each state at
+once and draws one frame. Gentle plays a change, such as heating starting
+or a new target, and stops once it settles. Lively keeps running, so loops
+play while `moving` is true. Someone who asks for less motion always gets
+still, and nothing is drawn off screen. So make each state's settled pose
+look right on its own, and keep loops in states that `moving` controls.
 
-Text needs a font inside the file; check that its license lets you embed it
-(the Open Font License does, though a reserved font name means you can't
-subset it). A file with **scripts** must be signed with Rive's `--publish`;
-one made of markup alone, like `hc-thermostat`, needs nothing.
+Text needs a font inside the file. Check that its license lets you embed it.
+The Open Font License does, though a reserved font name means you can't
+subset it. A file with **scripts** must be signed with Rive's `--publish`.
+One made of markup alone, like `hc-thermostat`, needs nothing.
 
 ## Code drawings
 
 The module defines the custom element named in the manifest. The app
-creates it and sets:
+creates the element and sets these properties on it:
 
-- `host`, an extension's host:
+- `host`, the extension's host:
   - `me`: who is looking;
   - `units`: `show(value, unit)` gives a reading in the person's units
     (`show(21.5, '°C').text` is `70.7°F`), and `subscribe(f)` tells you
     when they change;
-  - `theme`: `sheet` to adopt into your shadow root, with the app's colors
+  - `theme`: `sheet`, to adopt into your shadow root, with the app's colors
     as CSS custom properties, and `dark()`;
   - `rive`: Rive's runtime ([below](#rive-from-code));
-  - `fileUrl(path)`: the address of one of your extension's files.
+  - `fileUrl(path)`: the address of one of your extension's files;
+  - `api` (the host's version, `1`), `appVersion` and `extensionId`.
 - `thing`, the thing's values in plain names, set again whenever they
   change: `name`, `room`, `on`, `level` (0 to 100, or null), `color`,
   `state` (in words, in the person's units), `temperature` (°C),
@@ -124,26 +128,26 @@ creates it and sets:
 - For `climate`, also `values`: the table above.
 - `options`, the choices the look made for the options you offer.
 
-A drawing never commands anything, and its host has nothing that could. Ask
-for what a tap does with an `act` event, and the app does it:
+A drawing never commands anything, and its host has nothing that could. To
+ask for what a tap does, send an `act` event and the app does it:
 
 ```js
 this.dispatchEvent(new CustomEvent('act', { detail: { do: 'open' } })); // or 'switch', 'run'
 ```
 
-`hc-gauge/gauge.js` is a whole example in about a hundred lines, with no
+`hc-gauge/gauge.js` is a complete example in about a hundred lines, with no
 build step. A module can import its own files by relative path. The app
-serves `.js`, `.mjs`, `.css`, `.json`, `.riv`, `.png`, `.jpg`, `.webp`,
-`.svg`, `.woff2`, `.txt` and `.md` from inside the folder, and nothing
-hidden.
+serves `.js`, `.mjs`, `.css`, `.json`, `.riv`, `.png`, `.jpg`, `.jpeg`,
+`.webp`, `.svg`, `.gif`, `.mp4`, `.webm`, `.woff2`, `.txt` and `.md` from
+inside the folder, and nothing hidden.
 
 If the module fails to load, or doesn't define its element within ten
-seconds, the thing is drawn as Classic draws it.
+seconds, the thing is drawn the way Classic draws it.
 
 ### Rive from code
 
-Code can play a Rive file with the app's runtime, and the same rules for
-motion apply:
+Code can play a Rive file with the app's runtime. The same motion rules
+apply:
 
 ```js
 const player = await host.rive.play(canvas, {
@@ -157,27 +161,26 @@ player.set({ heating: false });
 player.destroy(); // when your element is removed
 ```
 
-`motion` defaults to the look's (`host.rive.motion()`); `player.properties`
-lists the file's view model. Plugins have `host.rive` too, for their own
-screens.
+`motion` defaults to the look's (`host.rive.motion()`), and
+`player.properties` lists the file's view model. Plugins have `host.rive`
+too, for their own screens.
 
 ## Trying it
 
 Copy the folder into `extensions/` in the web app's data directory
-(`HC_DATA_DIR`), or pack it and use **Add from a file** in the Catalog.
-Then choose its drawing in a look's Drawings; the editor's preview draws it
-with your own things.
+(`HC_DATA_DIR`), or pack it and use **Add from a file** on the Catalog's UI
+extensions tab. Then choose its drawing in a look's Drawings tab. The
+editor's preview draws it with your own things.
 
 ## Packing and releasing
 
 In hc-extensions, `./pack.sh <id>` packs an extension's folder into
-`dist/<id>-<version>.tar.zst`, leaving out hidden files and anything its
-`.packignore` lists (`hc-thermostat` leaves out its Rive project). It also
-gathers the licenses of embedded fonts. Pushing a tag `<id>-v<version>`
-releases it: the workflow packs it, attaches it and its preview to a GitHub
-Release, adds it
-to the registry's signed list of extensions, and checks that the Catalog
-offers it.
+`dist/<id>-<version>.tar.zst`. It leaves out hidden files and anything the
+folder's `.packignore` lists (`hc-thermostat` leaves out its Rive project),
+and gathers the licenses of embedded fonts. Pushing a tag `<id>-v<version>`
+releases it. The workflow packs it, attaches it and its preview to a GitHub
+Release, adds it to the registry's signed list of extensions, and checks
+that the Catalog offers it.
 
 An extension made elsewhere can be shared as its packed file, which anyone
-can add with **Add from a file**.
+allowed to install plugins can add with **Add from a file**.

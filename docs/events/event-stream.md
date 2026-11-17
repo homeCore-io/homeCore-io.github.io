@@ -7,7 +7,9 @@ sidebar_position: 1
 
 # Event Stream
 
-HomeCore publishes everything that happens in the house as events, live over a WebSocket and as a short in-memory history over REST. The web app's **Settings → Events** page shows the same stream in words.
+homeCore publishes everything that happens in the house as events. You can read them live over a WebSocket, or read the most recent ones over REST. The web app's **Settings › Events** page shows the same stream in words.
+
+The live stream is a WebSocket only. homeCore has no Server-Sent Events (SSE) version of it. The one SSE endpoint, `GET /api/v1/plugins/{id}/command/{request_id}/stream`, carries the progress of a single plugin action.
 
 ## Connecting
 
@@ -28,21 +30,23 @@ websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN&device_id=yolink
 websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN&type=device_state_changed&device_id=thermostat_main"
 ```
 
-**Authentication:** browsers can't set headers on a WebSocket upgrade, so the credential goes in `?token=`. It can be a JWT or an API key. HomeCore checks it before accepting the upgrade, and a missing or invalid token gets HTTP 401. A connection from an address on `[auth].whitelist` may leave the token out; when a token is given, it wins over the whitelist, as it does for REST.
+Browsers can't set headers on a WebSocket upgrade, so the credential goes in `?token=`. It can be a JWT or an API key. homeCore checks it before accepting the upgrade, and a missing or invalid token gets HTTP 401. A connection from an address on `[auth].whitelist` may leave the token out. When a token is given, homeCore judges the connection by the token, even from a whitelisted address, the same as for REST.
 
-The stream is one-way. The server sends a ping every 30 seconds and closes a connection that doesn't answer.
+The stream only goes one way. The server sends a ping every 30 seconds and closes a connection that hasn't answered the previous one. Admins can list open connections with `GET /api/v1/ws/connections`.
 
 ## Query parameters
 
 | Parameter | Example | Description |
 |---|---|---|
 | `token` | `?token=eyJ...` | JWT or API key (required unless the address is whitelisted) |
-| `type` | `?type=rule_fired,device_state_changed` | Comma-separated event type names to forward |
-| `device_id` | `?device_id=yolink_abc123` | Only events for this device |
+| `type` | `?type=rule_fired,device_state_changed` | Comma-separated event types to forward |
+| `device_id` | `?device_id=yolink_abc123` | Only events about this device |
 | `snapshot` | `?snapshot=true` | Send the house as it stands as the first frame (see below) |
-| `client_id` | `?client_id=kitchen-panel` | Optional label that shows up in the server's list of live connections |
+| `client_id` | `?client_id=kitchen-panel` | Label that shows in the list of open connections |
 
-Without `type`, every event is forwarded except `plugin_heartbeat` and `plugin_alerts`, which are frequent and which you get only by naming them in `type`. `mqtt_message` events never reach the stream.
+Without `type`, every event is forwarded except `plugin_heartbeat` and `plugin_alerts`. Those two are frequent, so you get them only by naming them in `type`. Raw MQTT messages never reach the stream.
+
+`device_id` matches the device an event is about: `device_id` on device events, the device inside `device_added` and `device_metadata_changed`, `timer_id` on `timer_state_changed`, and the alert's device on `alert_raised` and `alert_cleared`. Other events have no device and are dropped by this filter.
 
 ### Snapshot
 
@@ -52,53 +56,17 @@ With `snapshot=true`, the first frame is the house as it is now:
 {"type": "snapshot", "timestamp": "…", "devices": […], "rooms": […], "scenes": […], "alerts": […]}
 ```
 
-Each device carries its `schema` inline, as `GET /devices?include_schema=true` gives it, and each section is present only if you may read it. The stream is subscribed before the snapshot is read, so nothing in between is lost: it arrives as events after the snapshot, possibly repeating what the snapshot already shows. Applying events in order on top of the snapshot ends at the current state, and with the device, room and scene events below, a client holding the snapshot never needs to reload to stay correct.
+Each device includes its `schema`, as `GET /devices?include_schema=true` returns it. A section appears only if you may read it: `devices` and `alerts` need `devices:read`, `rooms` needs `areas:read`, and `scenes` needs `scenes:read`. An empty list always means there are none.
+
+homeCore subscribes to the stream before it reads the snapshot, so nothing in between is lost. Changes made meanwhile arrive as events after the snapshot and may repeat what it already shows. Applying events in order on top of the snapshot ends at the current state. With the device, room and scene events below, a client holding the snapshot never needs to reload to stay correct.
 
 ### Falling behind
 
-A client too slow to keep up misses events. If it asked for snapshots it is sent a fresh one, with `"missed": n`. Otherwise it gets `{"type": "lagged", "missed": n}` so it knows to read again.
-
-## Event type reference
-
-| Event type | Emitted when |
-|---|---|
-| `device_state_changed` | A device's attributes changed |
-| `device_availability_changed` | A device went online or offline, including when a new device's first report brings it up |
-| `device_name_changed` | A device's display name changed |
-| `device_added` | A device was added to the registry |
-| `device_removed` | A device was removed |
-| `device_metadata_changed` | A device's name, room, icon or display type was edited |
-| `device_schema_changed` | A device's schema changed (attributes or actions added or removed) |
-| `device_command_sent` | A rule action sent a command to a device |
-| `device_battery_low` | A battery-powered device crossed the low threshold (with hysteresis) |
-| `device_battery_recovered` | A device that was low climbed back above the recovery band |
-| `room_changed` | A room was added or changed |
-| `room_removed` | A room was deleted or merged into another |
-| `scene_activated` | A native scene was activated |
-| `scene_changed` | A native scene was added or changed |
-| `scene_removed` | A native scene was deleted |
-| `rule_fired` | A rule's conditions passed and its actions ran |
-| `rule_changed` | A rule was added or changed |
-| `rule_removed` | A rule was deleted |
-| `action_failed` | A rule action failed |
-| `mode_changed` | A mode turned on or off |
-| `timer_state_changed` | A timer started, paused, finished, was cancelled, and so on |
-| `alert_raised` | An alert was raised (or updated) |
-| `alert_cleared` | An alert's condition ended |
-| `alert_acknowledged` | Someone marked an alert as seen |
-| `plugin_registered` | A plugin connected and registered |
-| `plugin_offline` | A plugin went offline |
-| `plugin_status_changed` | A managed plugin's status changed |
-| `plugin_heartbeat` | A plugin sent a liveness heartbeat (only when asked for by `type`) |
-| `plugin_capabilities` | A plugin published its capabilities (actions, config descriptor, screens) |
-| `plugin_alerts` | A plugin reported alerts (only when asked for by `type`; clients normally use `alert_raised` and `alert_cleared`) |
-| `custom` | A custom event: from a `FireEvent` action, a webhook, a hub variable change, or startup (see [Custom events](#custom-events)) |
-
-The event model also defines `system_alert` and `rule_evaluation_failed`, but nothing in HomeCore sends them today.
+A client too slow to keep up misses events. If it asked for a snapshot, it is sent a fresh one with `"missed": n`. Otherwise it gets `{"type": "lagged", "missed": n}` so it knows to read again.
 
 ## Event envelope
 
-Every event is a JSON object with its `type` and a `timestamp`, followed by the fields for that type:
+Every event is a JSON object with its `type` and a `timestamp` (RFC 3339, UTC), followed by the fields for that type:
 
 ```json
 {
@@ -108,7 +76,46 @@ Every event is a JSON object with its `type` and a `timestamp`, followed by the 
 }
 ```
 
-## Fields per event type
+## Event types
+
+| Event type | Sent when | Main fields |
+|---|---|---|
+| `device_state_changed` | A device's attributes changed | `device_id`, `device_name`, `previous`, `current`, `changed`, `change` |
+| `device_availability_changed` | A device went online or offline, including when a new device's first report brings it up | `device_id`, `device_name`, `available` |
+| `device_name_changed` | A device was renamed at its source | `device_id`, `previous_name`, `current_name` |
+| `device_added` | A device joined the registry | `device` (the whole record) |
+| `device_removed` | A device was removed | `device_id` |
+| `device_metadata_changed` | Something other than its readings changed: name, room, type, `ui_hint`, `security`, icon, button names, hardware details | `device` (the whole record) |
+| `device_schema_changed` | A device's schema changed | `device_id`, `attributes`, `actions` |
+| `device_command_sent` | A rule sent a command to a device | `device_id`, `command`, `source`, `source_id`, `correlation_id` |
+| `device_battery_low` | A battery dropped to or below the threshold (with hysteresis) | `device_id`, `device_name`, `battery_pct`, `threshold_pct` |
+| `device_battery_recovered` | A low battery climbed back above the recovery band | `device_id`, `device_name`, `battery_pct` |
+| `room_changed` | A room was created, renamed or gained an alias | `room` |
+| `room_removed` | A room was deleted or merged into another | `room_id`, `merged_into` |
+| `room_lights_changed` | Room on or Room off ran | `room_id`, `room_name`, `on`, `lights`, `scenes`, `snapshot_saved`, `snapshot_used`, `source` |
+| `scene_activated` | A native scene was activated | `scene_id`, `scene_name` |
+| `scene_changed` | A native scene was created or edited | `scene` |
+| `scene_removed` | A native scene was deleted | `scene_id` |
+| `rule_fired` | A rule's conditions passed and its actions ran | `rule_id`, `rule_name`, `trigger_type`, `action_count` |
+| `rule_changed` | A rule was created or changed through the API | `rule` |
+| `rule_removed` | A rule was deleted through the API | `rule_id` |
+| `action_failed` | A rule action failed | `rule_id`, `rule_name`, `action_index`, `action_type`, `error` |
+| `mode_changed` | A mode turned on or off | `mode_id`, `mode_name`, `on` |
+| `timer_state_changed` | A timer started, paused, finished, was cancelled, and so on | `timer_id`, `timer_name`, `state`, `remaining_secs` |
+| `alert_raised` | An alert was raised, or what an active one says changed | `alert`, `update` |
+| `alert_cleared` | An alert's condition ended | `alert_id`, `device_id`, `alert` |
+| `alert_acknowledged` | Someone marked an alert as seen | `alert` |
+| `plugin_registered` | A plugin connected and registered | `plugin_id` |
+| `plugin_offline` | A plugin went offline or said it was stopping | `plugin_id` |
+| `plugin_status_changed` | A managed plugin's status changed | `plugin_id`, `status`, `previous_status` |
+| `plugin_heartbeat` | A plugin sent a heartbeat (only when named in `type`) | `plugin_id`, `version`, `uptime_secs`, `device_count` |
+| `plugin_capabilities` | A plugin published its capabilities (actions, settings form, screens, alert kinds) | `plugin_id`, `capabilities` |
+| `plugin_alerts` | A plugin reported which of its alerts are true (only when named in `type`) | `plugin_id`, `device_id`, `alerts` |
+| `custom` | A custom event: from a `FireEvent` action, a webhook, a hub variable change, or startup | `event_type`, `payload` |
+
+Clients normally use `alert_raised` and `alert_cleared` rather than `plugin_alerts`, since homeCore has already decided what counts. The event model also defines `system_alert` and `rule_evaluation_failed`, but nothing in homeCore sends them.
+
+## Event fields
 
 ### `device_state_changed`
 
@@ -129,7 +136,7 @@ Every event is a JSON object with its `type` and a `timestamp`, followed by the 
 }
 ```
 
-`change` says where the update came from. `kind` is `homecore`, `physical`, `external` or `unknown`, and `source`, `actor_id`, `actor_name` and `correlation_id` appear when known.
+`changed` lists the attributes that were added, updated or removed. `change` says where the update came from. Its `kind` is `homecore`, `physical`, `external` or `unknown`, and `source`, `actor_id`, `actor_name` and `correlation_id` appear when known.
 
 ### `rule_fired`
 
@@ -159,6 +166,24 @@ Every event is a JSON object with its `type` and a `timestamp`, followed by the 
   "available": false
 }
 ```
+
+### `room_lights_changed`
+
+```json
+{
+  "type": "room_lights_changed",
+  "timestamp": "2026-03-28T22:10:00Z",
+  "room_id": "2f6c1d0e-8b1a-4c3e-9a77-5d0f0e2b9c41",
+  "room_name": "Living Room",
+  "on": false,
+  "lights": ["hue_001788fffe6841b3_light_1", "lutron_21"],
+  "snapshot_saved": true,
+  "snapshot_used": false,
+  "source": "api"
+}
+```
+
+`source` is `api` or `rule`. `scenes` lists the scenes Room on activated, and is left out when there are none.
 
 ### `scene_activated`
 
@@ -190,6 +215,7 @@ Every event is a JSON object with its `type` and a `timestamp`, followed by the 
   "type": "timer_state_changed",
   "timestamp": "2026-03-28T14:32:00Z",
   "timer_id": "timer_garage_close",
+  "timer_name": "Garage close delay",
   "state": "finished",
   "remaining_secs": 0
 }
@@ -220,9 +246,30 @@ Every event is a JSON object with its `type` and a `timestamp`, followed by the 
 }
 ```
 
+### `alert_raised`
+
+```json
+{
+  "type": "alert_raised",
+  "timestamp": "2026-03-28T14:30:00Z",
+  "alert": {
+    "id": "wet:yolink_d88b4c0400064300",
+    "kind": "wet",
+    "device_id": "yolink_d88b4c0400064300",
+    "message": "Laundry leak sensor: wet",
+    "reason": "Wet",
+    "severity": "critical",
+    "raised_at": "2026-03-28T14:29:58Z",
+    "device_plugin_id": "plugin.yolink"
+  }
+}
+```
+
+`update: true` marks an alert that was already active but now says something different, for example because someone acknowledged it. See [Alerts](./alerts.md) for every field.
+
 ### Custom events
 
-A custom event has `type` `custom`, with its own name in `event_type` and its data in `payload`. Filter for them with `type=custom`. HomeCore uses them for a few things of its own:
+A custom event has `type` `custom`, with its own name in `event_type` and its data in `payload`. Filter for them with `type=custom`. homeCore sends a few of its own:
 
 | `event_type` | Sent when | `payload` |
 |---|---|---|
@@ -242,7 +289,7 @@ A custom event has `type` `custom`, with its own name in `event_type` and its da
 
 ## REST event log
 
-`GET /api/v1/events` returns recent events from an in-memory ring buffer that holds the last 1000. It is not persisted, so it starts empty after a restart. It leaves out `plugin_heartbeat`.
+`GET /api/v1/events` returns recent events from a buffer in memory that holds the last 1000. It isn't saved, so it starts empty after a restart. It leaves out `plugin_heartbeat`. Reading it needs `devices:read`.
 
 ```bash
 # Last 50 events (default; at most 1000)
@@ -262,15 +309,17 @@ curl -s "http://localhost:8080/api/v1/events?limit=10" \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-Entries come newest first, each wrapping the event:
+Entries come newest first. Each one wraps the event:
 
 ```json
 {"seq": 4812, "event_type": "rule_fired", "event": {"type": "rule_fired", "timestamp": "…", "rule_name": "Front door alert", …}}
 ```
 
-`device_id` is included on entries for device events.
+`seq` counts up from 1 since the last start. Entries for events about a device also carry `device_id`, matched the same way as the stream's `device_id` filter.
 
-## Common filter recipes
+For longer records, use [device history](../devices/overview.md#device-history) for attribute values over time.
+
+## Common filters
 
 ```bash
 # Watch all rule fires in real time
@@ -287,4 +336,7 @@ websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN&type=mode_change
 
 # Watch plugins connect and go offline
 websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN&type=plugin_registered,plugin_offline"
+
+# Watch alerts come and go
+websocat "ws://localhost:8080/api/v1/events/stream?token=$TOKEN&type=alert_raised,alert_cleared,alert_acknowledged"
 ```

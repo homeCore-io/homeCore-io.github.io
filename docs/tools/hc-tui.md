@@ -7,12 +7,12 @@ sidebar_position: 2
 
 # hc-tui
 
-`hc-tui` is a keyboard-driven terminal UI for HomeCore, written in Rust with `ratatui`. It talks to the same REST and WebSocket API as the [web app](../web-ui/overview.md), which makes it handy over SSH, on headless machines, and for anyone who would rather stay in the terminal.
+`hc-tui` is a keyboard-driven terminal UI for homeCore, written in Rust with `ratatui`. It talks to the same REST and WebSocket API as the [web app](../web-ui/overview.md), so it works over SSH and on headless machines.
 
-The repo lives at [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`; you can also build it from source with `cargo build --release`.
+The repo is [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui), a separate Rust repo with its own lockfile (the latest release is v0.1.3). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`. You can also build it from source with `cargo build --release`.
 
-:::caution Being reworked
-HomeCore 0.1.82 removed the `/timers` and `/switches` endpoints in favour of `/glue`. hc-tui's Switches and Timers sub-tabs still use the old endpoints, so they stay empty and can't create anything, and its helper creator (`g` in Manage) doesn't create helpers either. Create and manage helpers in the web app (**Settings → Helpers**) or with the [`/glue` API](../devices/virtual-devices.md#managing-helpers) until hc-tui catches up.
+:::caution Helpers don't work yet
+homeCore 0.1.82 replaced the `/timers` and `/switches` endpoints with `/glue`. hc-tui's Switches and Timers sub-tabs still call the old endpoints, so they stay empty and can't create anything. Its helper creator (`g` in Manage) calls `/glue` but sends the type as `glue_type` where core expects `type`, so it fails too. Create and manage helpers in the web app (**Settings → Helpers**) or with the [`/glue` API](../devices/virtual-devices.md#managing-helpers) until hc-tui catches up.
 :::
 
 ---
@@ -39,7 +39,7 @@ hc-tui --base-url http://127.0.0.1:8080 --cache-dir ~/.cache/hc-tui
 
 | Flag | Default | Description |
 |---|---|---|
-| `--base-url` | `http://127.0.0.1:8080` | The HomeCore server, **without** the `/api/v1` suffix |
+| `--base-url` | `http://127.0.0.1:8080` | The homeCore server, without the `/api/v1` suffix |
 | `--cache-dir` | `./cache` | Where per-user JSON snapshots and the saved session go |
 | `--config` | `config/config.toml` | Optional config file |
 
@@ -72,7 +72,7 @@ The main screen is a row of tabs across the top with a status line at the bottom
 
 **Devices · Scenes · Areas · Rules · Plugins · Manage**
 
-Plugins appears only for admins. Manage appears for everyone, but most of its panels use admin-only endpoints, so other roles get HomeCore's refusal there.
+Plugins appears only for admins. Manage appears for everyone, but most of its panels use admin-only endpoints, so other roles get homeCore's refusal there.
 
 A live subscription to `/api/v1/events/stream` keeps device state, availability and names current, and reconnects by itself if the connection drops. Screens redraw only when something changes, so leaving the TUI open doesn't burn CPU.
 
@@ -192,7 +192,7 @@ The Logs panel opens its log WebSocket only while you are on it, and closes it w
 
 ## Caching
 
-- On login, the TUI shows cached state first (if there is any), then syncs fresh data from HomeCore, so later launches appear at once even on a slow link.
+- On login, the TUI shows cached state first (if there is any), then syncs fresh data from homeCore, so later launches appear at once even on a slow link.
 - `r` pulls fresh data and updates the cache.
 - After a device or scene action, the TUI re-fetches and re-caches what changed.
 - There is no background polling; live updates come from the event stream.
