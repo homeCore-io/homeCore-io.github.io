@@ -25,6 +25,20 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.79, 2026-11-17
+
+- **The Catalog lists only what you can add.** Installed plugins are hidden;
+  **Show installed** brings them back, and the browser remembers which you
+  chose. A plugin opened from its own link still shows its card.
+- The Plugins page no longer has **Also in the registry**, which repeated the
+  Catalog.
+
+### Release matrix
+
+**Tagged:** `v0.1.79` (hc-web-svelte).
+
+---
+
 ## App v0.1.78, 2026-11-16
 
 - **Updating a plugin in a runtime shows that it's on its way.** Update used to
