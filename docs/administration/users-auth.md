@@ -11,9 +11,9 @@ homeCore authenticates REST and WebSocket callers with JWTs (HS256) or
 API keys. Each route requires a scope, and a caller's scopes come from
 its role.
 
-In the web app, people are managed under Settings › People, API keys
-under Settings › People › Keys, and your own sessions under Me › Signed
-in. Everything on this page can also be done over the API, as shown below.
+In the web app, people are managed under **Settings › People & access**.
+API keys are on the **API keys** link on that screen, and your own keys and
+sessions are under **Me › API keys** and **Me › Signed in**. Everything on this page can also be done over the API, as shown below.
 
 ## First login
 

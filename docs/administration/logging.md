@@ -334,8 +334,9 @@ It takes `level`, `target` and `plugin_id` like the stream, plus `since`
 (an RFC3339 timestamp, for incremental polling) and `limit` (default 100,
 maximum 1000). The response is `{"count": N, "lines": [...]}`.
 
-In the web app, the same lines are on Settings › System › Logs, and each
-plugin's page shows its own log.
+In the web app, the same lines are on **Settings › Logs**, which is its
+own Settings item (System links to it too), and each plugin's page shows its
+own log.
 
 ## Plugin logging
 
