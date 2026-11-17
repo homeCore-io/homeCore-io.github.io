@@ -108,8 +108,8 @@ No other changes.
 - A device's details now load the first time one is opened, and the home
   page's size budget is 250 KB (it was 200 KB).
 
-v0.1.75 was tagged but never published: its image build stopped at the old
-size budget. Everything in it is in v0.1.76.
+There is no app v0.1.75: its image build stopped at the old size budget, so
+the tag was removed. Everything meant for it is in v0.1.76.
 
 Needs core v0.1.112.
 
