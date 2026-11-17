@@ -47,11 +47,19 @@ All three run `core/target/debug/homecore` with `--home sandbox` and
 `--config sandbox/homecore.toml`. `sandbox-build` calls
 `sandbox/reinstall-plugins.sh`, which you provide in your sandbox.
 
-For a one-off throwaway instance, point `--home` at an empty directory:
+For a one-off throwaway instance, point `--home` at a directory with a
+small config. With no config file, core's built-in default binds the broker
+to `0.0.0.0` with no `[[broker.clients]]`, and core refuses to start an open
+broker. Bind it to loopback:
 
 ```bash
+mkdir -p /tmp/hc-dev/config
+printf '[broker]\nhost = "127.0.0.1"\n' > /tmp/hc-dev/config/homecore.toml
 cargo run -p homecore -- --home /tmp/hc-dev
 ```
+
+Copying `config/homecore.toml.example` there instead works too; it binds the
+broker to loopback already.
 
 Reset it by deleting its data:
 
@@ -65,7 +73,7 @@ also written to `INITIAL_ADMIN_PASSWORD` in the home directory).
 
 ### `run-dev.sh`
 
-`hc-scripts/run-dev.sh` is the older all-in-one launcher, run from the
+`hc-scripts/run-dev.sh` is the all-in-one launcher, run from the
 workspace root:
 
 ```bash
@@ -74,34 +82,40 @@ workspace root:
 ./hc-scripts/run-dev.sh --no-build  # skip cargo, use existing binaries
 ./hc-scripts/run-dev.sh --no-pull   # skip `git pull` in every repo
 ./hc-scripts/run-dev.sh --no-update # skip `cargo update`
+./hc-scripts/run-dev.sh --webui     # also start the web app's dev server
 ```
+
+:::caution run-dev.sh is not sandboxed
+It starts a real homeCore with `config/homecore.dev.toml` and the real
+plugin configs, so it connects to whatever hubs, bridges and cloud accounts
+those configs name. Do not use it to test anything destructive. Use a
+sandbox instead.
+:::
 
 What it does:
 
 1. Runs `git pull --ff-only` in hc-scripts itself, `core/`, each
-   `sdks/hc-plugin-sdk-*` checkout, and each git repo under `clients/`.
-   It finds these by scanning directories; it does not read
-   `workspace.toml`.
+   `sdks/hc-plugin-sdk-*` checkout, each git repo under `plugins/` (the
+   non-Rust plugins) and each git repo under `clients/`. It finds these by
+   scanning directories; it does not read `workspace.toml`. A pull that
+   fails only warns.
 2. Runs `cargo update` on `core/Cargo.toml`, which rewrites `Cargo.lock`.
    Pass `--no-update` (or `--no-pull`) when you do not want that.
-3. Builds the `homecore` binary only (`cargo build --bin homecore`). It
-   does not build the plugins, so run `cargo build --workspace` (or
-   `just build`) first if plugin code changed.
-4. Starts the server from `core/target/<profile>/` with `--home core`
+3. Builds `homecore` and then every plugin in core's workspace
+   (`core/plugins/hc-*`), one at a time. A failed `homecore` build stops
+   the script; a failed plugin build only warns, and that plugin runs its
+   previous binary. The repos under `plugins/` are pulled but not built.
+4. With `--webui`, starts the web app's dev server in the background:
+   `npm run dev` in `clients/hc-web-svelte` on port 5180, with
+   `HC_CORE_URL` pointed at this core (`npm install` first if
+   `node_modules` is missing). Open `http://localhost:5180`. It stops when
+   the script exits.
+5. Starts the server from `core/target/<profile>/` with `--home core`
    and `--config config/homecore.dev.toml`.
 
 The dev config's `[[plugins]]` blocks point at `target/debug/<name>`,
-relative to `HOMECORE_HOME` (here `core/`), so homecore launches whatever
-the last workspace build produced.
-
-:::caution run-dev.sh is not sandboxed
-It starts a real homeCore with the real plugin configs, so it connects to
-whatever hubs, bridges and cloud accounts those configs name. Do not use
-it to test anything destructive. Use a sandbox instead.
-:::
-
-Its `--webui` flag starts the retired Flutter app's dev proxy. It is not
-the flag you want for UI work; see [Web UI development](#web-ui-development).
+relative to `HOMECORE_HOME` (here `core/`), so homecore launches what step 3
+just built.
 
 ### A typical loop
 
@@ -141,14 +155,15 @@ devices (virtual switches, timers and the rest); see
 
 ## Pre-PR check (`just check`)
 
-There are three Justfiles, and their clippy settings differ from CI's,
-so read this section before trusting a local green.
+There are three kinds of Justfile. Core's and the plugins' run clippy
+exactly as CI does; the workspace root's per-plugin and client recipes do
+not.
 
 | Where | `just check` runs |
 |---|---|
 | Workspace root (`Justfile`, a symlink to `hc-scripts/Justfile.workspace`) | `check-core` (core's `just check`), then `fmt`, `clippy --locked` and `test --locked` for the standalone Rust clients `hc-tui` and `hc-web-leptos` |
-| `core/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets` with `-D clippy::correctness -D clippy::suspicious` and three `-A` allowances, `cargo test --workspace` |
-| `core/plugins/hc-*/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --all-targets --all-features -- -D warnings` with three `-A` allowances, `cargo test --all-features` |
+| `core/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings -A clippy::type_complexity`, `cargo test --workspace` |
+| `core/plugins/hc-*/Justfile` | `cargo fmt --all -- --check`, `cargo clippy --all-targets --all-features -- -D warnings -A clippy::type_complexity`, `cargo test --all-features` |
 
 CI (`hc-scripts/.github/workflows/rust-ci.yml`) runs this at core's root:
 
@@ -160,11 +175,12 @@ cargo clippy --all-targets --all-features -- \
 cargo test --all-features
 ```
 
-That is stricter than any of the Justfiles. Core's Justfile does not deny
-warnings at all, and the plugin Justfiles still allow
-`clippy::too_many_arguments` and `clippy::result_large_err`, which CI
-stopped allowing. To reproduce CI before pushing, run the three commands
-above from `core/` with the toolchain CI uses (see Toolchain above).
+Core's `just check` therefore lints as CI does. Its tests run without
+`--all-features`, so run `cargo test --all-features` too if you changed
+feature-gated code. The workspace root's `check-plugin` and the client
+recipes use a looser set (`-D clippy::correctness -D clippy::suspicious`
+with `type_complexity` and `too_many_arguments` allowed), so a green there
+does not mean a green CI. Use the toolchain CI uses (see Toolchain above).
 
 Other workspace recipes:
 
@@ -177,7 +193,7 @@ Other workspace recipes:
 | `just build` / `just build-release` | debug or release build of everything Rust |
 | `just clean` | `cargo clean` for core and the Rust clients |
 | `just clean-release` | `cargo clean --release` only |
-| `just clean-all` | `clean`, plus the Flutter build cache, `logs/*.log` and the devenv/direnv caches |
+| `just clean-all` | `clean`, `clean-logs` (`logs/*.log`), `clean-env` (the devenv/direnv caches) and the retired `clean-flutter` |
 | `just deploy-local [args]` | build and install a production-like layout with `hc-scripts/deploy.sh` (default destination `/var/tmp/homeCore`) |
 
 ### Inside a plugin directory
@@ -202,13 +218,9 @@ workspace, not the plugin: `cargo fmt --all` formats every member, and
 
 `just package` wraps `hc-scripts/build-archive.sh`. `BIN_NAME` comes from
 the directory name, so the same Justfile works for every plugin. The
-default `HC_SCRIPTS` is `../../hc-scripts`, which from
-`core/plugins/<name>/` resolves to `core/hc-scripts`, a path that does
-not exist in this layout. Pass the real location:
-
-```bash
-HC_SCRIPTS=../../../hc-scripts just package
-```
+default `HC_SCRIPTS` is `../../../hc-scripts`, which from
+`core/plugins/<name>/` is the workspace's `hc-scripts/`. Set `HC_SCRIPTS`
+if yours is elsewhere.
 
 ## Cargo commands reference
 
@@ -276,14 +288,21 @@ repo at `clients/hc-web-svelte`. It needs Node.js, not cargo.
 ```bash
 cd clients/hc-web-svelte
 npm install
-cp .env.example .env    # HC_CORE_URL defaults to http://127.0.0.1:8080
-npm run dev             # http://localhost:5180
+HC_CORE_URL=http://127.0.0.1:8080 npm run dev   # http://localhost:5180
 ```
+
+Or run `./hc-scripts/run-dev.sh --webui`, which does the same against the
+core it starts (see [above](#run-devsh)).
 
 The dev server mounts the same pass-through to core that the production
 UI server uses (`server/proxy.js`), so `/api/v1` and the event stream
 reach core on the app's own origin, with sessions held in httpOnly
 cookies. Point `HC_CORE_URL` at a sandbox core, not the house.
+
+Set `HC_CORE_URL` in the shell, as above. The pass-through reads it from
+the process environment (`server/config.js`), and a `.env` file never
+reaches it, so copying `.env.example` to `.env` changes nothing there.
+When it is unset, the app looks for core at `http://127.0.0.1:8080`.
 
 Before pushing, run the same checks CI does (hc-scripts' `node-ci.yml`):
 
@@ -305,10 +324,10 @@ directory of static files from core's root path through the
 used to bake in. That client is retired, the setting defaults to off, and
 the standard deployment leaves it off.
 
-The Flutter app (`clients/hc-web-flutter`) is retired as well. Some
-workspace tooling still refers to it: `just hc-web-dev`,
-`just clean-flutter` and `run-dev.sh --webui`. None of these is needed for
-current UI work.
+The Flutter app (`clients/hc-web-flutter`) is retired as well. The
+workspace Justfile still has two recipes for it, `just hc-web-dev` and
+`just clean-flutter` (which `clean-all` runs). Both are retired and not
+needed for current UI work.
 
 ## Debugging with RUST_LOG
 
