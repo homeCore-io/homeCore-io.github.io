@@ -51,6 +51,7 @@ A plugin publishes a retained manifest after each connect:
 | `spec` | yes | Manifest schema version. v1 is `"1"` (frozen). |
 | `plugin_id` | yes | Must match the MQTT client id. |
 | `actions[]` | yes | May be empty. |
+| `api_scopes` | no | REST scopes the plugin wants for calling homeCore's own API. homeCore mints it a key with them; see [The plugin's own REST access](#the-plugins-own-rest-access). |
 | `actions[].id` | yes | Stable snake_case identifier; what the client calls. |
 | `actions[].label` | yes | Human-readable button text. |
 | `actions[].description` | no | Helper text shown with the action in the UI and in MCP. |
@@ -61,7 +62,7 @@ A plugin publishes a retained manifest after each connect:
 | `actions[].concurrency` | no, default `multi` | `single` rejects a second run of a streaming action while one is active (`status:"busy"`). |
 | `actions[].item_key` | no | Field inside `item.data` the UI dedupes by. |
 | `actions[].item_operations` | no | Subset of `["add","update","remove"]`. |
-| `actions[].requires_role` | no, default `user` | `admin` / `user` / `read_only`. Core enforces it before forwarding. |
+| `actions[].requires_role` | no, default `user` | `admin` / `user` / `read_only` / `signed_in`. Who may run it; core enforces it before forwarding. See [Who may run an action](#who-may-run-an-action). |
 | `actions[].timeout_ms` | no | How long core waits for the plugin's reply (5 seconds when absent). For a streaming action it is also the deadline after which core ends the stream with `timeout`. |
 | `actions[].danger` | no, default `false` | The action can't be undone or interrupts the house (a reboot, unpairing, forgetting devices). Screens ask before running it. |
 
@@ -81,6 +82,85 @@ for `string`. Arrays and objects get a JSON field. It also reads a `title` as
 the field's label, `x-options` as labels for `enum` values, and hides the text
 of a string param marked `format: "password"` or `writeOnly`, or whose name
 contains `password`, `secret` or `token`.
+
+---
+
+## Who may run an action
+
+| `requires_role` | Who may run it |
+|---|---|
+| `user` (the default) | Callers with `plugins:write`, which in practice means admins and keys that hold that scope. |
+| `read_only` | The same on `command`. It also answers on `POST /api/v1/plugins/{id}/query`, which needs only permission to read devices. |
+| `admin` | `plugins:write` and the admin role. |
+| `signed_in` | Every signed-in person or API key, whatever their role, through `command` and `upload`. |
+
+An action the manifest doesn't declare is treated like `user`. `signed_in` is
+opt-in and never a default: use it only for an action that is safe for anyone
+in the house, or one that limits itself by who asked. The stream of a
+`signed_in` action, and its `respond` and `cancel`, belong to whoever started
+it (and to admins).
+
+### Who asked: `caller`
+
+Every action core forwards (`command`, `query` and `upload`) carries the
+verified caller:
+
+```json
+{
+  "uid": "8f1c…",
+  "username": "sam",
+  "role": "household_member",
+  "scopes": ["devices:read", "devices:command", "…"],
+  "kind": "user"
+}
+```
+
+`kind` is `user`, `api_key`, `local_admin` or `whitelist`. `role` is the
+role's wire name. For an API key the role is advisory and `scopes` is what
+the key may do, so judge by `scopes`. `uid` is null for the local transports
+and for a plugin's own key. Core drops any `caller` the client put in the
+request, so a plugin can trust it.
+
+Core checks `requires_role` before forwarding, so a plugin never has to check
+whether someone may run the action. It does have to check what the action
+then does for them. A `signed_in` action can be called by a household member
+or a read-only account, so it must stay within `caller.scopes`: an assistant
+that turns on a light for someone should do it only if their scopes include
+`devices:command`.
+
+Core puts `caller` in the action's params. The Python, Node.js and .NET SDKs
+take it out and hand it to the handler on its own (`caller` / `ctx.caller`
+in Python and Node.js, `Caller` / `ctx.Caller` in .NET). A Rust plugin reads
+it from the params (`params["caller"]`).
+
+### The plugin's own REST access
+
+A plugin that needs homeCore's REST API lists the scopes it wants in its
+manifest's `api_scopes`. Each time the manifest is published (every start),
+homeCore makes the plugin an API key with those scopes and sends it with the
+`api_access` management action, params `{url, key, scopes}`:
+
+- `url` is homeCore's REST base as the plugin reaches it, ending in
+  `/api/v1`: loopback for a plugin homeCore runs, or the address its
+  [runtime](./runtimes) was added with.
+- `users:write` and `api_keys:admin` are never granted, so check `scopes`
+  rather than assuming you got everything.
+- The previous key stops working when a new one is made, and the key is
+  deleted when the plugin is uninstalled. Keep it in memory only. A plugin
+  that doesn't answer `api_access` has its key deleted.
+- A key for a plugin homeCore runs on its own machine only works from
+  loopback.
+- The key shows in the API keys list as `plugin <id>`, and in the audit log
+  as `api_key:plugin <id>`.
+
+There is nothing to paste. Every SDK answers `api_access` for you and keeps
+the grant: `api_access()` / `wait_for_api_access` on the management handle in
+Rust (0.6.5, core v0.1.113 and later), `api_access` / `wait_for_api_access` in
+Python, `apiAccess` / `waitForApiAccess` in Node.js, and `ApiAccess` /
+`WaitForApiAccessAsync` in .NET, each with a hook that runs when it arrives
+(`with_api_access_handler` in Rust). The
+[Assistant](../tools/hc-mcp) is a working example: it asks for the scopes its
+tools need and acts for each person within their own scopes.
 
 ---
 
@@ -332,7 +412,9 @@ These don't change without bumping `spec` to `"2"`:
    request, kept for 60 seconds after the terminal stage) and replays them to
    an SSE client that attaches late.
 5. `requires_role` is enforced by core **before** forwarding the
-   command. Plugin code never has to check permissions.
+   command, so plugin code never checks who may run an action. A
+   `signed_in` action still has to keep what it does within
+   `caller.scopes`.
 6. Adding a new plugin action requires **zero** changes to core,
    SDKs, the web UI, or hc-mcp.
 

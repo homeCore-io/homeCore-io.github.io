@@ -17,7 +17,7 @@ automations.
 
 ## Setup
 
-Install it from **Settings › Plugins › Add**, then fill in its **Settings**
+Install it from **Settings › Plugins › Catalog**, then fill in its **Settings**
 tab:
 
 - **Local hub** (YS1606, recommended): the hub's address, plus the Client ID,

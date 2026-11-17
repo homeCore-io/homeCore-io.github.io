@@ -19,7 +19,7 @@ A controller without a WebSocket is polled instead.
 
 ## Adding controllers
 
-Install the plugin from **Settings › Plugins › Add**, then open its page:
+Install the plugin from **Settings › Plugins › Catalog**, then open its page:
 
 - **Look for controllers** finds WLEDs on the network over mDNS. Add the ones
   you want.

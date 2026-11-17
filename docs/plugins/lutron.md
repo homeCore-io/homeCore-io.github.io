@@ -19,7 +19,7 @@ The factory integration logins (`lutron`/`integration` and `rti`/`integration`) 
 
 ## Configuration
 
-Install the plugin from the web UI (**Plugins → Add**), then open its **Configuration** tab and set the repeater's address and the integration login. homeCore keeps the config file at `config/plugins/plugin.lutron.toml` and watches it. Saving restarts only this plugin, so it logs in with the new values. Core and the other plugins keep running.
+Install the plugin from the web UI (**Settings › Plugins › Catalog**), then open its **Configuration** tab and set the repeater's address and the integration login. homeCore keeps the config file at `config/plugins/plugin.lutron.toml` and watches it. Saving restarts only this plugin, so it logs in with the new values. Core and the other plugins keep running.
 
 The connection settings look like this in the file:
 

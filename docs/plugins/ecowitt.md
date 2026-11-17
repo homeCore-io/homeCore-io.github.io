@@ -92,7 +92,7 @@ outdoor and rain blocks. Those publish `battery_raw` and leave out
 
 ## Setup
 
-1. Install it from **Settings › Plugins › Add** and open its
+1. Install it from **Settings › Plugins › Catalog** and open its
    **Configuration** tab. homeCore records the install itself, so there is no
    `[[plugins]]` block to write. It owns the plugin's config file
    (`config/plugins/plugin.ecowitt.toml`) and restarts the plugin when the

@@ -183,7 +183,7 @@ alert fires.
 
 ## Setup
 
-Install it from the registry (Plugins › Add) and add thermostats from its
+Install it from the registry (**Settings › Plugins › Catalog**) and add thermostats from its
 page, or add them in its settings:
 
 ```toml

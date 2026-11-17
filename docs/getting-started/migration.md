@@ -98,7 +98,7 @@ account and writes the password to `INITIAL_ADMIN_PASSWORD` in its home
 directory (and prints it in the log). Sign in with that.
 
 Then install the same plugins the old machine had, from the web app
-(Plugins → Add). You can also install them after the restore. A restore
+(**Settings › Plugins › Catalog**). You can also install them after the restore. A restore
 puts the settings of a plugin the new machine doesn't list in
 `[[plugins]]` at `config/plugins/<plugin_id>.toml`, and an install keeps
 a settings file it finds there. Before v0.1.97 a restore skipped those
@@ -295,7 +295,7 @@ Skip steps 1 and 4. After installing:
    longitude, timezone). The JWT secret is generated for you.
 2. Start homeCore and sign in as `admin` with the password from
    `INITIAL_ADMIN_PASSWORD`. Change it, then delete the file.
-3. Install plugins from the web app (Plugins → Add) and fill in each
+3. Install plugins from the web app (**Settings › Plugins › Catalog**) and fill in each
    plugin's settings: hub addresses, API keys, credentials.
 4. Install the systemd service (step 6) if you aren't using Docker.
 

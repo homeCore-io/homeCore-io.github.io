@@ -7,9 +7,17 @@ sidebar_position: 2
 
 # Binary Releases
 
-HomeCore publishes pre-built static binaries for every tagged release.
-For most people this is the fastest way in: download a tarball, extract
-it, and run it.
+HomeCore publishes pre-built static binaries for every tagged release:
+download a tarball, extract it, and run it.
+
+:::note Most people should use Docker
+The tarballs hold core only. The web app, which is where you install
+plugins, add people and set up the house, is not in them. The
+[Docker stack](./docker) runs core and the web app together and is the
+recommended install. Use a tarball when you want core outside a container,
+and run the web app beside it (see
+[Web UI overview](../web-ui/overview#getting-it)).
+:::
 
 There are two kinds of release archive. Both use the same top-level
 `homecore/` directory, so they merge cleanly when you extract one over
@@ -153,7 +161,8 @@ file once you have signed in and changed the password.
 
 ## Mixing flavors
 
-Most people should install plugins from the web app (Plugins → Add).
+Most people should install plugins from the web app
+(**Settings › Plugins › Catalog**).
 Core downloads a signed artifact from the plugin registry, verifies it,
 and manages upgrades for you.
 

@@ -20,7 +20,7 @@ homeCore keeps the house; the UI server keeps how it is shown. Everything the ap
 
 ## Getting it
 
-The [Docker stack](../getting-started/docker.md) runs core and the app together and is the intended way to deploy both:
+The [Docker stack](../getting-started/docker.md) runs core and the app together and is the recommended way to install homeCore. The [binary release](../getting-started/binary-releases.md) tarball holds core only, without the app. To run the stack:
 
 ```sh
 git clone https://github.com/homeCore-io/docker.git homecore-docker
@@ -43,7 +43,7 @@ docker run -d --name hc-web-svelte --restart unless-stopped \
 
 `HC_CORE_URL` is how the container reaches homeCore: a compose service name or the host's address. Keep `/data` on a volume. homeCore's own backup doesn't include it; **Settings → Data & backups** saves it. `GET /ui/health` answers `{"ok":true}`.
 
-From source, you need Node: `npm install`, copy `.env.example` to `.env` and set `HC_CORE_URL`, then `npm run dev` serves the app on port 5180. For production, `npm run build && npm start`, configured with `PORT`, `HOST`, `HC_CORE_URL` and `HC_DATA_DIR`.
+From source, you need Node: `npm install`, then `npm run dev` serves the app on port 5180. For production, `npm run build && npm start`, configured with `PORT`, `HOST`, `HC_CORE_URL` and `HC_DATA_DIR`. Both servers read these from the process environment and never read a `.env` file, so set them in the shell: `HC_CORE_URL=http://192.168.1.50:8080 npm run dev`. `HC_CORE_URL` defaults to `http://127.0.0.1:8080`.
 
 ## Signing in
 

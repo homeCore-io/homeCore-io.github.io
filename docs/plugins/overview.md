@@ -70,7 +70,7 @@ without them gets the app's generic screens. See
 
 ## Installing a plugin
 
-The usual way is **Plugins → Add** in the web UI, or
+The usual way is **Settings › Plugins › Catalog** in the web UI, or
 `POST /api/v1/plugins/install`. homeCore fetches the plugin's artifact from
 the [signed registry](https://homecore.io/registry/) and checks the index's
 ed25519 signature and the artifact's SHA-256 before it unpacks anything. It

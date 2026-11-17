@@ -18,7 +18,7 @@ connect more than one bridge.
 
 ## Adding a bridge
 
-Install it from **Settings › Plugins › Add**, then open its page and choose
+Install it from **Settings › Plugins › Catalog**, then open its page and choose
 **Add a bridge**:
 
 1. homeCore looks for bridges on the network. For a bridge on another network,

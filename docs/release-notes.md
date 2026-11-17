@@ -25,6 +25,118 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.80, 2026-11-17
+
+- **Saving a plugin's settings says what happens next.** homeCore restarts a
+  plugin it runs as soon as its settings file changes, so the app now says
+  "homeCore restarts it to use them" instead of asking you to restart it,
+  which restarted it a second time. For a plugin in a runtime it says the
+  settings were sent there.
+
+### Release matrix
+
+**Tagged:** `v0.1.80` (hc-web-svelte).
+
+---
+
+## hc-mcp v0.1.4, 2026-11-17
+
+- Built on the Python SDK 0.5.6, which keeps one heartbeat after the
+  Assistant reconnects to homeCore. Before, each reconnect added another.
+- The plugin-development guide says the Rust SDK now answers `api_access`
+  itself.
+
+### Release matrix
+
+**Tagged:** `v0.1.4` (hc-mcp), in the plugin registry as `plugin.mcp`.
+
+---
+
+## v0.1.113, 2026-11-17
+
+- **Rust plugin SDK 0.6.5 catches up with the others.** It answers
+  homeCore's `api_access` itself and keeps the grant (`api_access()`,
+  `wait_for_api_access`, `with_api_access_handler`), passes the caller to
+  streaming actions (`ctx.caller()`), offers `Role::SignedIn` for device
+  actions, sends `data` with progress and questions, and keeps stream events
+  in order. Rust plugins pick it up when they are next released.
+- **The example config, comments and docs use made-up addresses** (192.168.1.x)
+  and say current things: rules are RON files, `v5_port = 0` turns the v5
+  listener off, the app is hc-web-svelte, and plugins come from the Catalog.
+- The plugin guide covers the Assistant slot, who called, a plugin's own REST
+  access, packaging per language and how a plugin gets listed.
+
+If you run from `homecore.dev.toml`, its `[auth]` and `[metrics]` whitelists
+now hold an example address. Put your own in a local config if you relied on
+them.
+
+### Release matrix
+
+**Tagged:** `v0.1.113` (core). Image `hc-runtime-python:0.1.113`.
+
+---
+
+## hc-plugin-sdk-dotnet v0.4.6, 2026-11-17
+
+- **A plugin reconnects after a dropped connection.** The SDK retries (1 second,
+  doubling up to 30), then subscribes again and fires `OnConnected`, so the
+  plugin registers its devices again. The new `OnDisconnected` event says the
+  connection went. Before, a plugin kept running without a connection until
+  homeCore noticed the missing heartbeats.
+- `EnableManagementAsync` keeps one heartbeat loop however often it is called.
+- The README shows a plugin homeCore can start (a published executable), how
+  to read `[homecore]` from the config file, and the logging package to add.
+
+### Release matrix
+
+**Tagged:** `v0.4.6` (hc-plugin-sdk-dotnet). Not published to NuGet.
+
+---
+
+## hc-plugin-sdk-js v0.4.6, 2026-11-17
+
+- **`set_log_level` works.** It changes the forwarding threshold, refuses a
+  level it doesn't know, and calls the new `onLogLevel(level)` hook.
+- `enableManagement` keeps one heartbeat timer, even when called from
+  `onConnect` on every reconnect.
+- The README shows how to read `[homecore]` from the config file and an entry
+  file homeCore can start; the examples leave stopping to the SDK.
+
+### Release matrix
+
+**Tagged:** `v0.4.6` (hc-plugin-sdk-js). Not published to npm.
+
+---
+
+## hc-plugin-sdk-py v0.5.6, 2026-11-17
+
+- **One heartbeat across reconnects.** paho reconnects by itself and calls
+  `on_connect` again, and each call to `enable_management` started another
+  heartbeat thread. Now there is one, and `stop()` ends it.
+- The README's first plugin reads its config file with `from_config()`.
+
+### Release matrix
+
+**Tagged:** `v0.5.6` (hc-plugin-sdk-py). Not published to PyPI.
+
+---
+
+## hc-mcp v0.1.3, 2026-11-17
+
+- **The Assistant knows homeCore's how-to guides.** Asked how to install or
+  upgrade homeCore, add a plugin, a runtime or a person, set up a development
+  environment or write a plugin, it reads the guide that covers it and follows
+  it, naming the screen for each step.
+- MCP clients such as Claude Desktop see each guide as a prompt, can read its
+  files as `homecore-skill://` resources, and get `list_skills` and
+  `read_skill` tools. The guides are the [homeCore skills](tools/skills).
+
+### Release matrix
+
+**Tagged:** `v0.1.3` (hc-mcp), in the plugin registry as `plugin.mcp`.
+
+---
+
 ## hc-plugin-sdk-dotnet v0.4.5, 2026-11-17
 
 Catches up with the Python SDK 0.5.5, so a .NET plugin can offer the same

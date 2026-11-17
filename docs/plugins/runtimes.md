@@ -17,23 +17,27 @@ Python environment, so two plugins that want different versions of a library
 never share one. They are not walled off from each other beyond that: a plugin
 you want kept apart from the rest goes in a runtime of its own.
 
+Runtimes are managed on the **Plugin runtimes** screen: open
+**Settings › Plugins** and choose the **Plugin runtimes** button beside
+**Catalog**.
+
 ## Before you start: the broker
 
 The runtime and its plugins talk to homeCore's broker over the network. If the
 broker answers only on homeCore's own machine (`[broker] host = "127.0.0.1"`,
-the default), **Settings › Plugins › Runtimes** says so and offers **Open the
+as the example config and the Docker image's config have it), the **Plugin runtimes** screen says so and offers **Open the
 broker to the network**. That sets `host = "0.0.0.0"`, adds a login for
 homeCore itself if there is none, and restarts homeCore. From then on the
 broker asks every connection for a login: homeCore makes one for each runtime
 and each plugin, so you never type one in.
 
 If homeCore runs from the Docker stack, its `compose.yml` publishes port 1883
-for this. Older copies of the file don't; add `- "1883:1883"` under the
+for this (`HC_BROKER_PORT` changes the host side). Older copies of the file don't; add `- "1883:1883"` under the
 `homecore` service's `ports`.
 
 ## Add a runtime
 
-1. In homeCore, open **Settings › Plugins › Runtimes** and choose
+1. In homeCore, open **Settings › Plugins**, choose **Plugin runtimes**, then
    **Add runtime**. Give it a name, and check the address the runtime will
    reach homeCore at. It's filled in from the address you're using.
 2. homeCore shows a **connection key**, once. Copy it. If it's lost, use

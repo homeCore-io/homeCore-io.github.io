@@ -55,12 +55,16 @@ archived read-only and the meta-workspace no longer exists. Instructions that
 mention any of it predate the monorepo.
 :::
 
+The template (`plugins/hc-plugin-template`) depends on the SDK this way
+too, by path.
+
 For a Rust plugin developed *outside* the homeCore repo, pin a core release
-tag. The SDK re-exports `hc-types`, which is the plugin ABI, so the tag keeps
-it from changing under you:
+tag, the newest when you start (v0.1.113 at the time of writing). The SDK
+re-exports `hc-types`, which is the plugin ABI, so the tag keeps it from
+changing under you:
 
 ```toml
-plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.29" }
+plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.113" }
 ```
 
 No `path` key is needed: cargo finds `plugin-sdk-rs` by package name among the
@@ -85,9 +89,21 @@ To pin a release instead:
 
 | | |
 |---|---|
-| Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.2.0` |
-| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.2.0` |
-| .NET | clone at the tag, then `dotnet add reference …/HomeCoreSdk.csproj` |
+| Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.5.6` |
+| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.4.6` |
+| .NET | clone at `v0.4.6`, then `dotnet add reference …/HomeCoreSdk.csproj` |
+
+These were the newest tags at the time of writing; each SDK's releases list
+the current one. In a `pyproject.toml`, depend on `homecore-plugin-sdk` and
+tell uv where it is:
+
+```toml
+[project]
+dependencies = ["homecore-plugin-sdk>=0.5.5"]
+
+[tool.uv.sources]
+homecore-plugin-sdk = { git = "https://github.com/homeCore-io/hc-plugin-sdk-py", tag = "v0.5.6" }
+```
 
 NuGet has no equivalent of a git install, which is why .NET clones.
 
@@ -476,6 +492,8 @@ Configuration comes from constructor arguments, then the environment
 (`HC_BROKER_HOST`, `HC_BROKER_PORT`, `HC_PLUGIN_PASSWORD`), then defaults.
 Requires Python 3.11+. See `examples/virtual_light.py` in the SDK repo for a
 complete plugin.
+To ship it through the Catalog, into a plugin runtime, see
+[Releasing a Python plugin](#releasing-a-python-plugin).
 
 ---
 
@@ -529,7 +547,9 @@ class MyPlugin extends PluginBase {
 new MyPlugin({ brokerHost: '127.0.0.1', brokerPort: 1883 }).run();
 ```
 
-Requires Node.js 18+. See `examples/virtual_light.js` in the SDK repo.
+Requires Node.js 18+. See `examples/virtual_light.js` in the SDK repo. Node.js
+plugins are not in the Catalog yet; see
+[Node.js and .NET plugins](#nodejs-and-net-plugins).
 
 ---
 
@@ -866,10 +886,24 @@ list each time; one you stop sending has cleared. See
 
 A plugin can carry web components for its page, its devices' panel, the
 automation editor's form for a step on its devices, its devices' cards on
-Home and the rooms, and cards of its own that a household adds to a page. It
-serves them itself with `with_ui_dir`. Pictures it fetches while running
-(channel icons, say) are served with `with_files_dir`. See
-[Screens and Cards](./plugin-screens).
+Home and the rooms, cards of its own that a household adds to a page, and a
+helper anyone can open from the app's top bar. It serves them itself with
+`with_ui_dir`. Pictures it fetches while running (channel icons, say) are
+served with `with_files_dir`. See [Screens and Cards](./plugin-screens).
+
+How the built screens reach an installed plugin depends on the language:
+
+- **Rust.** The release builds `ui/` and packs `ui/dist` as `ui/` beside the
+  binary in the plugin's `.tar.zst` (`ui = "ui"` in its `plugin.toml`).
+  `plugin_sdk_rs::ui::find_dir` finds it there.
+- **Python.** The screens go inside the wheel, as package data in a `ui/`
+  folder in your package, where the SDK's `ui.find_dir(__file__)` looks.
+  hc-mcp does it with hatchling:
+
+  ```toml
+  [tool.hatch.build.targets.wheel.force-include]
+  "ui" = "hc_mcp/ui"
+  ```
 
 ## SDK feature matrix
 
@@ -1012,21 +1046,36 @@ password = "change-me"
 
 ## Distributing a plugin
 
-Plugins don't ship as container images. They ship as signed `.tar.zst`
-artifacts in the [plugin registry](https://github.com/homeCore-io/registry):
-a `plugin.toml` manifest plus the binary, ed25519-signed, indexed at
-`https://homecore.io/registry/index.json`.
+Plugins don't ship as container images. They ship as `.tar.zst` artifacts
+listed in the [plugin registry](https://github.com/homeCore-io/registry): a
+`plugin.toml` manifest plus the binary, or for Python the plugin and every
+dependency as wheels. The registry's index,
+`https://homecore.io/registry/index.json`, is ed25519-signed, and each entry
+pins its artifact by SHA-256.
 
-Core downloads the artifact, verifies the signature against the public key in
-its `[registry]` config, and unpacks it to
+Core downloads the index and checks its signature against the public key in
+its `[registry]` config, downloads the artifact and checks its SHA-256, and
+only then unpacks it to
 `$HOMECORE_HOME/plugins/<id>/<version>/`. It then seeds a config with
 generated MQTT credentials and runs the binary as a child process that it
-supervises and restarts. Users install with Plugins → Add in the web UI.
+supervises and restarts. Users install from **Settings › Plugins › Catalog**
+in the web app.
 
-A plugin's own screens go in the same package. When your plugin has
-`ui/package.json`, the release builds it and packs `ui/dist` as `ui/` beside
-the binary (`ui = "ui"` in `plugin.toml`), and homeCore installs it there for
-the plugin to serve. Commit `ui/package-lock.json`.
+There used to be a `plugins/Dockerfile.plugin` template for building a plugin
+into its own container, run with `network_mode: host` against core's broker.
+That approach is retired and the template is gone. If you need a plugin on a
+different host, the SDK still supports it: point `broker_host` /
+`broker_port` in the plugin's `[homecore]` config at core's broker, and
+expose the broker accordingly.
+
+### Releasing a Rust plugin
+
+A Rust plugin's id comes from its binary name: `hc-<name>` becomes
+`plugin.<name>`, so `hc-my-plugin` is `plugin.my-plugin`. In its
+`Cargo.toml`, `package.description` is the line under its name in the
+Catalog, and `[package.metadata.homecore]` holds `name` (as people see it)
+and `category` (Lighting, Climate, Media, Hubs, Weather, or a new one), which
+the Catalog groups by.
 
 Releasing takes one tag on the homeCore repo. Bump the version in your
 plugin's `Cargo.toml` on `develop`, merge to `main`, wait for CI to pass, and
@@ -1039,12 +1088,76 @@ means an installable plugin, not just a successful build. A plain
 
 There is no per-plugin workflow to copy, and no SDK tag to push first.
 
-There used to be a `plugins/Dockerfile.plugin` template for building a plugin
-into its own container, run with `network_mode: host` against core's broker.
-That approach is retired and the template is gone. If you need a plugin on a
-different host, the SDK still supports it: point `broker_host` /
-`broker_port` in the plugin's `[homecore]` config at core's broker, and
-expose the broker accordingly.
+A plugin's own screens go in the same package. When your plugin has
+`ui/package.json`, the release builds it and packs `ui/dist` as `ui/` beside
+the binary (`ui = "ui"` in `plugin.toml`), and homeCore installs it there for
+the plugin to serve. Commit `ui/package-lock.json`.
+
+### Releasing a Python plugin
+
+A Python plugin ships as a hermetic artifact for a
+[plugin runtime](./runtimes): the plugin, the SDK and every dependency as
+wheels, which the runtime installs offline. Its `pyproject.toml` says what it
+is:
+
+```toml
+[project]
+name = "hc-mything"
+version = "0.1.0"
+description = "One line for its card in the Catalog"
+dependencies = ["homecore-plugin-sdk>=0.5.5"]
+
+[tool.homecore]
+id = "plugin.mything"            # required
+entrypoint = "hc_mything.plugin" # required: run as `python -m`, given the config path
+name = "My Thing"                # the Catalog's display name; the id if left out
+category = "Tools"               # the Catalog group
+```
+
+`homecore-plugin-sdk` must be in `dependencies`: the runtime installs only
+what the plugin declares, and the build refuses a plugin that leaves it out.
+
+The release is hc-scripts' shared `python-release.yml` workflow, called from
+your repository's release workflow when you push a tag:
+
+```yaml
+jobs:
+  release:
+    uses: homeCore-io/hc-scripts/.github/workflows/python-release.yml@main
+    with:
+      plugin_dir: .
+      sdk_ref: v0.5.6   # the SDK tag built into the artifact
+    secrets: inherit
+```
+
+It builds an artifact for each architecture, installs it into a clean
+environment and starts it against a broker before anything is published,
+then attaches it to the GitHub Release and notifies the registry. Set
+`sdk_ref` to the SDK tag your plugin needs; the workflow's default is older.
+[hc-mcp](https://github.com/homeCore-io/hc-mcp), the Assistant, is the real
+example: its `pyproject.toml` and `.github/workflows/release.yml` are a
+complete Python plugin release.
+
+### Node.js and .NET plugins
+
+Node.js and .NET plugins have no release path to the Catalog yet. Run one
+as a `[[plugins]]` entry in `homecore.toml`
+([Configuration](../getting-started/configuration#plugins)): homeCore
+starts `binary` with the config file's path as its only argument, so point
+`binary` at something that runs the plugin by itself, such as an entry
+script with a `#!/usr/bin/env node` line marked executable, or the program
+`dotnet publish` makes.
+
+### Getting listed in the Catalog
+
+The registry's maintainers list plugins. Its index is signed with a key only
+the registry's own workflows hold, and an entry is added either by a release
+in a homeCore-io repository or by a maintainer running the registry's
+**Publish plugin to registry** workflow with the artifact's URL and SHA-256.
+If you have written a plugin you would like listed, publish its artifact on
+a GitHub Release and open an issue on
+[homeCore-io/registry](https://github.com/homeCore-io/registry/issues) with
+the link.
 
 ## Declaring a device
 

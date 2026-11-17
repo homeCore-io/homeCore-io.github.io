@@ -20,11 +20,12 @@ homeCore/
 ├── Justfile                    ← workspace recipes (symlink to hc-scripts/Justfile.workspace)
 │
 ├── hc-scripts/                 ← workspace-clone.sh, run-dev.sh, deploy.sh,
-│                                  build-archive.sh, reusable GitHub Actions workflows
-│                                  (rust-ci.yml, rust-release.yml, node-ci.yml, …)
+│                                  build-archive.sh, devenv/ (the dev shell),
+│                                  reusable GitHub Actions workflows
+│                                  (rust-ci.yml, rust-release.yml, python-release.yml, …)
 │
 ├── core/                       ← THE monorepo (git repo: homeCore-io/homeCore)
-│   ├── Cargo.toml              ← virtual workspace: server + 17 crates + SDK + 15 plugins
+│   ├── Cargo.toml              ← virtual workspace: server + 17 crates + SDK + runtime host + 17 plugins
 │   ├── Cargo.lock              ← one lockfile for all of it
 │   ├── config/
 │   │   ├── homecore.toml.example   ← reference config
@@ -69,12 +70,15 @@ homeCore/
 │       ├── hc-roku/            ← Roku TVs and players (ECP)
 │       ├── hc-nuheat/          ← NuHeat Signature floor-heating thermostats
 │       ├── hc-weather/         ← Open-Meteo weather + national weather service warnings
+│       ├── hc-mysa/            ← Mysa thermostats (Mysa cloud API)
+│       ├── hc-reolink/         ← Reolink cameras, NVRs and Home Hubs (live video through go2rtc)
 │       ├── hc-captest/         ← capability-spec conformance test plugin
 │       └── hc-plugin-template/ ← the starting point for a new plugin
 │
 ├── plugins/                    ← plugins that are NOT Rust, so not members above
 │   └── hc-matter/              ← Matter bridge (TypeScript, matter.js)
 ├── plugins-py/                 ← every Python plugin, one repo (homeCore-io/hc-plugins-py)
+├── extensions/                 ← UI extensions for the web app (homeCore-io/hc-extensions)
 │
 ├── clients/                    ← UI and API consumers
 │   ├── hc-web-svelte/          ← the web app (SvelteKit) and its UI server
@@ -89,13 +93,16 @@ homeCore/
 │   ├── hc-plugin-sdk-js/       ← Node.js SDK
 │   └── hc-plugin-sdk-dotnet/   ← .NET SDK
 │
+├── skills/                     ← Agent Skills for AI assistants (homeCore-io/skills)
 └── homeCore-io.github.io/      ← this documentation site
 ```
 
 In `core/config/`, `homecore.local.toml` and the `plugins/` directory are
 gitignored because they can hold credentials. A fresh machine gets every
 repo in the list with `./hc-scripts/workspace-clone.sh`, which reads
-`workspace.toml` and clones whatever is missing.
+`workspace.toml` and clones whatever is missing. For the dev shell, copy
+`hc-scripts/devenv/` to the workspace root (see
+[Dev Workflow](./dev-workflow#toolchain)).
 
 ---
 
@@ -146,11 +153,14 @@ The design and history are in
 ### The non-Rust components
 
 `plugins/hc-matter` (TypeScript), `plugins-py` (Python plugins),
-`clients/hc-web-svelte` (SvelteKit), `clients/hc-mcp` (Python) and the
-three non-Rust SDKs stay separate repos because cargo cannot absorb them.
-`clients/hc-tui` and `clients/hc-web-leptos` are Rust but separate repos
-too, each with its own lockfile; the workspace `Justfile` builds and
-checks them on their own.
+`clients/hc-web-svelte` (SvelteKit), `clients/hc-mcp` (Python),
+`extensions` (the UI extensions homeCore makes, built with `pack.sh`) and
+the three non-Rust SDKs stay separate repos because cargo cannot absorb
+them. `skills` holds the [Agent Skills](../tools/skills.md) for AI assistants;
+hc-mcp ships a copy of them.
+`clients/hc-tui` is Rust but a separate repo too, with its own lockfile; the
+workspace `Justfile` builds and checks it on its own. `clients/hc-web-leptos`
+is Rust as well, and retired.
 
 A Python, Node.js or .NET plugin points at its SDK's checkout directly:
 

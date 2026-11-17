@@ -35,11 +35,30 @@ The log tools stay with MCP clients, since homeCore serves logs only to admins.
 
 ---
 
+## Skills
+
+Since v0.1.3, hc-mcp ships a copy of homeCore's
+[skills](./skills.md) from
+[homeCore-io/skills](https://github.com/homeCore-io/skills):
+`dev-environment`, `install-and-setup` and `plugin-development`.
+
+- **Prompts.** An MCP client sees each skill as a prompt, to start a
+  conversation with.
+- **Resources.** Every file of a skill can be read as a
+  `homecore-skill://<skill>/<file>` resource, for example
+  `homecore-skill://plugin-development/references/python.md`.
+- **Tools.** `list_skills` lists them and `read_skill` reads one.
+
+The Assistant knows the skills by name and reads the one that fits (with
+`read_skill`) when someone asks how to do something.
+
+---
+
 ## Tool surface
 
-There are 27 tools. The 18 read-only tools are always available; the 9 that change things are each switched on by category with `HC_MCP_ALLOW_WRITE`.
+There are 29 tools. The 20 read-only tools are always available; the 9 that change things are each switched on by category with `HC_MCP_ALLOW_WRITE`. hc-mcp also serves homeCore's skills as prompts and resources (see [Skills](#skills)).
 
-### Read-only (always on, 18 tools)
+### Read-only (always on, 20 tools)
 
 | Tool | Endpoint | Purpose |
 |---|---|---|
@@ -61,6 +80,8 @@ There are 27 tools. The 18 read-only tools are always available; the 9 that chan
 | `core_logs(lines, level, grep)` | `WS /logs/stream` | Tail HomeCore's structured logs |
 | `plugin_logs(plugin_id, lines, ...)` | `WS /logs/stream` | The same, for one plugin |
 | `find_recent_errors(lines)` | `WS /logs/stream` | WARN and ERROR lines from core and every plugin |
+| `list_skills` | none (shipped with hc-mcp) | The skills hc-mcp carries and their files |
+| `read_skill(name, file)` | none (shipped with hc-mcp) | One file of a skill; `file` defaults to `SKILL.md` |
 
 `correlation_trace` filters on the client side, so it only sees what is still in the event ring buffer (the last 1000 events).
 
@@ -134,7 +155,7 @@ By default the key gets `areas:read`, `automations:read`, `audit:read`, `devices
 
 ### Manual config
 
-To provision the key yourself, create one in the web app (**Me → API keys**, or **Settings → People & access**) or with `hc-cli` on the HomeCore host:
+To provision the key yourself, create one in the web app (**Me › API keys**, or the **API keys** link on **Settings › People & access**) or with `hc-cli` on the HomeCore host:
 
 ```bash
 hc-cli api-key create --label hc-mcp \
