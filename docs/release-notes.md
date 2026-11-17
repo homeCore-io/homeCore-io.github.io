@@ -25,6 +25,45 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.81, 2026-11-17
+
+- When the runtime installs a plugin at once (homeCore 0.1.114 and runtime
+  0.2.2), the Catalog and the plugin page say it is installing it now instead
+  of promising a wait of up to a minute.
+
+### Release matrix
+
+**Tagged:** `v0.1.81` (hc-web-svelte).
+
+---
+
+## v0.1.114, 2026-11-17
+
+- **A plugin runtime installs a change in seconds.** After you install, update
+  or uninstall a plugin that runs in a runtime, homeCore asks that runtime to
+  check in right away, so it starts on the change at once instead of on its
+  next check-in, up to 30 seconds later. Updating the Assistant took about 20
+  seconds from the click, most of it building its Python environment.
+- Runtime host 0.2.2 adds a **Check in now** action to the runtime's own
+  plugin page. Pull `hc-runtime-python:0.1.114` and restart the container to
+  get it; an older runtime keeps working and checks in on its schedule.
+
+### Fixed
+
+- **A revoked API key could come back.** If a key was in use at the moment
+  it was revoked, homeCore's "last used" stamp could write it back unrevoked,
+  and editing or rotating a key just after it was deleted brought it back.
+  Revoking is now final, a deleted key stays deleted, and rotating a revoked
+  key is refused (make a new one instead). Display keys are API keys too, so
+  removing a display now always signs it out.
+
+### Release matrix
+
+**Tagged:** `v0.1.114` (core). Image `hc-runtime-python:0.1.114` (runtime host
+0.2.2).
+
+---
+
 ## App v0.1.80, 2026-11-17
 
 - **Saving a plugin's settings says what happens next.** homeCore restarts a
