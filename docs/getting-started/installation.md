@@ -134,7 +134,7 @@ At startup core creates `config/profiles`, `config/calendars`,
 ### Install to a directory of your choice
 
 ```bash
-# Pick where HomeCore should live; this is the parent of `homecore/`.
+# Pick where homeCore should live; this is the parent of `homecore/`.
 mkdir -p ~/homecore-install/homecore/{bin,config,rules}
 cd ~/homecore-install
 
@@ -173,7 +173,7 @@ WARN homecore:   Username : admin
 WARN homecore:   Password : AbCdEf12GhIj34Kl
 WARN homecore:   Saved to : /home/you/homecore-install/homecore/INITIAL_ADMIN_PASSWORD
 WARN homecore:   Change this password immediately after first login!
-INFO hc_api: HomeCore API server starting addr=0.0.0.0:8080
+INFO hc_api: homeCore API server starting addr=0.0.0.0:8080
 ```
 
 Sign in, change the password, and delete the file. Core writes the password

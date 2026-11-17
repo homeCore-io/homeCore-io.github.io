@@ -217,7 +217,7 @@ as `/opt/homecore`, and is what `scripts/install-service.sh` uses.
 ```ini
 # /etc/systemd/system/homecore.service
 [Unit]
-Description=HomeCore Home Automation Server (external Mosquitto)
+Description=homeCore Home Automation Server (external Mosquitto)
 After=network-online.target mosquitto.service
 Wants=network-online.target
 Requires=mosquitto.service

@@ -26,7 +26,7 @@ Plugins (separate processes)
     ↕ MQTT
 Embedded MQTT broker (rumqttd, inside core)
     ↕
-HomeCore core
+homeCore core
   ├── State bridge: MQTT messages become typed device events
   ├── Rule engine: triggers, conditions, actions
   ├── Scheduler: times, cron, sunrise and sunset, calendars

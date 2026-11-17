@@ -123,7 +123,7 @@ Extracting a plugin archive over a core install adds
 ## Quickstart
 
 ```bash
-# Pick where HomeCore should live; this is the parent of `homecore/`.
+# Pick where homeCore should live; this is the parent of `homecore/`.
 mkdir -p ~/homecore-install
 cd ~/homecore-install
 

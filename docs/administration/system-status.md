@@ -151,7 +151,7 @@ kill -SIGTERM $(pgrep -x homecore)
 
 The log shows `Received SIGTERM` (or `SIGINT`), then the rule engine,
 scheduler and API server each reporting that they are stopping, and ends
-with `HomeCore shutdown sequence complete`.
+with `homeCore shutdown sequence complete`.
 
 If you see `shutdown drain timed out`, a running action (a slow HTTP call,
 for example) didn't finish within the drain window. That is usually
