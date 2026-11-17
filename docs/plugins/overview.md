@@ -150,9 +150,10 @@ fills in `[homecore]` at install.
 You can change a plugin's settings on its page (the **Settings** tab), over
 the API (`PUT /api/v1/plugins/{id}/config`), or by editing the file. homeCore
 watches the directory and restarts that one plugin so it reads the new
-settings. homeCore itself doesn't restart, and no other plugin is touched. A
-write that leaves the file's bytes unchanged is ignored, and a file that
-briefly disappears during a save never stops a running plugin. For a plugin
+settings. homeCore itself doesn't restart, and no other plugin is touched.
+homeCore compares the parsed settings, so a write that changes only comments
+or spacing is ignored, and so is one that changes only `[logging] level`. A
+file that briefly disappears during a save never stops a running plugin. For a plugin
 in a runtime, homeCore sends the new settings to the runtime instead.
 
 The settings form comes from the plugin's config schema and descriptor
@@ -161,7 +162,8 @@ that publishes neither gets a TOML text box.
 
 The **Log** tab shows the plugin's own log lines. Changing its log level on
 the page reaches the running plugin at once and is saved in the plugin's
-`[logging] level`.
+`[logging] level`. The plugin keeps running; a level change doesn't restart
+it.
 
 To run a plugin by hand during development, pass it a config path:
 

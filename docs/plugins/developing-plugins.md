@@ -688,8 +688,10 @@ and .NET `EnableLogForwarding`.
 
 `set_log_level` changes the level while the plugin runs. homeCore sends it
 when someone changes the level on the plugin's page, and also saves it in the
-plugin's `[logging] level`. A Rust plugin needs a `LogLevelHandle` passed to
-`enable_management` for this; without one, the change waits for a restart.
+plugin's `[logging] level`. Saving the level doesn't restart your plugin, so
+`set_log_level` is how the new level reaches it. A Rust plugin needs a
+`LogLevelHandle` passed to `enable_management` for this; without one, the
+change waits for the next restart.
 Node.js calls `onLogLevel(level)` when it changes.
 
 :::caution Secrets in forwarded logs
@@ -717,7 +719,8 @@ Publish both. The schema says which fields exist and is what homeCore
 validates against; the descriptor says how to show them. homeCore serves them
 at `GET /api/v1/plugins/{id}/config/schema` and `/config/descriptor`. The app
 writes only what changed and keeps the file's comments, and homeCore restarts
-the plugin when its file changes.
+the plugin when its settings change. A change to only `[logging] level`
+reaches the plugin through `set_log_level` instead.
 
 ```rust
 let mgmt = match config::config_schema() {

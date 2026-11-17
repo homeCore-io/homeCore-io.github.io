@@ -38,7 +38,7 @@ Two RON details catch people out:
 - Optional fields take `Some(...)` in RON: `attribute: Some("open")`, not `attribute: "open"`. Leave an optional field out entirely to mean "not set". JSON needs no wrapper.
 - A trigger with no fields is written by name alone: `trigger: SystemStarted` in RON, `"trigger": "SystemStarted"` in JSON.
 
-Fields called `device_id` also accept the spelling `device`. On `DeviceStateChanged`, `DeviceAvailabilityChanged`, `ButtonEvent` and `NumericThreshold`, either one takes a canonical name (`living_room.floor_lamp`), a unique display name (`Kitchen Speaker`) or a raw device ID. If a display name matches more than one device, homeCore disables the rule with an ambiguity error. The battery triggers take the raw device ID only. See [Rules overview](./overview.md#device-references).
+Fields called `device_id` also accept the spelling `device`. On `DeviceStateChanged`, `DeviceAvailabilityChanged`, `ButtonEvent`, `NumericThreshold` and the battery triggers, either one takes a canonical name (`living_room.floor_lamp`), a unique display name (`Kitchen Speaker`) or a raw device ID. So does `device_ids` in an alert trigger's `filter`. If a display name matches more than one device, homeCore disables the rule with an ambiguity error. See [Rules overview](./overview.md#device-references).
 
 ### Several triggers
 
@@ -576,7 +576,7 @@ trigger: DeviceBatteryLow(
 ),
 ```
 
-`device_id` takes the raw device ID here. A canonical or display name is not looked up, so it never matches.
+`device_id` takes a canonical name, a unique display name or a raw device ID, like every other device field.
 
 The thresholds live in `[battery]` in `homecore.toml`. See [Battery monitoring](../devices/battery-monitoring.md) for the whole feature.
 

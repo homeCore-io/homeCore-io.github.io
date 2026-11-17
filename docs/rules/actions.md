@@ -287,7 +287,7 @@ action: Notify(
 
 `channel` is the name you gave a channel in `homecore.toml`, or `all` to send to every one. If sending fails (an unknown channel, a network error), homeCore logs a warning and carries on with the next action.
 
-`picture_from` names a camera (any device with a `snapshot` reading). homeCore asks it for a fresh snapshot, waits up to 8 seconds for it, and otherwise sends the newest one it has. The same picture goes to every channel: a photo on Telegram (the message becomes its caption, up to 1,024 characters), an attachment on Pushover (up to 5 MB) and by email. A channel that can't send pictures sends the words alone, and so does every channel if no picture can be had. In the app, it's **With a picture from** on a Notify step.
+`picture_from` names a camera (any device with a `snapshot` reading) by canonical name, unique display name or device ID. homeCore asks it for a fresh snapshot, waits up to 8 seconds for it, and otherwise sends the newest one it has. The same picture goes to every channel: a photo on Telegram (the message becomes its caption, up to 1,024 characters), an attachment on Pushover (up to 5 MB) and by email. A channel that can't send pictures sends the words alone, and so does every channel if no picture can be had. In the app, it's **With a picture from** on a Notify step.
 
 In a rule an alert started, `{alert.message}`, `{alert.device}`, `{alert.device_id}`, `{alert.reason}`, `{alert.kind}`, `{alert.key}`, `{alert.severity}`, `{alert.raised_at}` and `{alert.id}` in the message or title are replaced with the alert's details. `LogMessage` supports the same placeholders. No other template syntax is substituted.
 
@@ -841,7 +841,7 @@ action: ResumeRule(
 
 ## Alert actions
 
-These act on homeCore's alerts. With no `alert_id`, an alert action works on "the alert": the one a surrounding `ForEachAlert` is on, otherwise the one that started the rule. With no such alert, the step does nothing and the rule carries on. See [Alerts that start automations](./alert-automations.md) for the `AlertFilter` fields. Device names inside `ForEachAlert` and `otherwise` aren't looked up, so use raw device IDs there.
+These act on homeCore's alerts. With no `alert_id`, an alert action works on "the alert": the one a surrounding `ForEachAlert` is on, otherwise the one that started the rule. With no such alert, the step does nothing and the rule carries on. See [Alerts that start automations](./alert-automations.md) for the `AlertFilter` fields. Steps inside `ForEachAlert` and `otherwise` take device names the same as any other step.
 
 ```ron
 // Install each waiting WLED update, one at a time

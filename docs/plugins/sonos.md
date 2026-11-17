@@ -81,9 +81,10 @@ These are under **Settings › Plugins › Sonos › Settings**.
 | Scan duration | `sonos.discovery_timeout_secs` | 5 s | How long each search listens, and how long a manual host has to answer. |
 | Manual hosts | `sonos.manual_hosts` | empty | Speaker addresses to probe directly, for example `192.168.1.50` or `192.168.1.50:1400`. Port 1400 if none is given. |
 | Enable HTTP API | `api.enabled` | on | The plugin's own HTTP API. It also receives the speakers' events, so turning it off leaves state only as fresh as the one-minute check. |
-| Bind address | `api.host` | `0.0.0.0` | Where the API listens. |
+| Bind address | `api.host` | `0.0.0.0` | Where the API listens. Speakers deliver their events here, so keep it reachable from the LAN. |
 | Port | `api.port` | 5005 | The API's port. |
 | Callback host | `api.callback_host` | none | The LAN address speakers call back to with events. Required when the API listens on `0.0.0.0`; without it speakers are told 127.0.0.1, which is themselves. |
+| Allow control from other machines | `api.allow_remote_control` | off | Off, the web page and the control routes answer only requests from this machine; other machines get `403 Forbidden`. On, anyone who can reach the port can control the speakers. The speakers' event callbacks are accepted from the network either way. See [The plugin's own HTTP API](#the-plugins-own-http-api). |
 | Speakers | `devices` | | Each speaker's name and room in homeCore. |
 
 The Logging section has the usual level, forwarding, rotation and pruning
@@ -313,6 +314,7 @@ Forget removes one.
 | Commands do nothing | Look at the speaker's `last_command_error`. |
 | Favourites or playlists are empty | They are read every five minutes. Check `available_favorites` and `available_playlists` after that. |
 | Grouping says "no answer" | That speaker didn't reply within four seconds because it is off, asleep or unreachable. Try again from Play together. |
+| The HTTP API answers `403 Forbidden` | The request came from another machine. Call it from the homeCore host, or turn on Allow control from other machines. The log says "Refused a Sonos HTTP API request from another machine" with the caller's address. |
 
 On a host with more than one network interface, the kernel may send
 multicast out the wrong one, and the search fails without an error. If the
@@ -354,8 +356,17 @@ Other routes include `/{room}/pause`, `/{room}/volume/{level}`,
 `/{room}/leave`, `/{room}/clearqueue` and `/pauseall`. In automations, use the
 homeCore device instead.
 
-This API has no sign-in. Anyone who can reach port 5005 can control the
-speakers, so keep that port inside your home network.
+This API has no sign-in, so by default it answers only requests from the
+machine homeCore runs on: loopback, or that machine's own address. A rule on
+the homeCore host calling `http://192.168.1.10:5005/Kitchen/play` works.
+Requests from any other machine, including a browser opening the web page,
+get `403 Forbidden`. The speakers' event callbacks (`/sonos/callback/...`)
+are always accepted from the network.
+
+To use the API from another machine, run the caller on the homeCore host, or
+turn on **Allow control from other machines** (`api.allow_remote_control =
+true`). With it on, anyone who can reach port 5005 can control the speakers,
+so keep that port inside your home network.
 
 ## Known limits
 

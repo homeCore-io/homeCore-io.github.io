@@ -642,7 +642,9 @@ On first start, core copies each plugin's config file into its own store at
 `config/plugins/<id>.toml` and from then on gives the plugin that copy. The
 `config` path stays the import source, and `homecore.toml` isn't rewritten.
 When a plugin's settings change, from the app or the file, core restarts the
-plugin to use them.
+plugin to use them. A change to only its `[logging] level`, or only to
+comments or spacing, doesn't restart it; the app sends a new log level to the
+running plugin instead.
 
 ### `[metrics]`
 
