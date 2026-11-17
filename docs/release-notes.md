@@ -36,18 +36,6 @@ a release nobody outside the workspace can find out about.
 
 ---
 
-## hc-tui v0.1.4, 2026-11-17
-
-- **Making a helper works.** The helper creator in Manage sent a field homeCore
-  didn't accept, so every new helper was refused.
-- The README no longer lists a Dashboards tab.
-
-### Release matrix
-
-**Tagged:** `v0.1.4` (hc-tui).
-
----
-
 ## hc-ecowitt v0.1.27, 2026-11-17
 
 - **A gateway that is only polled no longer gets "no reports received".**
