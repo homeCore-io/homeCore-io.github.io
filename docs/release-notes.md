@@ -48,6 +48,15 @@ a release nobody outside the workspace can find out about.
   plugin page. Pull `hc-runtime-python:0.1.114` and restart the container to
   get it; an older runtime keeps working and checks in on its schedule.
 
+### Fixed
+
+- **A revoked API key could come back.** If a key was in use at the moment
+  it was revoked, homeCore's "last used" stamp could write it back unrevoked,
+  and editing or rotating a key just after it was deleted brought it back.
+  Revoking is now final, a deleted key stays deleted, and rotating a revoked
+  key is refused (make a new one instead). Display keys are API keys too, so
+  removing a display now always signs it out.
+
 ### Release matrix
 
 **Tagged:** `v0.1.114` (core). Image `hc-runtime-python:0.1.114` (runtime host
