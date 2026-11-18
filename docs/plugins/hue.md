@@ -5,7 +5,22 @@ sidebar_label: Philips Hue
 sidebar_position: 4
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Philips Hue (`hc-hue`)
+
+<PluginFacts
+  mark="Hu"
+  kind="lights"
+  summary="Connects Philips Hue bridges to homeCore, with their lights, rooms, zones, scenes, sensors and switches as devices."
+  version="0.2.9"
+  runs="Under core (Rust)"
+  talks="The bridge on your network"
+  account="None"
+  devices={["light", "group", "scene", "motion_sensor", "button"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-hue"
+  setup="#install-and-set-up"
+/>
 
 The Hue plugin connects homeCore to Philips Hue bridges on your network. Each
 bridge's lights, rooms and zones, scenes, motion sensors, contact sensors and

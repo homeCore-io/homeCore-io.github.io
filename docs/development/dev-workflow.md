@@ -1,7 +1,7 @@
 ---
 id: dev-workflow
 title: Dev Workflow
-sidebar_label: Dev Workflow
+sidebar_label: Dev workflow
 sidebar_position: 2
 ---
 

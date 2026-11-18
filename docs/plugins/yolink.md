@@ -5,7 +5,22 @@ sidebar_label: YoLink
 sidebar_position: 5
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # YoLink (`hc-yolink`)
+
+<PluginFacts
+  mark="Yo"
+  kind="sensors"
+  summary="Brings YoLink sensors, locks, plugs, switches and sirens into homeCore through a local hub or YoLink's cloud."
+  version="0.1.22"
+  runs="Under core (Rust)"
+  talks="Local hub or YoLink's cloud"
+  account="YoLink API credentials"
+  devices={["water_sensor", "contact_sensor", "temperature_sensor", "lock", "switch"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-yolink"
+  setup="#install-and-set-up"
+/>
 
 The YoLink plugin brings YoLink devices into homeCore: leak sensors, door
 sensors, temperature sensors and probes, vibration and motion sensors, locks,

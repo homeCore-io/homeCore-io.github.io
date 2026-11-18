@@ -1,7 +1,7 @@
 ---
 id: topic-mapper
 title: Topic Mapper & Ecosystem Profiles
-sidebar_label: Topic Mapper
+sidebar_label: Topic mapper
 sidebar_position: 5
 ---
 

@@ -1,0 +1,44 @@
+.bar {
+  position: sticky;
+  top: calc(var(--ifm-navbar-height) + 8px);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 1.5rem 0 2rem;
+  padding: 10px;
+  border: 1px solid var(--hc-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--hc-surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--hc-shadow);
+}
+
+.chip {
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--hc-line);
+  background: var(--hc-surface);
+  color: var(--hc-ink-2);
+  font: 600 0.9rem var(--ifm-font-family-base);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--hc-accent);
+}
+
+.on {
+  background: var(--hc-ink);
+  border-color: var(--hc-ink);
+  color: var(--hc-bg);
+}
+
+.count {
+  margin-left: auto;
+  font: 0.8rem var(--ifm-font-family-monospace);
+  color: var(--hc-muted);
+  padding: 0 6px;
+}

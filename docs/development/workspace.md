@@ -1,7 +1,7 @@
 ---
 id: workspace
 title: Workspace Layout
-sidebar_label: Workspace Layout
+sidebar_label: Workspace layout
 sidebar_position: 1
 ---
 

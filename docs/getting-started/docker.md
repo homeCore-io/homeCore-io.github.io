@@ -1,7 +1,7 @@
 ---
 id: docker
 title: Docker Deployment
-sidebar_label: Docker
+sidebar_label: Install with Docker
 sidebar_position: 5
 ---
 
@@ -12,7 +12,7 @@ the web app together, and the web app is where you install plugins, add
 people and set up the house. The [binary release](./binary-releases) tarball
 holds core alone, with no web app.
 
-homeCore runs as two containers:
+The stack is core and the web app, side by side:
 
 ```
 browser ─▶ host:3001 ─▶ hc-web-svelte:3000 ─┬─ /            the web app
@@ -33,14 +33,46 @@ Plugins are not containers. Install them from the web app
 signature, and runs it as a child process. You never edit a compose file to
 add hardware support.
 
-The reference compose files are in
-[`homeCore-io/docker`](https://github.com/homeCore-io/docker). The file
-below is its `compose.yml` without the comments. You can clone the
-repository instead of writing the file yourself.
-
 ## Quick start
 
-Create a directory for the stack and a `compose.yml` in it:
+Everything is in one file,
+[`compose.yml`](https://github.com/homeCore-io/docker/blob/main/compose.yml),
+from the [`homeCore-io/docker`](https://github.com/homeCore-io/docker)
+repository. Download it and start it:
+
+```bash
+mkdir homecore && cd homecore
+curl -fsSLO https://raw.githubusercontent.com/homeCore-io/docker/main/compose.yml
+
+# Create the data dir as your user. The entrypoint detects the owner and
+# drops privileges to match; no chown needed.
+mkdir homecore-data
+
+docker compose up -d
+
+# First-boot admin password:
+cat homecore-data/INITIAL_ADMIN_PASSWORD
+```
+
+Open `http://<host-ip>:3001`, sign in as `admin`, change the password, and
+delete `INITIAL_ADMIN_PASSWORD`. Then open **Settings › Plugins › Catalog**
+to install plugins.
+
+:::tip Hue, Sonos, WLED, Roku or Ecowitt?
+Those plugins find devices by multicast or broadcast, which a Docker bridge
+network doesn't carry. Download the host-networking file in its place, and
+everything else stays the same:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/homeCore-io/docker/main/compose.host.yml -o compose.yml
+```
+
+[Which compose file](#which-compose-file) explains why.
+:::
+
+### What's in the file
+
+Without its comments, `compose.yml` is this:
 
 ```yaml
 services:
@@ -80,23 +112,6 @@ networks:
 volumes:
   app-data:
 ```
-
-Then start it:
-
-```bash
-# Create the data dir as your user. The entrypoint detects the owner and
-# drops privileges to match; no chown needed.
-mkdir homecore-data
-
-docker compose up -d
-
-# First-boot admin password:
-cat homecore-data/INITIAL_ADMIN_PASSWORD
-```
-
-Open `http://<host-ip>:3001`, sign in as `admin`, change the password, and
-delete `INITIAL_ADMIN_PASSWORD`. Then open **Settings › Plugins › Catalog**
-to install plugins.
 
 The repository's file also has a commented-out `HC_GO2RTC_URL` for the app.
 Set it to your go2rtc address to get live video from cameras

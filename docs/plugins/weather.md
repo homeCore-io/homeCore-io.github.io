@@ -5,7 +5,22 @@ sidebar_label: Weather
 sidebar_position: 13
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Weather (`hc-weather`)
+
+<PluginFacts
+  mark="We"
+  kind="weather"
+  summary="Turns the weather for a place into a homeCore device, with forecasts, air quality and warnings."
+  version="0.1.4"
+  runs="Under core (Rust)"
+  talks="Open-Meteo, online"
+  account="None"
+  devices={["weather"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-weather"
+  setup="#install-and-set-up"
+/>
 
 This plugin turns the weather for a place into a homeCore device. From
 [Open-Meteo](https://open-meteo.com/) it gets the current conditions, today's

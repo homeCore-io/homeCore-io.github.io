@@ -5,6 +5,8 @@ sidebar_label: Looks
 sidebar_position: 2
 ---
 
+import Shot from '@site/src/components/Shot';
+
 # Looks
 
 A look is how the house is drawn: how each kind of thing looks, the spacing
@@ -14,6 +16,14 @@ app comes with three. Drawings can also come from plugins and
 [UI extensions](./extensions.md).
 
 ## The built-in looks
+
+<Shot
+  src="/img/screens/settings-look.png"
+  width={564}
+  height={526}
+  alt="Settings › Look: the house's look with Classic, Lit and Console, Console chosen, the copy and file buttons, and the house's theme: Amber, Sage, Harbour and Plum."
+  caption="Settings › Look, with the Console chosen for the house"
+/>
 
 **Classic** is a card for each thing, with a switch on it.
 

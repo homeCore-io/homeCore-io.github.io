@@ -1,7 +1,7 @@
 ---
 id: binary-releases
 title: Binary Releases
-sidebar_label: Binary Releases
+sidebar_label: Binary releases
 sidebar_position: 2
 ---
 

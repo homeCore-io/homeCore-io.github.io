@@ -1,7 +1,7 @@
 ---
 id: event-stream
 title: Event Stream
-sidebar_label: Event Stream
+sidebar_label: Event stream
 sidebar_position: 1
 ---
 

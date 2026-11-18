@@ -5,7 +5,22 @@ sidebar_label: WLED
 sidebar_position: 8
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # WLED (`hc-wled`)
+
+<PluginFacts
+  mark="WL"
+  kind="lights"
+  summary="Connects WLED LED controllers to homeCore, each one a light with nearly everything the controller can do."
+  version="0.1.26"
+  runs="Under core (Rust)"
+  talks="Your network"
+  account="None"
+  devices={["light"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-wled"
+  setup="#install-and-set-up"
+/>
 
 The WLED plugin connects [WLED](https://kno.wled.ge) LED controllers to
 homeCore. Each controller becomes a light, and the plugin covers nearly

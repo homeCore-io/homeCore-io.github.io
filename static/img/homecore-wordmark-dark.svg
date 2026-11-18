@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 24">
-  <text y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" letter-spacing="-0.2">
-    <tspan fill="#7eb3ff">home</tspan><tspan fill="#e0e0e0">Core</tspan>
+  <text y="19" font-family="Figtree, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="800" letter-spacing="-0.4">
+    <tspan fill="#f4efe4">home</tspan><tspan fill="#f2b544">Core</tspan>
   </text>
 </svg>

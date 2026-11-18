@@ -1,7 +1,7 @@
 ---
 id: overview
 title: Web UI overview
-sidebar_label: Overview
+sidebar_label: A tour of the app
 sidebar_position: 1
 ---
 

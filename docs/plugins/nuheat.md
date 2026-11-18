@@ -5,7 +5,22 @@ sidebar_label: NuHeat
 sidebar_position: 14
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # NuHeat (`hc-nuheat`)
+
+<PluginFacts
+  mark="Nu"
+  kind="climate"
+  summary="Connects NuHeat Signature floor heating thermostats to homeCore through NuHeat's cloud."
+  version="0.1.3"
+  runs="Under core (Rust)"
+  talks="NuHeat's cloud"
+  account="NuHeat account"
+  devices={["thermostat"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-nuheat"
+  setup="#install-and-set-up"
+/>
 
 This plugin connects NuHeat Signature floor-heating thermostats through
 NuHeat's cloud. A Signature talks only to NuHeat, so the plugin reads and

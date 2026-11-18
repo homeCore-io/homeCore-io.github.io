@@ -1,9 +1,11 @@
 ---
 id: overview
 title: Plugins Overview
-sidebar_label: Overview
+sidebar_label: Plugins
 sidebar_position: 1
 ---
+
+import Shot from '@site/src/components/Shot';
 
 # Plugins Overview
 
@@ -80,6 +82,14 @@ plugin's package and are updated with it. A plugin without them gets the
 app's generic screens. See [Screens and Cards](./plugin-screens).
 
 ## Installing a plugin
+
+<Shot
+  src="/img/screens/catalog.png"
+  width={1112}
+  height={619}
+  alt="The Catalog: plugins from the homeCore registry filtered by kind, each with what it connects and whether it's installed, and the selected plugin's details with its version and an install button."
+  caption="Settings › Plugins › Catalog"
+/>
 
 Install from **Settings › Plugins › Catalog** in the web app, or with
 `POST /api/v1/plugins/install` and `{"id": "plugin.hue"}` (add `"version"` for
