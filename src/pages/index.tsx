@@ -2,195 +2,9 @@ import type {ReactNode} from 'react';
 import Link from '@docusaurus/Link';
 import Layout from '@theme/Layout';
 import clsx from 'clsx';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 import styles from './index.module.css';
-
-/* ── The Console, drawn: until the sandbox screenshots replace it ── */
-
-const ON = 'rgba(247,200,102,';
-
-type Room = {
-  name: string;
-  temp: string;
-  status: string;
-  alert?: boolean;
-  side: string;
-  glows: Array<[string, string, number]>;
-};
-
-const ROOMS: Room[] = [
-  {name: 'Kitchen', temp: '70°', status: '3 of 5 lights on', side: '3 on', glows: [['30%', '35%', 0.75], ['62%', '30%', 0.6]]},
-  {name: 'Family Room', temp: '69°', status: 'Lamp at 40% · playing', side: '1 on', glows: [['78%', '45%', 0.45]]},
-  {name: 'Office', temp: '72°', status: 'All off', side: '', glows: []},
-  {name: 'Porch', temp: '58°', status: 'On since sunset', side: '2 on', glows: [['25%', '40%', 0.8], ['75%', '40%', 0.8]]},
-  {name: 'Bedroom', temp: '67°', status: 'Window open', alert: true, side: 'open', glows: []},
-  {name: 'Garage', temp: '55°', status: 'Door open 25 min', alert: true, side: 'open', glows: [['50%', '28%', 0.35]]},
-];
-
-function RoomArt({glows}: {glows: Room['glows']}) {
-  return (
-    <div className={styles.art} aria-hidden="true">
-      <span className={styles.artWindow} />
-      <span className={styles.artFloor} />
-      <span className={styles.artSofa} />
-      {glows.map(([x, y, a], i) => (
-        <span
-          key={i}
-          className={styles.glow}
-          style={{left: x, top: y, background: `radial-gradient(circle, ${ON}${a}) 0%, ${ON}0) 65%)`}}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ConsoleHome() {
-  return (
-    <div className={styles.console} role="img" aria-label="The homeCore app's Console look: rooms down the side, each room lit by its lights">
-      <div className={styles.cBar}>
-        <span className={styles.cBrand}>
-          home<span>Core</span>
-        </span>
-        <span className={styles.cSearch}>Search rooms, devices, scenes</span>
-        <span className={styles.cTime}>6:42 PM</span>
-        <span className={styles.cAvatar}>A</span>
-      </div>
-      <div className={styles.cBody}>
-        <div className={styles.cSide}>
-          <div className={clsx(styles.cNav, styles.cNavOn)}>Home</div>
-          <div className={styles.cHead}>EVERYWHERE</div>
-          {[
-            ['Lights', true],
-            ['Media', true],
-            ['Climate', false],
-            ['Security', 'alert'],
-            ['Water', false],
-          ].map(([t, d]) => (
-            <div key={String(t)} className={styles.cNav}>
-              <span>{t}</span>
-              {d && <i className={d === 'alert' ? styles.dotAlert : styles.dot} />}
-            </div>
-          ))}
-          <div className={styles.cHead}>ROOMS</div>
-          {ROOMS.map((r) => (
-            <div key={r.name} className={styles.cNav}>
-              <span>{r.name}</span>
-              <small className={r.alert ? styles.sideAlert : styles.sideOn}>{r.side}</small>
-            </div>
-          ))}
-        </div>
-        <div className={styles.cMain}>
-          <div className={styles.cGreet}>
-            <div>
-              <div className={styles.cHello}>Good evening</div>
-              <div className={styles.cSub}>Tuesday · Evening mode is on</div>
-            </div>
-            <div className={styles.cWeather}>
-              <b>61°</b>
-              <span>
-                Clear
-                <br />
-                Sunset 4:46 PM
-              </span>
-            </div>
-          </div>
-          <div className={styles.cPills}>
-            <span className={styles.pillAlert}>
-              Garage door open 25 min <b>Close</b>
-            </span>
-            <span className={styles.pillOk}>Front door locked</span>
-          </div>
-          <div className={styles.cPills}>
-            <span className={clsx(styles.fav, styles.favOn)}>Porch lights</span>
-            <span className={styles.fav}>Movie time</span>
-            <span className={styles.fav}>Away</span>
-            <span className={styles.fav}>Bedtime</span>
-          </div>
-          <div className={styles.cRooms}>
-            {ROOMS.map((r) => (
-              <div key={r.name} className={styles.cRoom}>
-                <RoomArt glows={r.glows} />
-                <div className={styles.cRoomText}>
-                  <div>
-                    <b>{r.name}</b>
-                    <span>{r.temp}</span>
-                  </div>
-                  <small className={r.alert ? styles.sideAlert : undefined}>{r.status}</small>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className={styles.cPlay}>
-        <span className={styles.cArt} />
-        <span className={styles.cNow}>
-          <b>Evening playlist</b>
-          <small>Family Room · Sonos</small>
-        </span>
-        <span className={styles.cBtns}>
-          <i />
-          <i className={styles.cPlayBtn} />
-          <i />
-        </span>
-        <span className={styles.cVol}>
-          <i />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function RoomConsole() {
-  const cols: Array<[string, Array<[string, number]>, boolean]> = [
-    ['ROOM', [['All', 45]], false],
-    ['HUE', [['Floor lamp', 40], ['Shelf', 25], ['TV strip', 0]], true],
-    ['LUTRON', [['Cans', 60], ['Sconces', 0]], false],
-  ];
-  return (
-    <div className={clsx(styles.console, styles.room)} role="img" aria-label="A room in the Console: Room on and Room off, tabs, light faders and room audio">
-      <div className={styles.roomHead}>
-        <RoomArt glows={[['74%', '32%', 0.55], ['50%', '10%', 0.35]]} />
-        <div className={styles.roomTitle}>
-          <b>Family Room</b>
-          <span className={styles.pillOk}>Patio door locked</span>
-          <span className={styles.roomOn}>Room on</span>
-          <span className={styles.roomOff}>Room off</span>
-        </div>
-      </div>
-      <div className={styles.tabs}>
-        <span className={styles.tabOn}>Lights</span>
-        <span>Media</span>
-        <span>Climate</span>
-        <span>Sensors</span>
-      </div>
-      <div className={styles.faders}>
-        {cols.map(([name, faders, scenes]) => (
-          <div key={name}>
-            <div className={styles.cHead}>{name}</div>
-            <div className={styles.faderRow}>
-              {faders.map(([label, h]) => (
-                <div key={label} className={styles.fader}>
-                  <div className={styles.track}>
-                    <i style={{height: `${h}%`}} />
-                  </div>
-                  <span>{label}</span>
-                </div>
-              ))}
-            </div>
-            {scenes && (
-              <div className={styles.scenes}>
-                <span className={styles.sceneOn}>Relax</span>
-                <span>Read</span>
-                <span>Nightlight</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /* ── Page ── */
 
@@ -267,7 +81,13 @@ export default function Home(): ReactNode {
               <p className={styles.meta}>Free and open source · MIT or Apache-2.0 · 15 plugins</p>
             </div>
             <div className={styles.heroShot}>
-              <ConsoleHome />
+              <img
+                className={styles.shot}
+                src={useBaseUrl('/img/screens/console-home.png')}
+                width={1395}
+                height={1228}
+                alt="homeCore's Console: the Everywhere views and every room down the side, a greeting with what needs attention, the weather, scenes, and a tile for each room lit by its lights"
+              />
             </div>
           </div>
         </section>
@@ -303,7 +123,14 @@ export default function Home(): ReactNode {
                 </Link>
               </div>
               <div className={styles.fPic}>
-                <RoomConsole />
+                <img
+                  className={styles.shot}
+                  src={useBaseUrl('/img/screens/console-room.png')}
+                  width={1395}
+                  height={1228}
+                  loading="lazy"
+                  alt="A room in the Console: its picture, Room on and Room off, a tab for each kind of device, light faders grouped by Hue and Lutron with the group's scenes, and the room's audio along the bottom"
+                />
               </div>
             </div>
 
