@@ -12,7 +12,7 @@ API). Each thermostat you share with homeCore becomes a homeCore thermostat
 that reports its temperature, humidity, mode and targets. You can change the
 mode and the targets, and use whichever of fan, swing, keypad lock and display
 brightness your model has. The plugin asks Mysa what each thermostat can do
-and offers only those controls. It has been tried on Mysa baseboard
+and offers only those controls. It has been tested on Mysa baseboard
 thermostats.
 
 ## Before you start
@@ -65,8 +65,8 @@ config file, so restarts don't sign it out.
 
 ## Settings
 
-All settings are in the generic form below the plugin's page. Nothing in the
-account section needs filling in for a normal setup.
+All settings are in the generic form below the plugin's page. A normal setup
+leaves the account section empty.
 
 | Setting | Key | Default | What it does |
 |---|---|---|---|

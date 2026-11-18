@@ -28,8 +28,8 @@ leaving the page, and Back closes it.
 Everywhere views and rooms, and each room's devices in tabs with faders and
 switches like a lighting desk. It has its own Home with lit room tiles, a
 favorites and scenes row and a weather band, plus a phone layout and a
-tablet rail. Rooms in Console are changed with **Customize**, not the look
-editor. Each person chooses their own fader style, switch style and sidebar
+tablet rail. You change Console's rooms with **Customize** instead of the
+look editor. Each person chooses their own fader style, switch style and sidebar
 from the menu under their picture. See the
 [Web UI overview](./overview.md#getting-around-in-console).
 
@@ -110,7 +110,7 @@ round(temperature, 1) + "°"
 ```
 
 Expressions can read values, compare them, do arithmetic, pick between
-values and format them. They can't do anything else. `temperature` is in °C,
+values and format them, and nothing more. `temperature` is in °C,
 as homeCore keeps it. `state` is already in your units ("69.6°F · 54%").
 Anyone who may make a look can make a drawing.
 

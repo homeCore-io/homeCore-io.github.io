@@ -175,8 +175,8 @@ On the bridge files they set the published side of each mapping. On
 ## Why the app proxies the API
 
 The web app calls `/api/v1` as a relative path, and core sends no CORS
-headers. So the API has to share the app's origin, and the app's own server
-makes that happen. It is required.
+headers, so the API has to share the app's origin. The app's own server
+provides that, and the app can't work without it.
 
 `HC_CORE_URL` tells the app's server where core is. In the compose file it
 is `http://homecore:8080`, the compose service name. Outside compose, use

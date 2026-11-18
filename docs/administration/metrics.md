@@ -51,9 +51,9 @@ curl http://<homecore-host>:8080/api/v1/metrics
 | `homecore_rule_fires_total` | Counter | Rule fires since startup |
 | `homecore_device_state_changes_total` | Counter | Device state changes since startup |
 | `homecore_scene_activations_total` | Counter | Scene activations since startup |
-| `homecore_events_total` | Counter | Internal events, labelled by `type` |
-| `homecore_ws_connects_total` | Counter | WebSocket connections accepted, labelled by `endpoint` (`events_stream` or `logs_stream`) |
-| `homecore_ws_disconnects_total` | Counter | WebSocket disconnects, labelled by `endpoint` and `reason` |
+| `homecore_events_total` | Counter | Internal events, labeled by `type` |
+| `homecore_ws_connects_total` | Counter | WebSocket connections accepted, labeled by `endpoint` (`events_stream` or `logs_stream`) |
+| `homecore_ws_disconnects_total` | Counter | WebSocket disconnects, labeled by `endpoint` and `reason` |
 
 Gauges are read fresh on every scrape. The disconnect `reason` is one of
 `client_close`, `socket_closed`, `recv_error`, `pong_timeout`,

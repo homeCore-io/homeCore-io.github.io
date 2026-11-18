@@ -33,7 +33,7 @@ trigger: DeviceStateChanged(
 }
 ```
 
-Two RON details catch people out:
+Two RON details trip people up:
 
 - Optional fields take `Some(...)` in RON: `attribute: Some("open")`, not `attribute: "open"`. Leave an optional field out entirely to mean "not set". JSON needs no wrapper.
 - A trigger with no fields is written by name alone: `trigger: SystemStarted` in RON, `"trigger": "SystemStarted"` in JSON.
@@ -231,7 +231,7 @@ curl -s http://localhost:8080/api/v1/automations \
 
 ### `Periodic`
 
-Fires at a fixed interval. Simpler than `Cron` when you only need "every N minutes".
+Fires at a fixed interval. It is simpler than `Cron` when all you need is "every N minutes".
 
 ```ron
 trigger: Periodic(
@@ -566,7 +566,7 @@ Calendars load from `[calendars] dir` (default `config/calendars`). The schedule
 
 ### `DeviceBatteryLow`
 
-Fires once when a device's battery level drops past the low threshold. The battery watcher applies hysteresis: it latches at `threshold_pct` and clears at `threshold_pct + recover_band_pct`. That means the trigger fires on the crossing, not on every battery report while the level stays low.
+Fires once when a device's battery level drops past the low threshold. The battery watcher applies hysteresis: it latches at `threshold_pct` and clears at `threshold_pct + recover_band_pct`, so the trigger fires on the crossing instead of on every battery report while the level stays low.
 
 Leave out `device_id` to match any battery-powered device.
 

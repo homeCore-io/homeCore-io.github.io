@@ -50,8 +50,8 @@ each. `hc-thermostat` is a Rive drawing, and `hc-gauge` is code.
   Settings › Extensions shows it beside what is. A video plays on a loop,
   muted, and stays on its first frame for someone who asks for less motion.
   For a Rive drawing, `hc-thermostat/preview.sh` renders one from the `.riv`
-  itself, so it always shows the real thing. Prefer `.mp4`, which keeps glows
-  and gradients smooth where animated `.webp` and `.gif` band.
+  itself, so the preview matches the drawing. Prefer `.mp4`: it keeps glows
+  and gradients smooth, while animated `.webp` and `.gif` show banding.
 - Each element has an `id`, a `label` (its name in the look editor), the
   family it `draws`, and a `kind`:
   - `rive`: `file`, a `.riv`, with an optional `artboard` and
@@ -61,7 +61,7 @@ each. `hc-thermostat` is a Rive drawing, and `hc-gauge` is code.
 - An element may offer `options`: up to eight on/off choices, each with an
   `id` (starting lowercase), a `label` and a `default`. They show under the
   drawing in the look editor once a look chooses it, and the look keeps what
-  was chosen. A Rive file gets each one as a view model **boolean** of the
+  was chosen. A Rive file gets each one as a view model boolean of the
   same name. Code gets them as `options` (`{ pulse: true }`).
 
   ```json
@@ -76,7 +76,7 @@ So far, Rive drawings draw `climate`.
 
 Make the animation in [Rive](https://rive.app), in its editor or with its
 CLI, which builds a file from markup (`hc-thermostat/rive/` is a whole
-project). The app fills the file's **view model** by property name. Give the
+project). The app fills the file's view model by property name. Give the
 artboard a view model with the names and types below, and a state machine
 that reacts to them. A file can use as few of the names as it likes; the app
 ignores the rest.
@@ -98,12 +98,12 @@ The look's motion decides how the file runs. Still settles each state at
 once and draws one frame. Gentle plays a change, such as heating starting
 or a new target, and stops once it settles. Lively keeps running, so loops
 play while `moving` is true. Someone who asks for less motion always gets
-still, and nothing is drawn off screen. So make each state's settled pose
+still, and nothing is drawn off screen. Make each state's settled pose
 look right on its own, and keep loops in states that `moving` controls.
 
 Text needs a font inside the file. Check that its license lets you embed it.
 The Open Font License does, though a reserved font name means you can't
-subset it. A file with **scripts** must be signed with Rive's `--publish`.
+subset it. A file with scripts must be signed with Rive's `--publish`.
 One made of markup alone, like `hc-thermostat`, needs nothing.
 
 ## Code drawings
@@ -139,7 +139,7 @@ this.dispatchEvent(new CustomEvent('act', { detail: { do: 'open' } })); // or 's
 build step. A module can import its own files by relative path. The app
 serves `.js`, `.mjs`, `.css`, `.json`, `.riv`, `.png`, `.jpg`, `.jpeg`,
 `.webp`, `.svg`, `.gif`, `.mp4`, `.webm`, `.woff2`, `.txt` and `.md` from
-inside the folder, and nothing hidden.
+inside the folder. It never serves hidden files.
 
 If the module fails to load, or doesn't define its element within ten
 seconds, the thing is drawn the way Classic draws it.

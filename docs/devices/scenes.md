@@ -57,7 +57,7 @@ SCENE_ID=$(curl -s -X POST http://localhost:8080/api/v1/scenes \
   }' | jq -r .id)
 ```
 
-`GET /scenes/{id}` reads one scene, `PUT /scenes/{id}` replaces its name and states, and `DELETE /scenes/{id}` removes it. Creating, editing and deleting emit `scene_changed` and `scene_removed`. Reading scenes needs `scenes:read`, and changing them needs `scenes:write`.
+`GET /scenes/{id}` reads one scene, `PUT /scenes/{id}` replaces its name and states, and `DELETE /scenes/{id}` removes it. Creating or editing a scene emits `scene_changed`, and deleting one emits `scene_removed`. Reading scenes needs `scenes:read`, and changing them needs `scenes:write`.
 
 ### Activate a scene
 
@@ -67,7 +67,7 @@ curl -s -X POST http://localhost:8080/api/v1/scenes/$SCENE_ID/activate \
 # → {"activated": "Movie night"}
 ```
 
-Activation publishes each device's state to its command topic and emits a `scene_activated` event. It needs the `scenes:run` scope, and `scenes:write` also works. That split lets a wall display run scenes without being able to edit them.
+Activation publishes each device's state to its command topic and emits a `scene_activated` event. It needs the `scenes:run` scope, though `scenes:write` also works. With the separate scope, a wall display can run scenes without being able to edit them.
 
 ### Export and import scenes
 

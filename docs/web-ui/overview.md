@@ -17,7 +17,7 @@ Core serves the API and nothing else, so the app runs in its own container. That
 - plays live camera video through go2rtc, when you set it up, and
 - stores the app's own data in `/data`: pages, each person's Home, displays, looks, pictures, UI extensions and preferences.
 
-homeCore keeps the house, and the UI server keeps how it is shown. Everything the app does to the house is a documented REST or WebSocket call, so [hc-tui](../tools/hc-tui.md), [hc-mcp](../tools/hc-mcp.md), a script or a voice assistant can do the same things.
+homeCore holds the house itself, and the UI server holds how it is shown. Everything the app does to the house is a documented REST or WebSocket call, so [hc-tui](../tools/hc-tui.md), [hc-mcp](../tools/hc-mcp.md), a script or a voice assistant can do the same things.
 
 ## Getting it
 
@@ -64,7 +64,7 @@ From source you need Node: `npm install`, then `npm run dev` serves the app on p
 Sign in with a username and password. The UI server holds the session in cookies the page's scripts can't read, refreshes it as needed, and sends you back to the sign-in page when it ends.
 
 - Changing a password ends every session that user has, in every browser (see [Users & authentication](../administration/users-auth.md)). Changing your own password signs out your other tabs and devices too.
-- The UI server never passes on a request that carries no credential. The exceptions are signing in, refreshing a session, `/api/v1/health`, and a `POST` to a webhook. This matters because homeCore treats whitelisted addresses as admin without a token, and every request through the UI server comes from the UI server's address.
+- The UI server never passes on a request that carries no credential, except for signing in, refreshing a session, `/api/v1/health`, and a `POST` to a webhook. The rule is there because homeCore treats whitelisted addresses as admin without a token, and every request through the UI server comes from the UI server's address.
 - **Me › Signed in** lists where you are signed in and can end those sessions.
 
 ## Looks and frames
@@ -75,7 +75,7 @@ How the house is drawn is a [look](./looks.md). Three come with the app:
 - **Lit**, which draws each room as a lit room you drag to dim.
 - **Console**, a desktop app with rooms down the side, faders, and switches.
 
-The house has a look (**Settings › Look**), and each person can pick their own. Classic and Lit share one frame. Console has a frame of its own. The two get around differently, as below.
+The house has a look (**Settings › Look**), and each person can pick their own. Classic and Lit share one frame, and Console has a frame of its own. Each frame has its own way of getting around.
 
 ### Getting around in Classic and Lit
 

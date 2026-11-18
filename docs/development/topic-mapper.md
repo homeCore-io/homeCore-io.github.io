@@ -47,7 +47,8 @@ device's native topic instead of being handled as a plugin command.
 
 Profiles are loaded from the profiles directory, `config/profiles/` by
 default (`[profiles] dir` in `homecore.toml`). Files in
-`config/profiles/examples/` are reference copies and are **not** loaded.
+`config/profiles/examples/` are reference copies, and homeCore doesn't
+load them.
 
 To activate a profile, copy it out of `examples/`:
 
@@ -125,7 +126,8 @@ URLs (`:`, space and `/`) become `_`.
 ### Choosing the device ID
 
 Set `device_id` on a state topic to build the ID from a template instead.
-It may use any capture, and the prefix is **not** added for you:
+It may use any capture. The prefix isn't added for you, so include it in
+the template:
 
 ```toml
 [[ecosystem.state_topics]]
@@ -157,8 +159,8 @@ POWER        = "on"           # Tasmota "POWER" → homeCore "on"
 "ENERGY.Power" = "power_w"    # nested path using dot notation
 ```
 
-**When a `field_map` is present, only the keys it lists are kept.**
-Everything else in the payload is dropped. With no `field_map` at all,
+When a `field_map` is present, only the keys it lists are kept, and
+everything else in the payload is dropped. With no `field_map` at all,
 every key passes through under its original name, and no coercions are
 applied.
 
@@ -316,8 +318,8 @@ published as-is.
 :::warning Not wired up in the server
 homeCore does not currently load any Rhai source into the router
 (`homecore/src/main.rs` builds it with
-`EcosystemRouter::new(profiles, None)`), and nothing reads `.rhai` files from `config/profiles/`. A topic
-with a `transform` therefore fails with "Rhai transform … called but no
+`EcosystemRouter::new(profiles, None)`), and nothing reads `.rhai` files
+from `config/profiles/`. A topic with a `transform` therefore fails with "Rhai transform … called but no
 script loaded", logged as an inbound or outbound router error, and the
 message is not translated. Until that changes, express mappings with
 `field_map`, `attribute`, `value_map` and `coerce`. The comment in
@@ -364,14 +366,14 @@ MQTT ID (for example `shelly1-AABBCC`).
 ### `shelly-gen2.toml`
 
 Shelly Plus, Pro and Mini devices (Gen2 and Gen3), which use an RPC-based
-topic schema quite unlike Gen1's.
+topic schema that differs from Gen1's.
 
 Device IDs: `shelly_{device}_switch_{n}`, `shelly_{device}_light_{n}`,
 `shelly_{device}_cover_{n}`, `shelly_{device}_sensor` and similar.
 
 ### `zigbee2mqtt.toml`
 
-Full attribute mapping for Zigbee2MQTT in homeCore's shared names:
+Maps Zigbee2MQTT attributes to homeCore's shared names:
 lights (`on`, `brightness_pct` from Zigbee's 0 to 254, `color_temp` in
 kelvin, `color_xy`; commands also take `color_rgb`, `transition_ms` and
 `{"action": "toggle"}`), sensors (`temperature`, `humidity`, `pressure`,
@@ -414,8 +416,8 @@ for clean IDs.
 7. Add a test beside the existing ones in `crates/hc-topic-map/` (the
    router's unit tests load every example profile, and
    `tests/shelly_profiles.rs` and `tests/tasmota_profile.rs` check real
-   topics end to end), then commit
-   the file to `config/profiles/examples/`. Operators copy it into
+   topics end to end), then commit the file to
+   `config/profiles/examples/`. Operators copy it into
    `config/profiles/` to activate it.
 
 ---

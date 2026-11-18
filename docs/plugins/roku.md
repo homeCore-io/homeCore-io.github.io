@@ -11,9 +11,9 @@ The Roku plugin brings Roku streaming players, Roku TVs and Roku soundbars
 into homeCore over Roku's
 [External Control Protocol](https://developer.roku.com/dev/docs/external-control-api)
 (ECP), a plain HTTP API that every Roku serves on port 8060. Each Roku becomes
-one `media_player`. Rokus on the same network find themselves over SSDP, so
-there is usually nothing to configure. The plugin ships its own page, a panel
-with a remote and channel icons, a card, and an automation step.
+one `media_player`. The plugin finds Rokus on the same network over SSDP, so
+there is usually nothing to configure. It ships its own page, a panel with a
+remote and channel icons, a card, and an automation step.
 
 ## Before you start
 
@@ -76,8 +76,8 @@ after (never) and compression (on).
 
 ## Devices
 
-Every Roku is a `media_player`. Every attribute is always present, and a
-value that can't be read right now is null.
+Each Roku is a `media_player`. All of its attributes are always present, and
+a value that can't be read right now is null.
 
 | Attribute | Notes |
 |---|---|
@@ -97,8 +97,8 @@ value that can't be read right now is null.
 | `supports_find_remote`, `supports_private_listening`, `supports_wake_on_wlan`, `supports_audio_volume_control`, `supports_tv_power_control` | Null when the Roku doesn't say. `supports_tv_power_control` is a player's control of its TV, so it is null on a Roku TV. |
 | `last_command_error` | Why the last command failed, in words. Null once one succeeds. |
 
-The model and Roku OS version are the device's hardware details, shown with
-the device, and not attributes. The full `device-info` (MAC addresses,
+The model and Roku OS version are hardware details shown with the device,
+not attributes. The full `device-info` (MAC addresses,
 network name and every flag) comes from the `device_info` action and never
 appears in state.
 
@@ -139,11 +139,12 @@ When one fails, the event's `error_code` is `control_disabled`,
 `unreachable`, `not_found`, `unsupported`, `invalid_params`, `stale` or
 `rejected`.
 
-Opening a channel on a Roku that is off turns it on first. `play` and `pause`
-check what the Roku is doing first, because Roku's Play key toggles;
-`play_pause` toggles. `rewind` and `fast_forward` scan, getting faster with
-each press, and a Roku has no "next". `stop` presses Back to leave playback.
-It does nothing on an input or live TV, where Back would leave the input.
+Opening a channel on a Roku that is off turns it on first. Roku's Play key
+toggles, so `play` and `pause` check what the Roku is doing before they press
+it, and `play_pause` simply toggles. `rewind` and `fast_forward` scan, getting
+faster with each press, and a Roku has no "next". `stop` presses Back to leave
+playback, and does nothing on an input or live TV, where Back would leave the
+input.
 
 ```bash
 # Turn on and open Netflix (power goes first, whatever the order)
@@ -168,7 +169,7 @@ These plugin actions go to `POST /api/v1/plugins/plugin.roku/command`.
 | `discover_devices` | user | 60 s | Looks for Rokus now, over SSDP (when discovery is on) and at the listed and last known addresses. A Roku that has moved is found by its serial number. |
 | `list_devices` | user | | Every Roku the plugin manages, with its address and whether it is answering. |
 | `refresh_catalog` | user | 30 s | Reads the channels and inputs again for one Roku (`hc_id`) or all of them, and fetches any new icons. |
-| `device_info` | user | 20 s | The raw `device-info` of one Roku (`hc_id`) or all of them. The first thing to check when a Roku misbehaves. |
+| `device_info` | user | 20 s | The raw `device-info` of one Roku (`hc_id`) or all of them. Check this first when a Roku misbehaves. |
 | `send_command` | user | 45 s | Runs one device command and returns whether it worked. |
 | `forget_device` | admin | 15 s | Forgets a Roku that is gone for good. This is **Forget it** on the page. |
 | `forget_stale_devices` | admin | 30 s | Forgets every discovered Roku that isn't answering now. |

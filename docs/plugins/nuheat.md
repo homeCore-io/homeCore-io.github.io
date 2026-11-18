@@ -32,8 +32,8 @@ client, which NuHeat registered for everyone to use.
 3. Sign in on NuHeat's own site. homeCore never sees your password.
 
 NuHeat then sends your browser to `homecore.io/oauth/nuheat/callback`, a page
-that only passes NuHeat's answer back to your own homeCore. It does that only
-when you opened the plugin's page at a home-network address: localhost, a
+that passes NuHeat's answer back to your own homeCore and does nothing else.
+This works only when you opened the plugin's page at a home-network address: localhost, a
 private IPv4 address, an IPv6 unique local address, or a name ending in
 `.local`, `.home.arpa` or `.internal`. It sends NuHeat's answer nowhere else.
 
@@ -54,8 +54,8 @@ never in the config file, so restarts don't sign it out.
 
 ## Settings
 
-All settings are in the generic form below the plugin's page. Nothing in the
-account section needs filling in for a normal setup.
+All settings are in the generic form below the plugin's page. A normal setup
+leaves the account section empty.
 
 | Setting | Key | Default | What it does |
 |---|---|---|---|
@@ -99,7 +99,7 @@ a target slider and the three actions below.
 homeCore stores temperatures in °C, and the app shows each person their own
 units. A thermostat NuHeat can't reach shows as offline.
 
-You can set the target with an attribute write. It becomes a temporary hold,
+Setting the target with an attribute write makes a temporary hold,
 unless the thermostat is already on a permanent hold or **A new target holds
 indefinitely** is on, in which case it stays permanent.
 

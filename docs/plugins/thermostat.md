@@ -10,8 +10,8 @@ sidebar_position: 11
 This plugin makes software thermostats. Each one reads temperature sensors
 you already have and switches a plug or switch on and off to hold a room at
 a target. The sensors and the plug can come from any plugin. A YoLink sensor
-and a Z-Wave outlet running a window AC is a typical pairing. Nothing here
-talks to hardware directly.
+and a Z-Wave outlet running a window AC is a typical pairing. The plugin
+never talks to hardware directly.
 
 Each thermostat runs an AC, a heater or a fan. An AC or a fan cools (modes
 Cool and Off), and a heater heats (Heat and Off). Each one is a homeCore
@@ -27,9 +27,9 @@ You need:
   state. The thermostat checks every on and off against what the plug
   reports back, so a plug whose plugin doesn't report its state shows as
   not answering.
-- For a heater, a plug with its own auto-off is safer still. Set it a little
-  longer than the thermostat's longest run, which is 4 hours unless you
-  change it.
+- For a heater, a plug with its own auto-off is safer. Set its timer a
+  little longer than the thermostat's longest run, which is 4 hours unless
+  you change it.
 
 If homeCore uses an external Mosquitto broker, the plugin needs to publish
 to `homecore/devices/thermostat_+/#` and `homecore/devices/+/cmd` (the
@@ -142,7 +142,8 @@ again.
 
 If someone flips the switch while the thermostat is heating or cooling, it
 counts as a manual override. The thermostat leaves the switch alone for an
-hour, or until the target or mode changes. Off sends one OFF and then leaves
+hour (or whatever **Switched by hand, left alone for** says), or until the
+target or mode changes. Off sends one OFF and then leaves
 the switch to the household.
 
 A heater is always turned off after its longest run without a break (with
@@ -151,8 +152,8 @@ Removing a thermostat, or giving it a different switch, first turns off the
 switch it was running.
 
 Guard timing, holds, overrides and today's figures survive a restart of
-homeCore. The plugin keeps them in homeCore's stored state and reads them
-back at start.
+homeCore, because the plugin keeps them in homeCore's stored state and reads
+them back at start.
 
 ### Attributes
 

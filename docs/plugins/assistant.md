@@ -55,7 +55,7 @@ saved, with a **Replace** button.
 | Make and change automations | on | Create, edit, turn on or off, and delete automations. |
 | Locks, doors and security | off | Allows commands to devices that count for security. |
 | Ask before every change | on | Shows what it is about to do and waits for a yes. |
-| Keep each person's chats for | 30 days | Also 7 days, or Don't keep (a chat lasts only while the plugin runs). |
+| Keep each person's chats for | 30 days | Also 7 days, or Don't keep (a chat is held in memory only, until the plugin stops or a day after its last message). |
 
 A device counts for security when its Security choice in its settings says
 so. When it has no choice set, locks, doors, windows, contact sensors,
@@ -69,9 +69,9 @@ the plugin's config file.
 
 ## What it may do
 
-Three things decide what the chat can do for someone. The switch for that
-kind of change must be on, the person asking must hold the homeCore
-permission it needs, and so must the plugin's own access. A household member
+For the chat to make a change for someone, the switch for that kind of
+change must be on, and both the person asking and the plugin's own access
+must hold the homeCore permission it needs. A household member
 can ask questions and control devices but can't change automations, because
 their account can't.
 
@@ -79,7 +79,7 @@ With **Ask before every change** on, every change shows a card first that
 says what will happen. The person presses a button to go ahead, or replies
 to change it. A card nobody answers expires after 10 minutes and nothing is
 done. A new automation is shown as When / Only if / Do, with **Save and turn
-on** and **Save turned off**.
+on** and **Save, turned off**.
 
 A request that touches a device that counts for security is refused while
 **Locks, doors and security** is off, and the reply says where to turn it on.
@@ -92,8 +92,8 @@ through it, naming the screen for each step.
 
 ## Devices
 
-None. The Assistant controls other plugins' devices through homeCore and
-publishes none of its own.
+The Assistant controls other plugins' devices through homeCore and publishes
+none of its own.
 
 ## Actions
 

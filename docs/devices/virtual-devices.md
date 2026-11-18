@@ -154,7 +154,7 @@ actions: [
 
 ## Timers
 
-A countdown timer can be started, paused, resumed, cancelled, restarted and extended. When it runs out, its `state` becomes `finished`, which rules can trigger on.
+You can start, pause, resume, cancel, restart and extend a countdown timer. When it runs out, its `state` becomes `finished`, which rules can trigger on.
 
 ### Timer states
 

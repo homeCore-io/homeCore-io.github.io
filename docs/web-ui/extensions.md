@@ -9,16 +9,16 @@ sidebar_position: 3
 
 A UI extension is a set of drawings made outside the app, which
 [looks](./looks.md) can use. Two examples are an animated thermostat and
-readings drawn as gauges. An extension never commands anything. A tap on one
-does what a tap on the card always does.
+readings drawn as gauges. An extension never commands anything, so a tap on
+one does what a tap on the card always does.
 
 The web app's own server installs extensions into `extensions/` in its data
 directory. homeCore never sees them.
 
 ## Installing one
 
-**From the Catalog.** Open Settings › Plugins › **Catalog** and pick the
-**UI extensions** tab. Extensions are grouped by category. Choose one to see
+To install from the Catalog, open Settings › Plugins › **Catalog** and pick
+the **UI extensions** tab. Extensions are grouped by category. Choose one to see
 how it looks (a picture or a short video), pick its version, then
 **Install**. The app's server fetches the preview and checks it against the
 Catalog's signed list before showing it, so your browser never fetches
@@ -26,8 +26,8 @@ anything from elsewhere. Installing downloads the extension from its
 release, checks the Catalog's signature and the file's checksum, and only
 then unpacks it. Nothing in the Catalog costs anything.
 
-**From a file.** For one you made, or one that isn't in the Catalog, use
-**Add from a file** on the same tab. It takes a `.tar.zst`, `.tar.gz` or
+For an extension you made, or one that isn't in the Catalog, use **Add
+from a file** on the same tab. It takes a `.tar.zst`, `.tar.gz` or
 `.zip`. The app reads the file first and shows what it holds, and installs
 it only when you say so. Nothing vouches for a file, and the page says so.
 
@@ -52,9 +52,9 @@ A Rive drawing is an animation made in [Rive](https://rive.app). It is a
 file, and the app plays it, so it can only show what the app tells it.
 
 A code drawing is a web component. It runs in the browser of everyone who
-sees a look that uses it, with the same reach as the app itself, as a
-plugin's own screens have. That's why only people who may install plugins
-can add one, and why the app warns when a file you add contains code.
+sees a look that uses it, with the same reach as the app itself, just as a
+plugin's own screens have. For that reason only people who may install
+plugins can add one, and the app warns when a file you add contains code.
 
 Either way, an extension is given what it draws (the thing's name, state and
 readings) and a few of the app's helpers. It is given nothing that can

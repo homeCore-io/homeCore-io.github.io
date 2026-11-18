@@ -74,7 +74,7 @@ RuleAction(action: Notify(
 
 `picture_from` names a device that keeps its newest picture in a `snapshot` attribute and takes a new one on `take_snapshot`, such as a [Reolink](../plugins/reolink.md) camera. homeCore asks for a fresh picture and sends it with the message. Telegram sends it as a photo with the title and message as its caption, Pushover attaches it (up to 5 MB; a larger picture is left off), and email attaches it. In the rule editor this is **With a picture from**.
 
-A failed notification, whether from an unknown channel, a misconfigured provider or a network error, is logged as a warning and doesn't stop the rule. The next action still runs. With `all`, a failure on one channel doesn't stop delivery to the others.
+A failed notification, whether from an unknown channel, a misconfigured provider or a network error, is logged as a warning, and the rule goes on to its next action. With `all`, a failure on one channel doesn't stop delivery to the others.
 
 The message is sent as written, with one exception. In a rule started by an alert, placeholders such as `{alert.message}`, `{alert.device}` and `{alert.raised_at}` are filled in, in both the title and the message; see [Alerts that start automations](../rules/alert-automations.md). To put a device's current reading in a message, send it from a `RunScript` action. In a script, `notify(channel, message)` sends with the default title and `notify_titled(channel, title, message)` sets one.
 
@@ -103,7 +103,7 @@ chat_id   = "-1001234567890"
 # markdown = true   # optional: send with Telegram's MarkdownV2 formatting
 ```
 
-The title, when there is one, is sent as the first line of the message. If `bot_token` or `chat_id` is still the example config's placeholder, `CHANGE_ME`, homeCore refuses to start. That is better than silently dropping every notification later.
+The title, when there is one, is sent as the first line of the message. If `bot_token` or `chat_id` is still the example config's placeholder, `CHANGE_ME`, homeCore refuses to start instead of silently dropping every notification later.
 
 With `markdown = true`, messages can use MarkdownV2 formatting. MarkdownV2's special characters then have to be escaped:
 

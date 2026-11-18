@@ -59,7 +59,7 @@ Save stays off until the rule is complete. A list above the editor says what's m
 
 **Test** in the editor dry-runs the draft before you save it. A rule's page has the same test under **Test it**, with **Now** or **At a time…**. At another time, times of day and "how long" checks move to that time, while devices and modes stay as they are now. The result says whether it would run and marks each check yes or no. Nothing is done to the house.
 
-**Run it now** runs the rule as if its moment came, even while it's turned off. **Run it** lets its checks decide. **Do its steps, skipping its checks** skips them.
+**Run it now** runs the rule as if its moment came, even while it's turned off. Its **Run it** button lets the rule's checks decide, and **Do its steps, skipping its checks** ignores them.
 
 **Recent runs** lists the last 20 times the rule's moment came, by day. Each says **Ran**, **Ran, with a failure**, **Resting** (inside its cooldown), **Paused**, **Skipped** or **Didn't run**, and opens to show the moment, each check and each step. These are the same records as `GET /automations/{id}/history`, and homeCore keeps them across restarts.
 
@@ -71,7 +71,7 @@ An alert can start an automation. **Do something…** on an alert, or in **Setti
 
 ## The Assistant
 
-If the [Assistant](../plugins/assistant.md) plugin is installed, you can ask it in the chat to set up an automation. It answers with a card that shows the rule as **When**, **Only if** and **Do**, with the stored JSON underneath. Press **Save and turn on** or **Save, turned off**, or type what to change. Changes to an existing rule get **Save changes** or **Not now**, and so do turning a rule on or off and deleting it. After saving, **Open in editor** opens the rule here.
+If the [Assistant](../plugins/assistant.md) plugin is installed, you can ask it in the chat to set up an automation. It answers with a card that shows the rule as **When**, **Only if** and **Do**, with the stored JSON underneath. Press **Save and turn on** or **Save, turned off**, or type what to change. A change to an existing rule asks with **Save changes** or **Not now**. Turning a rule on or off and deleting it ask the same way, with **Turn it on**, **Turn it off** or **Delete it** next to **Not now**. After saving, **Open in editor** opens the rule here.
 
 The Assistant never does more than the person asking may do. A household member can't make or change automations through it. An admin can turn off **Make and change automations**, or turn off **Ask before every change** so changes go through without the card. A rule that names a device marked Security (locks, doors and the like) is refused unless an admin has allowed **Locks, doors and security**.
 

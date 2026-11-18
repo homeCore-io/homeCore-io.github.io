@@ -21,7 +21,7 @@ covered in [Developing Plugins](./developing-plugins#notices).
 
 ## Declare the kinds
 
-Declare every kind of alert the plugin can raise on its capability manifest.
+On its capability manifest, declare every kind of alert the plugin can raise.
 Settings › Alerts can then list a kind before it has ever happened, so someone
 can turn it on or off or pick where it is sent.
 

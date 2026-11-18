@@ -29,7 +29,7 @@ ones. So does one whose screen fails to load.
 | `device.panel` | a device's panel, in place of the generic controls | `host`, `deviceId` |
 | `rule.step` | the automation editor's form for a step that sets one of its devices | `host`, `deviceIds`, `value` |
 | `device.card` | its devices' card on Home, the rooms and favorites | `host`, `deviceId`, `form` |
-| `dashboard.card` | a card of its own, added from Edit › Add a card | `host`, `form`, `config` |
+| `dashboard.card` | a card of its own, added from Edit this page › Add | `host`, `form`, `config` |
 | `look.drawing` | how a family of things is drawn, in a [look](../web-ui/looks.md) that chooses it | `host`, `thing`, `deviceId` |
 | `look.piece` | a piece of a page's frame: a room's header, a display's rest view | `host`, `room` or `things` |
 | `look.symbol` | symbols a person can give any device | `host`, `name` |
@@ -81,7 +81,7 @@ in. Nothing of the app's is shared except `host`. Then add a
 - `forms` lists the sizes a card can be: `compact` (one row), `standard`, and
   `large` (two columns). The first is a dashboard card's size when it is
   added. Without `forms`, every size is allowed.
-- A `dashboard.card` needs a `label`, its name in Add a card. `settings` names
+- A `dashboard.card` needs a `label`, its name in the Add panel. `settings` names
   the element that edits its settings.
 
 ## Serving it
@@ -122,10 +122,10 @@ App versions up to 0.1.27 have no `host.fileUrl`; draw no picture there.
 
 ## The host
 
-Every element is given a `host`: everything a screen may use, scoped to its
-own plugin. The types are `@homecore/plugin-ui`, at `sdk/ui/index.d.ts` in the
-homeCore repository. The package is not on npm, so use it from a checkout of
-that repository.
+Every element is given a `host`, which holds everything a screen may use,
+scoped to its own plugin. The types are `@homecore/plugin-ui`, at
+`sdk/ui/index.d.ts` in the homeCore repository. The package is not on npm, so
+use it from a checkout of that repository.
 
 | Member | What it is |
 |---|---|
@@ -178,8 +178,8 @@ and its parts as classes:
 - `hc-pill` (with `go` or `danger`), `hc-field`, `hc-table`
 - `hc-tag` and `hc-dot` (with `good`, `warn` or `bad`)
 - for a card, `hc-tile` (with `compact` or `lit`) and `hc-tile-name` and
-  `hc-tile-state`. This is the app's own card frame, so your card sits among
-  the app's cards without looking out of place.
+  `hc-tile-state`. This is the app's own card frame, so your card matches
+  the app's cards around it.
 
 ```js
 set host(h) {

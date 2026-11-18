@@ -74,7 +74,7 @@ curl -s -X POST http://localhost:8080/api/v1/alerts/ALERT_ID/press \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
-Listing needs `devices:read`. Acknowledging and pressing need `devices:command`. An acknowledged alert stays until its condition ends. It sends `alert_raised` with `update: true` and then `alert_acknowledged`. homeCore keeps acknowledgements in memory, so after a restart an active alert shows as new again. If the condition ends and comes back, that is a new alert.
+Listing needs `devices:read`. Acknowledging and pressing need `devices:command`. An acknowledged alert stays until its condition ends. Acknowledging sends `alert_raised` with `update: true` and then `alert_acknowledged`. homeCore keeps acknowledgements in memory, so after a restart an active alert shows as new again. If the condition ends and comes back, that is a new alert.
 
 Pressing runs the alert's `action`: a device action on the alert's device, or a plugin action. The alert clears when the plugin reports the work is done. An alert with no button answers `409`.
 

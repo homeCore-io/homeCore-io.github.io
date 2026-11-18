@@ -9,7 +9,7 @@ sidebar_position: 7
 
 The Sonos plugin finds the Sonos speakers on your network and makes each one a
 homeCore `media_player` device. You can see what each speaker plays, control
-playback, volume and sound, play favourites and playlists by name, group
+playback, volume and sound, play favorites and playlists by name, group
 speakers, and switch the household's Sonos alarms on and off. It brings its
 own page, panel, cards and automation step.
 
@@ -76,7 +76,7 @@ These are under **Settings › Plugins › Sonos › Settings**.
 
 | Setting | Key | Default | What it does |
 |---|---|---|---|
-| Look for speakers on the network | `sonos.ssdp` | on | SSDP discovery. Off: only the manual hosts are contacted. Useful where multicast is no use, or for a test homeCore that must never find the real speakers. |
+| Look for speakers on the network | `sonos.ssdp` | on | SSDP discovery. Off: only the manual hosts are contacted. Turn it off where multicast doesn't work, or on a test homeCore that must never find the real speakers. |
 | Discovery interval | `sonos.discovery_interval_secs` | 60 s | How often to look again. Minimum 5. |
 | Scan duration | `sonos.discovery_timeout_secs` | 5 s | How long each search listens, and how long a manual host has to answer. |
 | Manual hosts | `sonos.manual_hosts` | empty | Speaker addresses to probe directly, for example `192.168.1.50` or `192.168.1.50:1400`. Port 1400 if none is given. |
@@ -93,8 +93,9 @@ and a plugin restart.
 
 ## Devices
 
-Each speaker is a `media_player`. Every attribute is always published (null
-when there is nothing to report), and only when something changes.
+Each speaker is a `media_player`. Every attribute is always present (null
+when there is nothing to report), and the plugin publishes only when
+something changes.
 
 | Attribute | Meaning |
 |---|---|
@@ -114,8 +115,8 @@ when there is nothing to report), and only when something changes.
 | `bass`, `treble`, `loudness` | Bass and treble run from -10 to 10. |
 | `night_mode`, `speech_enhancement` | On a soundbar only |
 | `sleep_timer_ends_at` | When the group's sleep timer stops the music, or null |
-| `available_favorites`, `available_playlists` | Names of the household's favourites and playlists, read every five minutes |
-| `available_favorite_items` | The favourites with title and artwork |
+| `available_favorites`, `available_playlists` | Names of the household's favorites and playlists, read every five minutes |
+| `available_favorite_items` | The favorites with title and artwork |
 | `last_command_error` | Why the last command failed. Null once one succeeds. |
 
 A speaker's registration also carries its model and firmware version.
@@ -148,7 +149,7 @@ Write `volume` or `muted` directly, or send an action:
 | `set_sleep_timer` | `minutes` (0 to 1439; 0 cancels) | Applies to the group. |
 | `set_night_mode`, `set_speech_enhancement` | `night_mode`, `speech_enhancement` | Offered only on a soundbar. |
 | `select_source` | `source`: `tv` or `line_in` | Offered with the inputs the speaker has. |
-| `play_favorite` | `favorite`, optional `volume` | Sets this speaker's volume first, then plays the favourite on its group. A station starts at once; an album or playlist goes through the queue from the top. |
+| `play_favorite` | `favorite`, optional `volume` | Sets this speaker's volume first, then plays the favorite on its group. A station starts at once; an album or playlist goes through the queue from the top. |
 | `play_playlist` | `playlist` | A Sonos playlist by name, through the queue. |
 | `play_uri` | `uri` | A container URI, through the queue. |
 | `join` | `coordinator` (device ID) | Join that speaker's group. |
@@ -161,13 +162,13 @@ Volume is clamped to 0 to 100. The older `{"action": "play_media",
 
 Every command reports how it went. When one fails (the speaker or its
 coordinator isn't answering, the action is unknown, a parameter is missing or
-wrong, the favourite doesn't exist, or the speaker refuses), the plugin sets
+wrong, the favorite doesn't exist, or the speaker refuses), the plugin sets
 `last_command_error` and publishes a `plugin_command_result` event with
 `plugin_id`, `device_id`, `operation`, `success`, `error` and `error_code`.
 `error_code` is `no_answer`, `unknown_action`, `invalid_params`, `not_found`
 or `rejected`.
 
-A rule that plays a favourite when a switch turns on:
+A rule that plays a favorite when a switch turns on:
 
 ```ron
 Rule(
@@ -262,7 +263,7 @@ are, how many answer, and when they were found. It lists any speaker that
 isn't answering (with Forget for admins), speakers not yet in a room, and the
 speakers as the groups they play in. Each group is a card with its music, one
 volume for the group and each speaker's own volume, and buttons to change the
-group or ungroup. Below that are your Sonos favourites with their artwork
+group or ungroup. Below that are your Sonos favorites with their artwork
 (pick one, tick the speakers, press Play) and the household's alarms, each
 with an on and off switch.
 
@@ -276,11 +277,11 @@ which you can try again.
 A speaker's panel shows what it plays: a track with its progress (tap the bar
 to jump), a radio station, or an input such as TV or line in. Below are the
 transport controls, mute and volume (and the group's volume in a group), then
-three tabs. Favourites plays one on this speaker. Group ticks the speakers
-that should play this one's music. Sound has bass, treble, loudness,
-crossfade and the sleep timer, plus night mode and speech enhancement on a
-soundbar and Play from TV or line in on a speaker with an input. If the
-speaker refuses a command, the panel says why.
+three tabs. **Favourites** plays one on this speaker, and **Group** ticks the
+speakers that should play this one's music. **Sound** has bass, treble,
+loudness, crossfade and the sleep timer, plus night mode and speech
+enhancement on a soundbar and Play from TV or line in on a speaker with an
+input. If the speaker refuses a command, the panel says why.
 
 A speaker's card on Home and in rooms shows its artwork, what it plays, the
 track's progress, play and pause, and its volume. The compact form is one row
@@ -288,11 +289,11 @@ with a play button.
 
 You can add two cards yourself (Edit, then Add a card). **Sonos speakers**
 lists every speaker, or the ones you choose, with what each plays, its volume
-and play and pause. **Sonos favourites** shows the favourites with artwork;
+and play and pause. **Sonos favourites** shows the favorites with artwork;
 tapping one plays it on the speaker chosen in the card's settings, or on
 whichever speaker is playing.
 
-In the automation editor, a step on a speaker can play a favourite (with a
+In the automation editor, a step on a speaker can play a favorite (with a
 volume if you like), play a playlist, set the volume, pause, or group
 speakers. The step reads as a sentence, such as "play Piano for Sleeping on
 Bathroom at volume 20".
@@ -312,7 +313,7 @@ Forget removes one.
 | Changes show up a minute late, or new groups take minutes | Speakers can't deliver events. Check that Callback host is homeCore's LAN address and the speakers can reach port 5005. |
 | A speaker is offline | It missed two checks. It comes back by itself when it answers. If it is gone for good, use Forget on the plugin's page. |
 | Commands do nothing | Look at the speaker's `last_command_error`. |
-| Favourites or playlists are empty | They are read every five minutes. Check `available_favorites` and `available_playlists` after that. |
+| Favorites or playlists are empty | They are read every five minutes. Check `available_favorites` and `available_playlists` after that. |
 | Grouping says "no answer" | That speaker didn't reply within four seconds because it is off, asleep or unreachable. Try again from Play together. |
 | The HTTP API answers `403 Forbidden` | The request came from another machine. Call it from the homeCore host, or turn on Allow control from other machines. The log says "Refused a Sonos HTTP API request from another machine" with the caller's address. |
 
@@ -340,7 +341,7 @@ The plugin's log is on the **Log** tab of its page.
 ## The plugin's own HTTP API
 
 The plugin also serves its own HTTP API on port 5005, independent of
-homeCore, with a web page at `/` for browsing speakers, favourites,
+homeCore, with a web page at `/` for browsing speakers, favorites,
 playlists, now playing and group state. It is useful for testing and for
 things homeCore commands don't cover yet, such as the queue:
 
@@ -352,9 +353,10 @@ curl http://192.168.1.10:5005/Living%20Room/queue
 ```
 
 Other routes include `/{room}/pause`, `/{room}/volume/{level}`,
-`/{room}/favorite/{name}`, `/{room}/playlist/{name}`, `/{room}/join/{target}`,
-`/{room}/leave`, `/{room}/clearqueue` and `/pauseall`. In automations, use the
-homeCore device instead.
+`/{room}/favorite/{index}`, `/{room}/playlist/{index}`, `/{room}/join/{target}`,
+`/{room}/leave`, `/{room}/clearqueue` and `/pauseall`. The favorite and
+playlist routes take the item's position (counting from 0) in `/favorites` or
+`/playlists`. In automations, use the homeCore device instead.
 
 This API has no sign-in, so by default it answers only requests from the
 machine homeCore runs on: loopback, or that machine's own address. A rule on

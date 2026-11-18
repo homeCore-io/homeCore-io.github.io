@@ -177,8 +177,7 @@ its tools need and acts for each person within that person's scopes.
 
 ### Sync actions (`stream: false`)
 
-One request, one reply. The client POSTs the action and waits for the
-plugin's answer.
+The client POSTs the action and waits for the plugin's single reply.
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/plugins/plugin.yolink/command \
@@ -209,7 +208,7 @@ far; see [Developing Plugins](./developing-plugins#files-sent-to-an-action).
 
 ### Streaming actions (`stream: true`)
 
-For long flows that report progress and items. The POST returns
+These are for long flows that report progress and items. The POST returns
 `{request_id, status: "accepted", stream_topic}` as soon as the plugin
 accepts the action. The client then opens an SSE stream for the stage events.
 
@@ -343,8 +342,8 @@ interview finished during the inclusion window. When the person presses
 The plugin's page in Settings › Plugins lists its actions under **Actions**,
 built from the manifest. The list appears for people who may change plugins
 (`plugins:write`). `admin` actions are left out for everyone else, and
-`signed_in` actions are left off the list. A plugin that brings [its own page](./plugin-screens)
-shows that page instead.
+`signed_in` actions are never on the list. A plugin that brings
+[its own page](./plugin-screens) shows that page instead.
 
 Opening an action shows a field for each param and a **Run** button (**Start**
 for a streaming action). The app asks for confirmation first when the action

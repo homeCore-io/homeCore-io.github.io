@@ -7,7 +7,7 @@ sidebar_position: 7
 
 # Rule Examples
 
-Complete rules for common automation patterns. Each one can be saved as a `.ron` file in the rules directory as it stands; change the device names to match your house. The all-zero `id` tells homeCore to assign a real one on first load.
+These are complete rules for common automation patterns. Each one can be saved as a `.ron` file in the rules directory as it stands; change the device names to match your house. The all-zero `id` tells homeCore to assign a real one on first load.
 
 ## 1. Door alert during specific hours
 
@@ -129,7 +129,7 @@ Rule(
 
 The expression is a Rhai script, so it uses the motion sensor's raw device ID (`motion_hallway` here) rather than its canonical name. It is checked every 500 ms by default and has to stay true for the whole `hold_duration_ms`; motion resets the count.
 
-A pair of rules with a cancellable `Delay` and `CancelDelays` does **not** work for this: delay keys are private to the rule that set them, and cancelling a delay makes the run skip ahead to the "off" step instead of stopping. See [Cancellable delays](./advanced.md#cancellable-delays). One rule with `run_mode: Restart` and a cancellable `Delay` does work from v0.1.97, counting the five minutes from the last motion; see [Run modes](./advanced.md#run-modes). A [timer helper](../devices/virtual-devices.md) is another reliable way to do it.
+A pair of rules with a cancelable `Delay` and `CancelDelays` does not work for this: delay keys are private to the rule that set them, and canceling a delay makes the run skip ahead to the "off" step instead of stopping. See [Cancelable delays](./advanced.md#cancelable-delays). One rule with `run_mode: Restart` and a cancelable `Delay` does work from v0.1.97, counting the five minutes from the last motion; see [Run modes](./advanced.md#run-modes). A [timer helper](../devices/virtual-devices.md) is another reliable way to do it.
 
 ---
 
@@ -548,6 +548,6 @@ curl -s "http://localhost:8080/api/v1/automations?stale=true" \
 
 A dry run returns `rule_id`, `rule_name`, `conditions_pass`, `would_fire`, the rule's `actions`, and a `conditions` list. Each entry in that list holds the `condition`, whether it `passed`, and where they apply the `actual` and `expected` values, `elapsed_ms` (for `TimeElapsed`) and a `reason`. With `?at=`, time windows and elapsed-time checks are judged at that time, devices and modes stay as they are now, and the response includes the `at` it used. Scripts still read the real clock, and their `reason` says so.
 
-A run answers `202 Accepted` straight away. The run itself appears in the rule's history.
+A run answers `202 Accepted` right away. The run itself appears in the rule's history.
 
 Each history entry has a `timestamp`, the `trigger_type` and `trigger_context`, an `outcome` (`fired`, `condition_failed`, `cooldown`, `paused`, `required_expression_failed`, `trigger_gate_failed` or `skipped`), per-condition results in `conditions`, per-step results in `actions` and `eval_ms`. A run someone asked for has the `trigger_type` `ManualRun`.

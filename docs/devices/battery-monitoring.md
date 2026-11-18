@@ -20,7 +20,7 @@ clear ──── battery_pct ≤ threshold_pct ────► engaged → emi
 engaged ── battery_pct ≥ threshold + recover_band ─► clear → emit DeviceBatteryRecovered
 ```
 
-The latch is stored in `state.redb`, so a restart while a device is already low doesn't send the event again on its next reading. A device seen for the first time at a healthy level produces no event: one that first reports 80% stays silent. One that first reports 15% produces a single `DeviceBatteryLow`.
+The latch is stored in `state.redb`, so a restart while a device is already low doesn't send the event again on its next reading. A device seen for the first time at a healthy level produces no event, so one that first reports 80% stays silent, while one that first reports 15% produces a single `DeviceBatteryLow`.
 
 ## Configuration
 

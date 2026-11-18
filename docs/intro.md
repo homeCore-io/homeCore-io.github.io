@@ -44,7 +44,7 @@ Web app (hc-web-svelte), hc-tui, the Assistant, your scripts
 - Rules are RON files in a folder. Core reloads them when they change, and the API and the app can create, edit and delete them without a restart.
 - Everything goes through the API. The [web app](./web-ui/overview) is one client of it, with its own repository and container. [hc-tui](./tools/hc-tui) and [hc-mcp](./tools/hc-mcp) use the same API, and so can your own scripts.
 - Sunrise and sunset come from the latitude and longitude in your config, so time rules work offline.
-- Rule conditions only read state. That is why a dry run or test of a rule is safe.
+- Rule conditions only read state, so a dry run or test of a rule is safe.
 - Each plugin can have its own broker login in `[[broker.clients]]`. The embedded broker checks logins when a client connects, but it does not enforce the per-topic `allow_pub` and `allow_sub` lists. If you need that, run Mosquitto instead; the [broker guide](./administration/broker#external-mosquitto-deployment) explains how.
 
 ## License

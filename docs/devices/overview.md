@@ -121,7 +121,7 @@ Older names that these replaced include `brightness` and `level` (now `brightnes
 
 Temperatures are always °C inside homeCore. Showing °F is the app's job, from each person's setting or the household unit (`GET` and `PUT /api/v1/system/temperature-unit`). If a plugin still sends °F or kelvin and says so, either in its schema's `unit` or in a `<name>_unit` value beside the reading, homeCore converts the reading to °C before storing it. Rules, history and every screen then see °C.
 
-`GET /api/v1/system/vocabulary-check` compares every automation, scene and device with these names and with what each device accepts. It lists old names, units that differ from the standard, temperatures homeCore had to convert (under `conversions`), and steps that call something a device doesn't have. It only reports. It changes nothing.
+`GET /api/v1/system/vocabulary-check` compares every automation, scene and device with these names and with what each device accepts. It lists old names, units that differ from the standard, temperatures homeCore had to convert (under `conversions`), and steps that call something a device doesn't have. It only reports and changes nothing.
 
 ## `device_id`, `canonical_name` and `name`
 
@@ -208,7 +208,7 @@ A schema lets a client show a device it has never seen before. It has three part
 }
 ```
 
-A device with no schema returns `404` with `{"error": "schema not found"}`. That is normal: a plugin declares what it knows, and some devices predate schemas. An empty attribute set means something different. A momentary output, such as a pulsed contact closure, has nothing to read.
+A device with no schema returns `404` with `{"error": "schema not found"}`. That is normal, since a plugin declares only what it knows and some devices predate schemas. An empty attribute set means something else: the device has nothing to read, as with a momentary output such as a pulsed contact closure.
 
 When a schema changes, homeCore emits `device_schema_changed` with the declared attribute and action names.
 
@@ -230,7 +230,7 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/zwave_lock_front/state \
   -d '{"locked": false}'
 ```
 
-homeCore publishes the command to `homecore/devices/{id}/cmd`. The plugin acts on it and publishes the new state back. That report, not the `202`, is what confirms the command.
+homeCore publishes the command to `homecore/devices/{id}/cmd`. The plugin acts on it and publishes the new state back. The `202` only means homeCore accepted the command; that state report confirms it.
 
 A command takes one of two shapes: a write to a writable attribute, as above, or one of the device's declared actions, such as `{"action": "start", "duration_secs": 600}`. The schema's `actions` list says which actions a device has. The older `{"command": …}` form is retired. homeCore's own helpers and modes still accept it from older automations.
 
@@ -285,7 +285,7 @@ In the web app, a device's page under **Settings › Devices** edits the same fi
 
 ### Security
 
-`security` decides whether a device counts toward the house's security: the doors, locks and windows a "is the house secure?" check looks at.
+`security` decides whether a device counts toward the house's security: the doors, locks and windows an "is the house secure?" check looks at.
 
 - Left out (the default): follow the device's type. The app counts locks, door, window, garage and gate contacts, and covers that open.
 - `true`: count it, whatever its type. Use this for a motion sensor or a shed light you want watched.
