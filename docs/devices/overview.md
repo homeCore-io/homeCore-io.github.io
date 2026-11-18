@@ -1,7 +1,7 @@
 ---
 id: overview
 title: Devices
-sidebar_label: Overview
+sidebar_label: Devices
 sidebar_position: 1
 ---
 

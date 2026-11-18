@@ -5,7 +5,22 @@ sidebar_label: Mysa
 sidebar_position: 15
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Mysa (`hc-mysa`)
+
+<PluginFacts
+  mark="My"
+  kind="climate"
+  summary="Connects Mysa thermostats to homeCore through Mysa's cloud, with the controls each model has."
+  version="0.1.2"
+  runs="Under core (Rust)"
+  talks="Mysa's cloud"
+  account="Mysa account"
+  devices={["thermostat"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-mysa"
+  setup="#install-and-set-up"
+/>
 
 This plugin connects Mysa thermostats through Mysa's cloud (the Mysa Consumer
 API). Each thermostat you share with homeCore becomes a homeCore thermostat

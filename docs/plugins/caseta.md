@@ -5,7 +5,22 @@ sidebar_label: Caseta
 sidebar_position: 7
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Lutron Caséta (`hc-caseta`)
+
+<PluginFacts
+  mark="Ca"
+  kind="lights"
+  summary="Connects a Lutron Caséta Smart Bridge Pro to homeCore, so its dimmers, switches, shades, fans, Picos, sensors and scenes become devices."
+  version="0.1.18"
+  runs="Under core (Rust)"
+  talks="The Smart Bridge Pro on your network"
+  account="Bridge integration login"
+  devices={["light", "switch", "cover", "pico_remote", "scene"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-caseta"
+  setup="#install-and-set-up"
+/>
 
 hc-caseta connects a Lutron Caséta Smart Bridge Pro (`L-BDGPRO2-WH`) to
 homeCore. It logs in to the bridge's telnet integration and speaks the Lutron

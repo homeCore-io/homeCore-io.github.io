@@ -5,7 +5,22 @@ sidebar_label: Ecowitt
 sidebar_position: 11
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Ecowitt (`hc-ecowitt`)
+
+<PluginFacts
+  mark="Ec"
+  kind="weather"
+  summary="Brings an Ecowitt weather station into homeCore through its gateway, with every sensor as a read-only device."
+  version="0.1.27"
+  runs="Under core (Rust)"
+  talks="The gateway on your network"
+  account="None"
+  devices={["weather_station", "temperature_sensor", "rain_sensor", "air_quality_sensor", "gateway"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-ecowitt"
+  setup="#install-and-set-up"
+/>
 
 This plugin brings an Ecowitt weather station into homeCore through its
 gateway or console (GW1100, GW2000 and similar). It learns the sensors from

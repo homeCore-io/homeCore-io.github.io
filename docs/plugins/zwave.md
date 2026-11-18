@@ -5,7 +5,22 @@ sidebar_label: Z-Wave
 sidebar_position: 7
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Z-Wave (`hc-zwave`)
+
+<PluginFacts
+  mark="Zw"
+  kind="hub"
+  summary="Brings a Z-Wave network into homeCore through a Z-Wave JS server."
+  version="0.1.23"
+  runs="Under core (Rust)"
+  talks="A Z-Wave JS server"
+  account="None"
+  devices={["lock", "switch", "light", "thermostat", "cover"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-zwave"
+  setup="#install-and-set-up"
+/>
 
 The Z-Wave plugin brings a Z-Wave network into homeCore through a
 [Z-Wave JS](https://zwave-js.github.io/node-zwave-js/) server. Locks, plugs,

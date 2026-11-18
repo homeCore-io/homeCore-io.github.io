@@ -1,7 +1,7 @@
 ---
 id: systemd-deployment
 title: Systemd Deployment (with External Mosquitto)
-sidebar_label: Systemd Deployment
+sidebar_label: systemd deployment
 sidebar_position: 7
 ---
 

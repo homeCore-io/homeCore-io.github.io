@@ -1,7 +1,7 @@
 ---
 id: developing-plugins
 title: Developing Plugins
-sidebar_label: Developing Plugins
+sidebar_label: Developing plugins
 sidebar_position: 2
 ---
 

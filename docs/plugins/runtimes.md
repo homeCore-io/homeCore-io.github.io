@@ -1,7 +1,7 @@
 ---
 id: runtimes
 title: Plugin Runtimes
-sidebar_label: Plugin Runtimes
+sidebar_label: Plugin runtimes
 sidebar_position: 6
 ---
 

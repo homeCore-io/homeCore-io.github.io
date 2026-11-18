@@ -1,7 +1,7 @@
 ---
 id: system-status
 title: System Status
-sidebar_label: System Status
+sidebar_label: System status
 sidebar_position: 6
 ---
 

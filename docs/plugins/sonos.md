@@ -5,7 +5,22 @@ sidebar_label: Sonos
 sidebar_position: 7
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Sonos (`hc-sonos`)
+
+<PluginFacts
+  mark="So"
+  kind="media"
+  summary="Finds the Sonos speakers on your network and makes each one a homeCore media player."
+  version="0.1.22"
+  runs="Under core (Rust)"
+  talks="Your network"
+  account="None"
+  devices={["media_player"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-sonos"
+  setup="#install-and-set-up"
+/>
 
 The Sonos plugin finds the Sonos speakers on your network and makes each one a
 homeCore `media_player` device. You can see what each speaker plays, control

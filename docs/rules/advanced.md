@@ -1,7 +1,7 @@
 ---
 id: advanced
 title: Advanced Rule Patterns
-sidebar_label: Advanced Patterns
+sidebar_label: Advanced patterns
 sidebar_position: 5
 ---
 

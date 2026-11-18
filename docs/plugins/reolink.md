@@ -5,7 +5,22 @@ sidebar_label: Reolink
 sidebar_position: 16
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Reolink (`hc-reolink`)
+
+<PluginFacts
+  mark="Re"
+  kind="cameras"
+  summary="Connects Reolink cameras, NVRs and Home Hubs on your network, with detections, snapshots, spotlights, sirens, PTZ and live video."
+  version="0.1.7"
+  runs="Under core (Rust)"
+  talks="Your network"
+  account="A login on each device"
+  devices={["camera", "light", "siren"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-reolink"
+  setup="#install-and-set-up"
+/>
 
 This plugin connects Reolink cameras, NVRs and Home Hubs on your home network.
 It reports what each camera sees (motion, a person, a vehicle, an animal, a

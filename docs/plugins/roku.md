@@ -5,7 +5,22 @@ sidebar_label: Roku
 sidebar_position: 12
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Roku players and TVs (`hc-roku`)
+
+<PluginFacts
+  mark="Ro"
+  kind="media"
+  summary="Brings Roku players, TVs and soundbars into homeCore over Roku's External Control Protocol, each one as a media player."
+  version="0.1.16"
+  runs="Under core (Rust)"
+  talks="Your network"
+  account="None"
+  devices={["media_player"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-roku"
+  setup="#install-and-set-up"
+/>
 
 The Roku plugin brings Roku streaming players, Roku TVs and Roku soundbars
 into homeCore over Roku's

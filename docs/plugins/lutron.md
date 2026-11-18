@@ -5,7 +5,22 @@ sidebar_label: Lutron
 sidebar_position: 6
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Lutron RadioRA 2 (`hc-lutron`)
+
+<PluginFacts
+  mark="Lu"
+  kind="lights"
+  summary="Connects a Lutron RadioRA 2 main repeater to homeCore, so its dimmers, switches, shades, keypads and scenes become devices."
+  version="0.1.27"
+  runs="Under core (Rust)"
+  talks="The main repeater on your network"
+  account="Repeater integration login"
+  devices={["light", "switch", "cover", "keypad", "scene"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-lutron"
+  setup="#install-and-set-up"
+/>
 
 hc-lutron connects a Lutron RadioRA 2 main repeater to homeCore. It logs in
 over telnet and speaks the Lutron Integration Protocol (LIP). Each dimmer,

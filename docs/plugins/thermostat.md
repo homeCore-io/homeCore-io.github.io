@@ -5,7 +5,22 @@ sidebar_label: Thermostat
 sidebar_position: 11
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # Thermostat (`hc-thermostat`)
+
+<PluginFacts
+  mark="Th"
+  kind="climate"
+  summary="Makes software thermostats that read sensors you already have and switch a plug to hold a room at a target."
+  version="0.1.23"
+  runs="Under core (Rust)"
+  talks="Other plugins' devices"
+  account="None"
+  devices={["thermostat"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-thermostat"
+  setup="#install-and-set-up"
+/>
 
 This plugin makes software thermostats. Each one reads temperature sensors
 you already have and switches a plug or switch on and off to hold a room at

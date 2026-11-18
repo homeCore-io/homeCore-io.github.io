@@ -1,7 +1,7 @@
 ---
 id: deployment-checklist
 title: Production Deployment Checklist
-sidebar_label: Deployment Checklist
+sidebar_label: Deployment checklist
 sidebar_position: 6
 ---
 

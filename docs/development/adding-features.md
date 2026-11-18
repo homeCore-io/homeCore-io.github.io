@@ -1,7 +1,7 @@
 ---
 id: adding-features
 title: Adding Features
-sidebar_label: Adding Features
+sidebar_label: Adding features
 sidebar_position: 4
 ---
 

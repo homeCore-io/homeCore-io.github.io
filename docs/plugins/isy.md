@@ -5,7 +5,22 @@ sidebar_label: ISY / IoX
 sidebar_position: 9
 ---
 
+import PluginFacts from '@site/src/components/PluginFacts';
+
 # ISY / IoX (`hc-isy`)
+
+<PluginFacts
+  mark="IS"
+  kind="hub"
+  summary="Connects a Universal Devices ISY or IoX controller to homeCore, so the Insteon and Z-Wave devices it runs show up on their own."
+  version="0.1.15"
+  runs="Under core (Rust)"
+  talks="The controller on your network"
+  account="Controller login"
+  devices={["light", "switch", "lock", "thermostat", "scene"]}
+  source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-isy"
+  setup="#install-and-set-up"
+/>
 
 hc-isy connects a Universal Devices ISY or IoX controller (ISY994i, eisy or
 Polisy) to homeCore. It reads the controller's nodes and scenes over the ISY
