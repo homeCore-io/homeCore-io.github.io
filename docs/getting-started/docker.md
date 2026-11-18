@@ -1,7 +1,7 @@
 ---
 id: docker
 title: Docker Deployment
-sidebar_label: Docker
+sidebar_label: Install with Docker
 sidebar_position: 5
 ---
 

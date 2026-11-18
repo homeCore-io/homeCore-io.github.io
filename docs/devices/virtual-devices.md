@@ -1,7 +1,7 @@
 ---
 id: virtual-devices
 title: Virtual Devices
-sidebar_label: Virtual Devices
+sidebar_label: Helpers
 sidebar_position: 2
 ---
 

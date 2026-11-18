@@ -1,7 +1,7 @@
 ---
 id: intro
 title: homeCore
-sidebar_label: Introduction
+sidebar_label: What is homeCore
 sidebar_position: 1
 slug: /
 ---
