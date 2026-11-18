@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'homeCore.io',
-  tagline: 'All the things',
+  tagline: 'Home automation that runs on your own hardware',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -70,18 +70,30 @@ const config: Config = {
     ],
   ],
 
-  // Pull JetBrains Mono so the navbar's mono treatment renders for
-  // visitors who don't have it installed locally.
+  // The app's type: Figtree for text, IBM Plex Mono for code and numbers.
   stylesheets: [
     {
-      href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
       rel: 'stylesheet',
     },
   ],
 
+  // Search built from the pages at build time; no account, works offline.
+  themes: [
+    [
+      '@easyops-cn/docusaurus-search-local',
+      {
+        hashed: true,
+        indexBlog: true,
+        docsRouteBasePath: '/docs',
+        highlightSearchTermsOnTargetPage: true,
+        searchBarShortcutHint: true,
+      },
+    ],
+  ],
+
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/social-card.png',
     colorMode: {
       respectPrefersColorScheme: true,
     },
@@ -99,6 +111,8 @@ const config: Config = {
           position: 'left',
           label: 'Docs',
         },
+        {to: '/docs/plugins/overview', label: 'Plugins', position: 'left'},
+        {to: '/docs/release-notes', label: 'Release notes', position: 'left'},
         {to: '/blog', label: 'Blog', position: 'left'},
         {
           href: 'https://github.com/homeCore-io/homeCore',
@@ -113,48 +127,34 @@ const config: Config = {
         {
           title: 'Docs',
           items: [
-            {
-              label: 'Tutorial',
-              to: '/docs/getting-started/quickstart',
-            },
+            {label: 'Install with Docker', to: '/docs/getting-started/docker'},
+            {label: 'The app', to: '/docs/web-ui/overview'},
+            {label: 'Automations', to: '/docs/rules/overview'},
+            {label: 'Plugins', to: '/docs/plugins/overview'},
           ],
         },
         {
-          title: 'Community',
+          title: 'Project',
           items: [
-            {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com',
-            },
-            {
-              label: 'Discord',
-              href: 'https://discordapp.com',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com',
-            },
+            {label: 'Release notes', to: '/docs/release-notes'},
+            {label: 'Blog', to: '/blog'},
+            {label: 'GitHub', href: 'https://github.com/homeCore-io'},
           ],
         },
         {
-          title: 'More',
+          title: 'Build',
           items: [
-            {
-              label: 'Blog',
-              to: '/blog',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/homeCore-io',
-            },
+            {label: 'Write a plugin', to: '/docs/plugins/developing-plugins'},
+            {label: 'UI extensions', to: '/docs/web-ui/making-extensions'},
+            {label: 'Core development', to: '/docs/development/workspace'},
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} homeCore. Built with Docusaurus.`,
+      copyright: `homeCore is open source, MIT or Apache-2.0. © ${new Date().getFullYear()} homeCore.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.oneDark,
+      darkTheme: prismThemes.oneDark,
     },
   } satisfies Preset.ThemeConfig,
 };
