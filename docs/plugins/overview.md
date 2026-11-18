@@ -74,7 +74,7 @@ installed from the registry.
 
 A plugin can bring its own screens to the web app: its page, its devices'
 panel and cards, a form in the automation editor, cards you add to a page
-yourself (Edit › Add a card), drawings for the looks, and a helper in the top
+yourself (Edit this page › Add), drawings for the looks, and a helper in the top
 bar. Every plugin above except ISY has some. The screens come in the
 plugin's package and are updated with it. A plugin without them gets the
 app's generic screens. See [Screens and Cards](./plugin-screens).
@@ -153,17 +153,16 @@ watches the directory and restarts that one plugin so it reads the new
 settings. homeCore itself doesn't restart, and no other plugin is touched.
 homeCore compares the parsed settings, so a write that changes only comments
 or spacing is ignored, and so is one that changes only `[logging] level`. A
-file that briefly disappears during a save never stops a running plugin. For a plugin
-in a runtime, homeCore sends the new settings to the runtime instead.
+file that briefly disappears during a save never stops a running plugin. For a
+plugin in a runtime, homeCore sends the new settings to the runtime instead.
 
 The settings form comes from the plugin's config schema and descriptor
 (`GET /api/v1/plugins/{id}/config/schema` and `/config/descriptor`). A plugin
 that publishes neither gets a TOML text box.
 
-The **Log** tab shows the plugin's own log lines. Changing its log level on
-the page reaches the running plugin at once and is saved in the plugin's
-`[logging] level`. The plugin keeps running; a level change doesn't restart
-it.
+The **Log** tab shows the plugin's own log lines. A log level changed on the
+page reaches the running plugin at once, without a restart, and is saved in
+the plugin's `[logging] level`.
 
 To run a plugin by hand during development, pass it a config path:
 
@@ -213,8 +212,8 @@ A plugin registers a device by publishing JSON to
 }
 ```
 
-homeCore creates or updates the device record and offers the device to the
-API, the app and the rule engine. Registering again is an upsert, so names,
+homeCore creates or updates the device record, and the device becomes
+available to the API, the app and the rule engine. Registering again is an upsert, so names,
 areas, types and schemas follow what the plugin reports after a restart. A
 registration can also carry `manufacturer`, `model`, `sw_version` (the
 device's firmware) and `parent_device_id` (the bridge or controller it sits
@@ -229,8 +228,8 @@ what each attribute is and what the device can do. See
 
 ## Connecting to a broker on another machine
 
-A plugin can run on another machine than homeCore. Point it at homeCore's
-broker:
+A plugin can run on a different machine from homeCore. Point it at
+homeCore's broker:
 
 ```toml
 [homecore]

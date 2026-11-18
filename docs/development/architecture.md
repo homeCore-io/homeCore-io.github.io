@@ -171,14 +171,14 @@ In production these are distinct channels. `AppState::new` takes an
 a clone of `event_bus`, which suits a test harness with one merged bus.
 
 :::caution Subscriber-spawn timing
-`tokio::broadcast` does **not** replay history to a late subscriber.
-Anything published before a subscriber existed is lost to it. Listeners
+`tokio::broadcast` doesn't replay history to a late subscriber, so
+anything published before a subscriber existed is lost to it. Listeners
 that must see retained messages (capability manifests in particular) have
-to be spawned **before** the publisher fires. So
+to be spawned before the publisher fires. That means
 `spawn_plugin_registry_listener` and `plugin_access::spawn_plugin_api_access`
 must run before plugins spawn, and `core.start()` (which spawns
-`state_bridge`) must run before `mqtt_client.run()`. Both are wired
-correctly today. Keep this in mind when you reorder `main.rs`.
+`state_bridge`) must run before `mqtt_client.run()`. `main.rs` does both
+in that order now, so keep it if you rearrange the file.
 :::
 
 ---
@@ -203,7 +203,7 @@ retain-then-clear-on-terminal lifecycle. The
 
 A client opens an `EventSource` against
 `GET /api/v1/plugins/{id}/command/{request_id}/stream`. The handler sits
-on the **public** router on purpose, because a browser can't set
+on the public router on purpose, because a browser can't set
 `Authorization` on an `EventSource`. It accepts `?token=<jwt>`, an
 `Authorization: Bearer` header for programmatic clients, or the IP
 whitelist, and requires the `plugins:read` scope. Through the UI server,
@@ -233,9 +233,9 @@ their terminal stage. When the SSE handler opens, it:
 4. Forwards live events, skipping any whose `ts` was already in the
    snapshot.
 
-The retained last event is still the fallback. The cache adds a short
-replay window on top, so a late subscriber sees the history it missed and
-then catches up to live.
+The retained last event is still there as a fallback. The cache adds a
+short replay window on top, so a late subscriber gets the history it
+missed and then follows the live events.
 
 ### Terminal observer and timeout injection
 
@@ -271,8 +271,8 @@ For each `Event::MqttMessage` it receives from `internal_bus`:
    (`StateStore`), applies the new attributes, and computes `changed`,
    the set of attributes whose values actually differ.
 5. It writes the new state to redb.
-6. **Only if `!changed.is_empty()`** does it publish
-   `Event::DeviceStateChanged` to `pub_bus`.
+6. It publishes `Event::DeviceStateChanged` to `pub_bus` only if
+   `!changed.is_empty()`.
 
 The guard in step 6 keeps restarts cheap. On restart the broker replays
 retained messages for every registered device. Without the guard, each
@@ -301,7 +301,7 @@ clears a device's alerts). The bridge also handles plugin topics such as
 `…/logs`.
 
 Partial merge uses `apply_partial_merge_patch`: a JSON `null` in the
-patch **deletes** that attribute from the stored state. Plugins that emit
+patch deletes that attribute from the stored state. Plugins that emit
 per-attribute updates must filter out null values unless they mean to
 remove the attribute.
 
@@ -319,14 +319,10 @@ The bridge also handles availability topics
 
 The engine does not read redb during condition evaluation. It keeps an
 `Arc<DashMap<String, HashMap<String, JsonValue>>>` (device ID to
-attributes) that is:
-
-- filled at startup from the state store, and
-- updated on every `DeviceStateChanged` event **before** rule evaluation
-  begins.
-
-A `DeviceState` condition is therefore a DashMap lookup, with no redb
-read and no `spawn_blocking`.
+attributes), fills it from the state store at startup, and updates it on
+every `DeviceStateChanged` event before rule evaluation begins. A
+`DeviceState` condition is therefore a DashMap lookup, with no redb read
+and no `spawn_blocking`.
 
 ### RwLock early release
 
@@ -425,7 +421,7 @@ rule's own conditions are decided.
   firings.
 - `Parallel { actions }` spawns each sub-action as its own `tokio::spawn`
   task and waits for all of them.
-- A cancellable delay registers a `tokio::sync::Notify` in
+- A cancelable delay registers a `tokio::sync::Notify` in
   `delay_registry` under `"{rule_id}/{cancel_key}"`. `CancelDelays` looks
   it up and triggers it.
 
@@ -452,8 +448,8 @@ engine fires that rule. These triggers never match ordinary events.
 Solar times are computed locally from the `[location]` latitude and
 longitude with the sunrise equation. No cloud API is called.
 
-**Catch-up on restart:** at startup the scheduler checks every enabled
-time-based rule against a window (`[scheduler] catchup_window_minutes`,
+To catch up after a restart, the scheduler checks every enabled
+time-based rule at startup against a window (`[scheduler] catchup_window_minutes`,
 default 15). Any trigger whose time falls within `(now - window, now]`
 fires immediately.
 
@@ -561,20 +557,21 @@ heartbeat for 90 seconds is marked offline, and `PluginStatusChanged` and
 ### Who may run an action, and the plugin's own key
 
 `hc-api/src/plugin_access.rs` handles the boundary between people and
-plugins:
+plugins.
 
-- **Who may run an action.** An action the manifest declares
-  `requires_role: signed_in` is open to anyone signed in. Every other
-  action needs `plugins:write`, and one declared `admin` needs the admin
-  role as well.
-- **Who asked.** Core adds the verified caller (uid, username, role,
-  scopes, kind) to every action it forwards, after dropping any `caller`
-  the client put in the body.
-- **The plugin's own key.** A manifest with `api_scopes` gets an API key.
-  Core mints a new one each time the manifest is published, deletes the
-  previous one, and sends it with the `api_access` management action. A
-  plugin key never holds `users:write` or `api_keys:admin`. The key of a
-  plugin core runs on its own machine only works from loopback.
+An action the manifest declares `requires_role: signed_in` is open to
+anyone signed in. Every other action needs `plugins:write`, and one
+declared `admin` needs the admin role as well.
+
+Core adds the verified caller (uid, username, role, scopes, kind) to
+every action it forwards, after dropping any `caller` the client put in
+the body, so the plugin knows who asked.
+
+A manifest with `api_scopes` gets the plugin its own API key. Core mints
+a new one each time the manifest is published, deletes the previous one,
+and sends it with the `api_access` management action. A plugin key never
+holds `users:write` or `api_keys:admin`. When core runs the plugin on its
+own machine, the key only works from loopback.
 
 ### REST API
 
@@ -652,8 +649,8 @@ failures are counted per display.
 ## The UI server
 
 The web app lives in `clients/hc-web-svelte` and runs in its own Node
-process, the UI server. Core keeps the house; the UI server keeps how it
-is shown.
+process, the UI server. Core holds the house's data, and the UI server
+handles how it is presented.
 
 - It serves the built app and passes `/api/v1` and the WebSocket event
   stream through to core on the same origin (`server/proxy.js`). Core

@@ -12,8 +12,8 @@ The Z-Wave plugin brings a Z-Wave network into homeCore through a
 switches, dimmers, sensors, thermostats and covers all become homeCore
 devices. From homeCore you can add and remove devices, watch each one's
 health and signal, change a device's own settings, and manage a lock's codes
-and history. The plugin never touches the radio itself: Z-Wave JS owns the
-USB stick, and the plugin talks to it over a WebSocket.
+and history. Z-Wave JS owns the USB stick, and the plugin talks to Z-Wave JS
+over a WebSocket, so it never touches the radio itself.
 
 ## Before you start
 
@@ -106,7 +106,7 @@ from the device's own scale, and every temperature is in °C.
 | `child_lock` | Protection (117) local | When set, the device's own buttons do nothing. Writable. |
 | `last_command_error` | the plugin | Why the last command to this device failed. Cleared once a command succeeds. |
 
-Some values are kept out of a device's attributes on purpose, because they
+The plugin leaves some values out of a device's attributes because they
 cluttered every picker: identity (Manufacturer Specific, Version, Z-Wave Plus
 Info), wake up settings, security, configuration parameters (they are on the
 Settings tab), a lock's code slots (the Codes tab), v1 alarm numbers (decoded
@@ -143,11 +143,11 @@ one sent while Z-Wave JS is unreachable, fails and says why in the device's
 ### Lock codes are write only
 
 A code goes from the Codes tab to the lock and nowhere else. homeCore never
-shows, stores, logs or returns it. It is not an attribute, and it is not in
+shows, stores, logs or returns it, so it never appears as an attribute or in
 history, the event log or the plugin's log. Error messages about a code never
-quote it. Z-Wave JS reports every slot's code in the clear, so the plugin
+quote it. Z-Wave JS reports every slot's code in the clear, and the plugin
 drops those values as they arrive. It does keep who each slot is for, in
-`.zwave-code-names.json` beside its config. That file holds names only.
+`.zwave-code-names.json` beside its config, and that file holds names only.
 
 ### Lock history
 
@@ -187,7 +187,7 @@ The plugin keeps each node's radio statistics from Z-Wave JS. A device's
 | Round trip | under 300 ms | 300 ms to 1 s | 1 s or more |
 | Hops | direct or one repeater | two or more | |
 
-A dead node is poor. With nothing to judge yet, the signal is unknown.
+A dead node is poor, and a node with nothing to judge yet is unknown.
 
 A device that stops answering stays in homeCore. It is marked offline, keeps
 its room and automations, and comes back online by itself. Asleep is normal
@@ -251,7 +251,8 @@ The plugin also posts two notices on its page:
 All of these ship with the plugin, so updating the plugin updates them.
 
 The plugin's page (**Settings › Plugins › Z-Wave**) shows whether Z-Wave JS is
-answering and how many devices are. It lists anything that needs you, such as
+answering and how many devices are. It lists anything that needs your
+attention, such as
 a lock's battery running low, a device that has stopped answering, or one
 that is no longer in the network. Below that is every device with its room,
 what it is doing, its power source (mains, or battery and whether it sleeps),
@@ -316,8 +317,8 @@ themselves are never set in an automation.
 
 When Z-Wave JS goes away, every Z-Wave device goes offline at once and the
 plugin's page says why. A command sent during the outage waits up to 5
-seconds for the connection, then fails and says so. It is never queued, so a
-door is never unlocked an hour after somebody asked. The plugin pings the
+seconds for the connection, then fails and says so. Commands are never
+queued, so a door is never unlocked an hour after somebody asked. The plugin pings the
 server every 20 seconds and treats 50 seconds of silence as a lost
 connection. It reconnects on its own, waiting 2 seconds at first and doubling
 up to a minute between tries. Once it is back, it reads everything again and

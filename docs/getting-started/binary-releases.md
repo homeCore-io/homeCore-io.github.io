@@ -83,7 +83,7 @@ If the check fails, don't extract the archive.
 ## Layout
 
 Every archive extracts to a top-level `homecore/` directory, so you choose
-the parent directory yourself. Extracting is installing.
+the parent directory yourself. There is no install step after extracting.
 
 ### Core archive
 

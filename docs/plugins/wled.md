@@ -11,7 +11,7 @@ The WLED plugin connects [WLED](https://kno.wled.ge) LED controllers to
 homeCore. Each controller becomes a light, and the plugin covers nearly
 everything a controller can do: segments and their looks, presets and
 playlists, nightlight, sync with other WLEDs, live data, sound, the
-controller's own settings, backups and firmware. It brings its own page,
+controller's own settings, backups and firmware. It ships with its own page,
 panel, cards and automation step.
 
 Changes arrive over each controller's WebSocket as they happen, whether they
@@ -23,8 +23,8 @@ A controller whose WebSocket can't be reached is read on a timer instead.
 - One or more controllers running WLED, on ESP32 or ESP8266 boards.
 - homeCore must reach each controller over HTTP on port 80, for its JSON API
   and its WebSocket at `/ws`.
-- Controllers on the same network are found with mDNS. mDNS doesn't cross
-  subnets or VLANs, and it doesn't reach into a container on a bridge
+- The plugin finds controllers on the same network with mDNS. mDNS doesn't
+  cross subnets or VLANs, and it doesn't reach into a container on a bridge
   network, so in those setups you add each controller by its address.
 - Firmware checks ask GitHub for releases, once a day by default. Set
   **Look for firmware every** to 0 to never ask.
@@ -47,8 +47,8 @@ Until at least one controller is added, the plugin shows a
 
 ## Settings
 
-These are under **Settings › Plugins › WLED › Settings**. The catalogue and
-firmware choices are also on the plugin's page.
+These are under **Settings › Plugins › WLED › Settings**. The effect catalog
+and firmware choices are also on the plugin's page.
 
 | Setting | Key | Default | What it does |
 |---|---|---|---|
@@ -65,8 +65,8 @@ settings.
 
 ## Devices
 
-Each controller is a `light` device. Values that homeCore has shared names
-for use them, converted from WLED's own scales:
+Each controller is a `light` device. Where homeCore has a shared name for a
+value, the plugin uses it and converts from WLED's own scale:
 
 | Attribute | Meaning |
 |---|---|
@@ -190,7 +190,7 @@ A controller's panel opens when you tap the controller anywhere. Its tabs:
 - Presets: save what's running, rename, delete, pick the power-on preset,
   back up, restore, copy a preset to another controller, or duplicate it.
 - Playlists: build and edit them, start one, skip to the next entry.
-- Controller: nightlight, sync, live data, sound, the effect catalogue, the
+- Controller: nightlight, sync, live data, sound, the effect catalog, the
   controller's own timers, its setup (LED outputs, buttons and remote,
   network, clock), firmware, backups and restart.
 
@@ -222,9 +222,10 @@ The plugin only takes an ESP32 or ESP8266 firmware image (a `.bin`, or a
 gzipped `.bin.gz`) of a plausible size, and refuses anything else before it
 touches the controller.
 
-**Install updates by itself, at night**, on the plugin's page, adds an
-ordinary automation you can open and change. At 03:00 it installs each
-waiting update in turn and stops at the first one that doesn't take.
+**Install WLED updates by itself, at 03:00, one controller at a time**, on
+the plugin's page, adds an ordinary automation you can open and change. At
+03:00 it installs each waiting update in turn and stops at the first one that
+doesn't take.
 
 ## Troubleshooting
 
@@ -233,8 +234,9 @@ controller still answers. If it doesn't, the device shows offline. The plugin
 reads it on the poll interval until the WebSocket connects again, and the
 device's `connection` shows `poll` meanwhile.
 
-If **Look for controllers** finds nothing, homeCore and the controllers are on
-different subnets, or homeCore runs in a container on a bridge network. Add
+If **Look for controllers** finds nothing, homeCore and the controllers are
+probably on different subnets, or homeCore runs in a container on a bridge
+network. Add
 each controller by address, or list an address on the far side under
 Cross-subnet hosts.
 

@@ -141,7 +141,7 @@ You change a device by writing an attribute, or by sending an action:
 {"action": "activate"}
 ```
 
-Some details worth knowing:
+Notes on commands and scene IDs:
 
 - `{"on": true}` with no level turns a dimmer or fan back on at the last level
   the bridge reported. If none has been seen since the plugin started, it goes

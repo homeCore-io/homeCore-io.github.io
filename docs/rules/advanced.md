@@ -20,13 +20,13 @@ The snippets on this page are fragments of a rule file. Put them inside a full `
 | `Restart` | A new trigger stops the earlier run at its next step and starts a new run. |
 | `Queued` | Runs go one at a time, in the order they were triggered. Up to `max_queue` (default 10) may be waiting or running; further triggers are skipped with the reason `queued: queue full (max N)`. |
 
-With `Restart`, the earlier run's cancellable delays are cut short so it reaches its next step straight away, and it stops there without running the steps after the delay. A step that can't be cut short, such as a `Delay` without `cancelable: true` or a `WaitForExpression`, is waited out first, and the earlier run stops after it. The new run starts at once in either case.
+With `Restart`, the earlier run's cancelable delays are cut short so it reaches its next step right away, and it stops there without running the steps after the delay. A step that can't be cut short, such as a `Delay` without `cancelable: true` or a `WaitForExpression`, is waited out first, and the earlier run stops after it. The new run starts at once in either case.
 
 With `Queued`, each run waits for the one before it to finish. A waiting run's conditions were checked when it was triggered, but its actions see device states as they are when its turn comes.
 
-Before v0.1.97 these two modes behaved differently. `Restart` only cut the earlier run's cancellable delays short, and that run then carried on with the steps after the delay, so "off in 5 minutes" turned the light off at once. `Queued` started runs alongside each other, as `Parallel` does, and only capped how many ran at once.
+Before v0.1.97 these two modes behaved differently. `Restart` only cut the earlier run's cancelable delays short, and that run then carried on with the steps after the delay, so "off in 5 minutes" turned the light off at once. `Queued` started runs alongside each other, as `Parallel` does, and only capped how many ran at once.
 
-For a motion light that stays on until the room has been quiet for five minutes, `Restart` with a cancellable delay does the job in one rule:
+For a motion light that stays on until the room has been quiet for five minutes, `Restart` with a cancelable delay does the job in one rule:
 
 ```ron
 name: "Hallway motion light",
@@ -108,7 +108,7 @@ curl -s http://localhost:8080/api/v1/automations/RULE_ID/history \
 
 Two optional Rhai expressions can stop a rule before its conditions are checked. Both run after the pause and cooldown checks, `required_expression` first, then `trigger_condition`. Each records its own outcome in fire history when it is false:
 
-- `required_expression` records `required_expression_failed`. With `cancel_on_false: true`, a false result also cancels the rule's pending cancellable delays.
+- `required_expression` records `required_expression_failed`. With `cancel_on_false: true`, a false result also cancels the rule's pending cancelable delays.
 - `trigger_condition` records `trigger_gate_failed`.
 
 ```ron
@@ -125,7 +125,7 @@ Both gates can read device state (`device_state("id")`, by raw device ID), the t
 
 ## StopRuleChain
 
-When a rule that contains a `StopRuleChain` step fires, rules with lower priority that matched the **same event** are not evaluated.
+When a rule that contains a `StopRuleChain` step fires, rules with lower priority that matched the same event are not evaluated.
 
 Example: the right keypad code disarms the alarm, and the "wrong code" alert should not go off.
 
@@ -171,9 +171,9 @@ The chain stops as soon as the higher rule fires, wherever `StopRuleChain` sits 
 
 ---
 
-## Cancellable delays
+## Cancelable delays
 
-A `Delay` with `cancelable: true` can be cut short. Cancelling it ends the wait early, and the run continues with the next step. It does not stop the run.
+A `Delay` with `cancelable: true` can be cut short. Canceling it ends the wait early, and the run goes on to the next step instead of stopping.
 
 ```ron
 actions: [
@@ -191,12 +191,12 @@ Three steps cancel delays:
 | Step | Cancels |
 |---|---|
 | `CancelDelays(key: Some("porch_wait"))` | This rule's delay with that key. |
-| `CancelDelays()` | All of this rule's cancellable delays. |
-| `CancelRuleTimers(rule_id: Some("UUID"))` | All cancellable delays of the rule with that ID (this rule if `rule_id` is left out). |
+| `CancelDelays()` | All of this rule's cancelable delays. |
+| `CancelRuleTimers(rule_id: Some("UUID"))` | All cancelable delays of the rule with that ID (this rule if `rule_id` is left out). |
 
 Keys belong to the rule that set them, so `CancelDelays` in one rule can't reach a delay in another. Use `CancelRuleTimers` with the other rule's ID for that.
 
-Because a cancelled delay lets the run carry on, cancelling the delay above with one of these steps turns the porch light off at once. `run_mode: Restart` is different: it also stops the earlier run, so the steps after the delay don't run. To build "turn off after five quiet minutes, and start the count again on new motion", use one of the patterns under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"action": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
+Because a canceled delay lets the run carry on, canceling the delay above with one of these steps turns the porch light off at once. `run_mode: Restart` is different: it also stops the earlier run, so the steps after the delay don't run. To build "turn off after five quiet minutes, and start the count again on new motion", use one of the patterns under [Run modes](#run-modes), or a [timer helper](../devices/virtual-devices.md): one rule sends the timer `{"action": "start", "duration_secs": 300}` on every motion (starting a running timer starts it over), and a second rule turns the light off when the timer's `state` changes to `"finished"`.
 
 ---
 
@@ -292,8 +292,6 @@ actions: [
     )),
 ],
 ```
-
-Without a rule like this, a sensor stuck in an alert state across a restart goes unnoticed until its state changes again.
 
 ---
 

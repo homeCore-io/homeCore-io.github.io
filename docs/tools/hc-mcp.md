@@ -18,8 +18,6 @@ The same package runs two ways:
 
 Both serve tools from one list (`hc_mcp/registry.py`), so a tool added there shows up in both unless it says otherwise. To install and set up the Assistant as an operator, see [Assistant](../plugins/assistant.md). This page covers how it works.
 
----
-
 ## Tools
 
 The MCP server has 29 tools: 20 that only read, and 9 that change things. Each write tool belongs to a category that you switch on with `HC_MCP_ALLOW_WRITE`. The server also serves homeCore's skills as prompts and resources (see [Skills](#skills)).
@@ -88,8 +86,6 @@ The chat leaves out `list_skills` (it already knows the skills by name) and the 
 | `show_devices` | read | Draws device cards in the chat |
 | `suggest_replies` | read | Offers replies the person can tap |
 | `run_scene` | `device_commands` | Runs a scene (`scenes:run`) |
-
----
 
 ## The MCP server
 
@@ -166,7 +162,7 @@ Calling a write tool whose category is off returns a `PermissionError` that says
 
 ### Connect a Claude client
 
-**Claude Code.** For yourself, in `~/.claude.json`, or for one project, in `.mcp.json` at the project root:
+For Claude Code, add the server to `~/.claude.json` for yourself, or to `.mcp.json` at a project's root for that project alone:
 
 ```json
 {
@@ -181,11 +177,9 @@ Calling a write tool whose category is off returns a `PermissionError` that says
 
 Leave out the `env` line for read-only access.
 
-**Claude Desktop.** The same shape goes in `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, or the equivalent file on other platforms.
+For Claude Desktop, the same shape goes in `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, or the equivalent file on other platforms.
 
 To try it outside a client, run `.venv/bin/hc-mcp --help`. The server speaks MCP over stdio, so the MCP inspector or any conforming client can drive it.
-
----
 
 ## The Assistant plugin
 
@@ -214,14 +208,14 @@ An admin sets these in **Settings › Plugins › Assistant**. The plugin keeps 
 | Control devices | on | Category `device_commands` |
 | Make and change automations | on | Category `rule_mutations` |
 | Locks, doors and security | off | A device command or automation that touches a device marked Security needs this as well |
-| Ask before every change | on | Turns the confirm card off when off |
-| Keep chats | 30 days | 30 days, 7 days, or not at all |
+| Ask before every change | on | When off, changes run without a confirm card |
+| Keep each person's chats for | 30 days | 30 days, 7 days, or Don't keep |
 
 Other plugins' actions (`plugin_actions`) are off and not on the settings page yet.
 
 ### Confirm cards and new automations
 
-A tool that changes something stops on a confirm card that says what will happen, unless "Ask before every change" is off. The card waits up to 10 minutes for an answer. A new automation is shown as When / Only if / Do, with Save and turn on, Save turned off, or a reply asking for changes. One reply runs at most 12 rounds of tool calls.
+A tool that changes something stops on a confirm card that says what will happen, unless "Ask before every change" is off. The card waits up to 10 minutes for an answer. A new automation is shown as When / Only if / Do, with buttons for "Save and turn on" and "Save, turned off", or you can reply asking for changes. One reply runs at most 12 rounds of tool calls.
 
 ### The chat stream
 
@@ -250,8 +244,6 @@ Bump the version in `pyproject.toml` and `hc_mcp/__init__.py`, merge to `main` a
 hc-scripts/build-python-artifact.sh --plugin clients/hc-mcp --sdk sdks/hc-plugin-sdk-py
 ```
 
----
-
 ## Skills
 
 hc-mcp ships a copy of homeCore's [skills](./skills.md) from [homeCore-io/skills](https://github.com/homeCore-io/skills): `dev-environment`, `install-and-setup` and `plugin-development` (v0.1.3 and later).
@@ -261,8 +253,6 @@ hc-mcp ships a copy of homeCore's [skills](./skills.md) from [homeCore-io/skills
 - `list_skills` lists them and `read_skill` reads one.
 
 The Assistant knows the skills by name and reads the one that fits (with `read_skill`) when someone asks how to do something. The copy lives in `hc_mcp/skills`; `scripts/sync-skills.sh` refreshes it after the skills repo changes.
-
----
 
 ## How the plugin action tools use capabilities
 
@@ -276,14 +266,12 @@ A new plugin action needs no change to hc-mcp. It shows up in the next `list_plu
 
 hc-mcp can't answer an `awaiting_user` prompt from another plugin's streaming action; it reports the prompt as a warning. If an action needs a choice from the user, declare it as a parameter in the manifest so the choice can be passed up front.
 
----
-
 ## Current limitations
 
-- **stdio transport only.** An HTTP/SSE transport, for a client on another machine or a long-running sidecar, is planned but not built.
-- **The log tools need a whitelisted address.** `/logs/stream` is admin-only and reads its credential from the `token` query parameter, while hc-mcp sends its API key as an `Authorization` header. So `core_logs`, `plugin_logs` and `find_recent_errors` work only when hc-mcp's address is on homeCore's `[auth].whitelist`.
-- **No host access.** There are no tools that need the host itself (`journalctl`, `docker logs`, reading config files, restarting services). That design is on hold.
-- **No live MQTT tap.** A tool that subscribes to MQTT for a while (`mqtt_tap`) is deferred.
+- The only transport is stdio. An HTTP/SSE transport, for a client on another machine or a long-running sidecar, is planned but not built.
+- The log tools need a whitelisted address. `/logs/stream` is admin-only and reads its credential from the `token` query parameter, while hc-mcp sends its API key as an `Authorization` header. So `core_logs`, `plugin_logs` and `find_recent_errors` work only when hc-mcp's address is on homeCore's `[auth].whitelist`.
+- There is no host access: no tools that need the host itself (`journalctl`, `docker logs`, reading config files, restarting services). That design is on hold.
+- There is no live MQTT tap. A tool that subscribes to MQTT for a while (`mqtt_tap`) is deferred.
 
 ## Roadmap
 

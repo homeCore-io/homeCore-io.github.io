@@ -119,7 +119,7 @@ action: SetDeviceState(
 ),
 ```
 
-The rule names the homeCore device, not the speaker's IP address, the plugin's internal API or a raw Sonos URI. The plugin resolves the favorite or playlist when the command runs. Rule files keep working when a speaker's address changes, and every plugin is automated the same way.
+The rule names only the homeCore device, and the plugin looks up the favorite or playlist when the command runs. With no speaker IP address, plugin API or raw Sonos URI in the file, the rule keeps working when a speaker's address changes, and every plugin is automated the same way.
 
 ---
 
@@ -366,7 +366,7 @@ Retries wait 500 ms, then 1 s, 2 s, and 4 s for every later attempt. A request t
 
 The response from `response_event` goes out over MQTT only, so a `CustomEvent` trigger won't see it. React to it with an `MqttMessage` trigger on `homecore/events/weather_update`.
 
-Use `CallService` when you really need an outside HTTP request. If the target is already a homeCore device, command it with `SetDeviceState`. A Sonos speaker registered as `sonos_living_room` should be controlled that way, not through the plugin's HTTP endpoint.
+Keep `CallService` for services outside homeCore. If the target is already a homeCore device, such as a Sonos speaker registered as `sonos_living_room`, command it with `SetDeviceState` instead of calling the plugin's HTTP endpoint.
 
 ---
 
@@ -469,7 +469,7 @@ action: Delay(
 | `cancelable` | no | Allow `CancelDelays`, `CancelRuleTimers` or `cancel_on_false` to end the delay early. Defaults to `false`. |
 | `cancel_key` | no | A name for `CancelDelays` to target. A cancelable delay without one gets a generated key. |
 
-When a delay is cancelled, the actions after it still run. Cancelling only ends the wait early. See [Advanced: Cancellable delays](./advanced#cancellable-delays).
+When a delay is canceled, the actions after it still run. Canceling only ends the wait early. See [Advanced: Cancelable delays](./advanced#cancelable-delays).
 
 ---
 
@@ -487,7 +487,7 @@ action: DelayPerMode(
 ),
 ```
 
-This delay can't be cancelled.
+This delay can't be canceled.
 
 ---
 

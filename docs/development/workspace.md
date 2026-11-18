@@ -110,23 +110,20 @@ workspace root (see [Dev Workflow](./dev-workflow#toolchain)).
 
 ## One workspace, one lockfile
 
-Everything Rust that ships together builds together. `cargo build`,
-`cargo test`, `cargo clippy` and `cargo fmt` at `core/`'s root cover the
-server, all 17 crates, the runtime host, the SDK and every plugin in one
-pass.
-
-What this gets you:
+`cargo build`, `cargo test`, `cargo clippy` and `cargo fmt` at `core/`'s
+root cover the server, all 17 crates, the runtime host, the SDK and every
+plugin in one pass. In practice:
 
 - Edit `crates/hc-types/src/...` and every plugin picks it up on the next
   build, with no commit, tag or reinstall in between.
-- A change that breaks a plugin fails in the same CI run instead of at
-  the plugin's next release. `hc-types` is the plugin ABI, so this
-  catches real breakage.
-- One `Cargo.lock`, so the revision that builds is the revision that
-  ships. Cloning `core/` gets you a tree that compiles.
-- Feature unification is honest. A plugin that only compiled because a
-  sibling happened to enable a feature fails here. That is how hc-hue's
-  missing `schema` feature was caught.
+- A change that breaks a plugin fails in its own CI run, so the breakage
+  doesn't wait to surface at the plugin's next release. Since `hc-types`
+  is the plugin ABI, this catches real breakage.
+- There is one `Cargo.lock`, so the revision that builds is the revision
+  that ships. Cloning `core/` gets you a tree that compiles.
+- Feature unification can't hide a missing feature. A plugin that only
+  compiled because a sibling happened to enable a feature fails here.
+  That is how hc-hue's missing `schema` feature was caught.
 
 To add a new plugin, create its directory under `core/plugins/` and add it
 to `[workspace] members` in `core/Cargo.toml`. CI and the release

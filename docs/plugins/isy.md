@@ -20,7 +20,7 @@ you listing them.
   Universal Devices added it in firmware 4.2.3.
 - You need the username and password of an account that can use the REST
   interface. That's the login you use for the ISY Admin Console, usually
-  `admin`. Don't leave it on the factory `admin` / `admin` password.
+  `admin`. Change the factory `admin` / `admin` password if you haven't.
 - homeCore must reach the controller on port 80, or 443 if you turn on HTTPS.
 
 ## Install and set up
@@ -54,9 +54,9 @@ seconds or more than 15 minutes), or for 5 minutes before the first heartbeat
 says the interval, the plugin treats the connection as dropped and reconnects
 as above.
 
-A refused login is different, because retrying the same username and password
-won't help. The plugin raises `auth_refused`, logs why, and exits with an
-error. homeCore restarts it with its usual backoff, and the notice clears once
+A refused login is handled differently, since retrying the same username and
+password won't help. The plugin raises `auth_refused`, logs why, and exits
+with an error. homeCore restarts it with its usual backoff, and the notice clears once
 a login succeeds.
 
 ## Settings
@@ -70,11 +70,12 @@ a login succeeds.
 | Password | `isy.password` | none | Its password. Required when a username is set. |
 
 With HTTPS on, the plugin skips certificate checks, because ISY controllers
-ship with a self-signed certificate. The link is encrypted, but the plugin
+ship with a self-signed certificate. The link is encrypted, though the plugin
 can't prove it's talking to your controller.
 
-The Devices section lists every node read from the controller. Names come from
-the ISY. Edit one there to change what homeCore calls it, and assign it a room.
+The Devices section lists every node read from the controller, named as the
+ISY names it. Edit one there to change what homeCore calls it and to put it
+in a room.
 
 The Logging section sets the log level, what gets forwarded to homeCore, and
 file rotation.
@@ -182,8 +183,8 @@ been seen.
 Covers: a garage door (UOM 97) only opens or closes. Any `position` above 0
 opens it, and 0 closes it. It reports only 0 or 100.
 
-Leak sensors: Insteon leak sensors report on when dry. The plugin inverts
-that, so `water_detected` is `true` when there's water.
+Leak sensors: an Insteon leak sensor reports on when it's dry. The plugin
+inverts that, so `water_detected` is `true` when there's water.
 
 Temperatures are always published in °C. On the ISY side, UOM 4 is °C, 17 is
 °F and 101 is half-degrees in the thermostat's own unit. A setpoint is written

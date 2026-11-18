@@ -37,7 +37,7 @@ Rule(
 )
 ```
 
-Via the API, `PUT /automations/{id}` replaces the whole rule, so fetch it, change the tags and send it back:
+Over the API, `PUT /automations/{id}` replaces the whole rule, so fetch it, change the tags and send it back:
 
 ```bash
 curl -s http://localhost:8080/api/v1/automations/RULE_ID \
@@ -166,7 +166,7 @@ curl -s -X DELETE http://localhost:8080/api/v1/automations/groups/$GROUP_ID \
 # → { "deleted": true }
 ```
 
-Deleting a group does **not** delete its rules. It only removes the group from `groups.json`.
+Deleting a group leaves its rules alone. It only removes the group from `groups.json`.
 
 ---
 
@@ -178,7 +178,7 @@ Deleting a group does **not** delete its rules. It only removes the group from `
 | Survives rule rename | Yes | Yes (by UUID) |
 | A rule can have several | Yes | Yes |
 | Bulk toggle API | `PATCH /automations?tag=X` | `POST /automations/groups/ID/enable` |
-| Best for | Open-ended labelling | Named presets (vacation, maintenance, testing) |
+| Best for | Open-ended labeling | Named presets (vacation, maintenance, testing) |
 | Visibility | Part of every rule (`GET /automations`) | Separate group objects |
 
 As a rule of thumb, use tags when you want the label to travel with the rule. Use groups when you want a named switch for a set of rules without editing each one.

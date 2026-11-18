@@ -124,7 +124,7 @@ On the login screen, `Tab` switches field, `Enter` signs in and `Esc` quits.
 | Scenes | `Space` or `a` activate; `n` new; `Enter` edit; `x` delete |
 | Modes | `Space` manual mode on or off; `n` new; `Enter` edit (name, sun event and offset); `x` delete |
 | Helpers | `Space` the helper's main action; `n` new; `Enter` edit; `x` delete. A timer adds `0` cancel; a counter `+`, `-` and `0` reset; a number `←` / `→` and `s` set |
-| Automations | `Space` on or off; `R` run now; `t` dry run at a time; `u` resume one another automation paused; `F` point a missing device's place at another device; `Enter` the RON; `m` mark several; `c` copy; `x` delete; `g` groups; `f` filter; `s` only those that need fixing |
+| Automations | `Space` on or off; `R` run now; `t` dry run at a time; `u` resume one that another automation paused; `F` point a missing device's place at another device; `Enter` the RON; `m` mark several; `c` copy; `x` delete; `g` groups; `f` filter; `s` only those that need fixing |
 | Alerts | `←` / `→` Open, Acknowledged, Rules, Ignored. On an alert, `a` acknowledge, `p` run its action, `i` ignore its device. Rules: `Space` on or off, `x` delete. Ignored: `x` show again |
 | Plugins | `←` / `→` Installed, Catalog, Runtimes, Matter. Installed: `Enter` detail; for admins `Space` on or off, `s` start or stop, `R` restart, `U` update, `x` uninstall. Catalog: `i` install. Runtimes: `R` reset login. Matter: `c` commission, `i` reinterview, `x` remove a node |
 | People | `←` / `→` People, Roles, API keys, Sessions. People: `n` new, `Enter` change role, `p` password, `c` remove PIN, `x` delete. API keys: `n` new, `s` new secret, `x` revoke. Sessions: `x` end one, `X` end all others |
@@ -148,11 +148,11 @@ The TUI has no automation editor; write automations in the web app or as RON fil
 
 ### Plugins
 
-A plugin's detail has **Overview**, **Settings**, **Actions**, **Notices** and **Logs**.
+A plugin's detail has five tabs: Overview, Settings, Actions, Notices and Logs.
 
-- **Settings** is a form built from the plugin's settings description. `Enter` edits a field, `u` undoes a change, `Ctrl+S` saves and `Esc` discards. Only what changed is written, in place, so comments and keys the form doesn't know about stay in the file. Secrets are never shown.
-- **Actions** asks for an action's parameters first, and a dangerous action asks before it runs. A streaming action opens a progress window that can take replies and be cancelled.
-- **Logs** streams the plugin's own log while the tab is open.
+- The Settings tab is a form built from the plugin's settings description. `Enter` edits a field, `u` undoes a change, `Ctrl+S` saves and `Esc` discards. Only what changed is written, in place, so comments and keys the form doesn't know about stay in the file. Secrets are never shown.
+- The Actions tab asks for an action's parameters first, and a dangerous action asks before it runs. A streaming action opens a progress window that can take replies and be canceled.
+- The Logs tab streams the plugin's own log while the tab is open.
 
 When more than one runtime can run a plugin from the Catalog, hc-tui asks which one to use.
 

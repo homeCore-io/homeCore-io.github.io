@@ -40,13 +40,13 @@ it from.
 
 ## Running core
 
-### A sandbox, not the house
+### Use a sandbox
 
-Test against a sandbox homeCore: its own `--home` and `--config`, its own
-broker port, and plugins pointed at stand-ins (small local emulators of
-the device) instead of real hardware. Never test against the real house.
-Don't run discovery from a sandbox, since it would find real devices, and
-don't send commands to real devices. Section 9 of
+Test against a sandbox homeCore, never the real house. A sandbox has its
+own `--home` and `--config`, its own broker port, and plugins pointed at
+stand-ins (small local emulators of the device) in place of real
+hardware. Don't run discovery from a sandbox, since it would find real
+devices, and don't send commands to real devices. Section 9 of
 [`core/docs/plugin-development.md`](https://github.com/homeCore-io/homeCore/blob/develop/docs/plugin-development.md)
 has the details.
 
@@ -307,7 +307,8 @@ capability spec end to end against a running core.
 
 The web app is
 [hc-web-svelte](https://github.com/homeCore-io/hc-web-svelte), in its own
-repo at `clients/hc-web-svelte`. It needs Node.js, not cargo.
+repo at `clients/hc-web-svelte`. It is a Node.js project and doesn't use
+cargo.
 
 ```bash
 cd clients/hc-web-svelte

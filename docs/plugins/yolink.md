@@ -77,7 +77,7 @@ if only `[yolink.local]` is present, and cloud mode otherwise.
 | MQTT port | `yolink.local.mqtt_port` | `18080` | Local mode event feed. |
 | Full refresh every | `yolink.poll_interval_secs` | 3600 s | How often to read every device's state as a backstop for missed reports. |
 | Re-scan for new devices every | `yolink.inventory_interval_secs` | same as full refresh | How often to read the hub's device list. |
-| Wait between devices | `yolink.poll_device_delay_ms` | 1000 ms | Pause between devices during a refresh. A hub polled too fast answers `000201 Cannot connect to device`, which is rate limiting and not a broken device. |
+| Wait between devices | `yolink.poll_device_delay_ms` | 1000 ms | Pause between devices during a refresh. A hub polled too fast answers `000201 Cannot connect to device`. That means the hub is rate limiting; the device is fine. |
 | Settle before first fetch | `yolink.initial_fetch_delay_secs` | 10 s | Wait after connecting before the first full read. 0 skips it and relies on reports and the periodic refresh. |
 | Not reporting after | `yolink.silent_after_mins` | 540 min | A battery sensor silent this long shows offline. The minimum is 5. |
 | YoLink devices | `devices` | | Every paired device, with a name and room you can change. |
@@ -120,9 +120,10 @@ can start on "unlocked by fingerprint". `last_alert` keeps the lock's last
 problem in YoLink's own word (`UnLockFailed`), with when and where it came
 from.
 
-Every change a device reports is marked as made outside homeCore, and a hand
-at a lock (fingerprint, button, key, code) is marked as physical. An
-automation that asks for a change by "another app or hub" starts on these.
+Every change a device reports is marked as made outside homeCore, and a
+change made by hand at a lock (fingerprint, button, key, code) is also marked
+as physical. An automation that asks for a change by "another app or hub"
+starts on these.
 
 ### Commands
 

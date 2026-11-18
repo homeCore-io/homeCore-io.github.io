@@ -25,9 +25,9 @@ brings its own page, panels, cards and automation step.
 - You need to be able to press the button on top of the bridge while you add
   it.
 
-No Hue account is needed. Everything runs on your network. The only thing that
-can leave it is the optional lookup at Philips' discovery service, which
-answers with your bridge's local address and nothing else.
+You don't need a Hue account. Everything runs on your network apart from one
+optional lookup at Philips' discovery service, which answers with your
+bridge's local address and nothing else.
 
 ## Install and set up
 
@@ -239,7 +239,7 @@ These appear on the plugin's page and to the Assistant and hc-mcp.
 |---|---|---|
 | Bridge not answering | error | yes |
 | Light not answering (a light, sensor or switch the bridge can't reach; often a light switched off at the wall) | warning | yes |
-| Software update waiting in the Hue app | information | no |
+| Software update waiting (an update is ready in the Hue app) | information | no |
 
 Low battery is homeCore's own alert, raised for any device that reports a
 battery. Turn alerts on or off, and choose where they go, in
@@ -294,9 +294,9 @@ switch them on or off with a fade.
 ## Troubleshooting
 
 If the event stream drops, the plugin reconnects after 3 seconds (the
-reconnect delay) and keeps trying. The full read every 60 seconds goes on
-either way, so nothing stays stale for long. With live updates turned off,
-that read is the only way changes arrive.
+reconnect delay) and keeps trying. The full read every 60 seconds carries on
+meanwhile and catches anything the stream missed. With live updates turned
+off, that read is the only way changes arrive.
 
 If a bridge doesn't answer, its devices show offline, the Bridge not answering
 alert is raised, and the plugin keeps trying on each read. It recovers by
@@ -308,8 +308,8 @@ networks, or multicast is blocked between them. Add the bridge by its address,
 for example `192.168.1.20`. In a container on a bridge network, SSDP can't
 reach the bridge, so add it by address there too.
 
-If a light shows "Light not answering", it is usually switched off at the
-wall. Turn the wall switch back on.
+A light that shows "Light not answering" is usually switched off at the wall,
+so turn the wall switch back on.
 
 After renaming or moving lights in the Hue app, changes normally arrive by
 themselves. If something still looks wrong, run **Refresh devices** from the

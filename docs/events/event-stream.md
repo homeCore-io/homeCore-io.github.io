@@ -9,7 +9,7 @@ sidebar_position: 1
 
 homeCore publishes everything that happens in the house as events. You can read them live over a WebSocket, or read the most recent ones over REST. The web app's **Settings › Events** page shows the same stream in words.
 
-The live stream is a WebSocket only. homeCore has no Server-Sent Events (SSE) version of it. The one SSE endpoint, `GET /api/v1/plugins/{id}/command/{request_id}/stream`, carries the progress of a single plugin action.
+The live stream is only available as a WebSocket; homeCore has no Server-Sent Events (SSE) version of it. The one SSE endpoint, `GET /api/v1/plugins/{id}/command/{request_id}/stream`, carries the progress of a single plugin action.
 
 ## Connecting
 
@@ -101,7 +101,7 @@ Every event is a JSON object with its `type` and a `timestamp` (RFC 3339, UTC), 
 | `rule_removed` | A rule was deleted through the API | `rule_id` |
 | `action_failed` | A rule action failed | `rule_id`, `rule_name`, `action_index`, `action_type`, `error` |
 | `mode_changed` | A mode turned on or off | `mode_id`, `mode_name`, `on` |
-| `timer_state_changed` | A timer started, paused, finished, was cancelled, and so on | `timer_id`, `timer_name`, `state`, `remaining_secs` |
+| `timer_state_changed` | A timer started, paused, finished, was canceled, and so on | `timer_id`, `timer_name`, `state`, `remaining_secs` |
 | `alert_raised` | An alert was raised, or what an active one says changed | `alert`, `update` |
 | `alert_cleared` | An alert's condition ended | `alert_id`, `device_id`, `alert` |
 | `alert_acknowledged` | Someone marked an alert as seen | `alert` |

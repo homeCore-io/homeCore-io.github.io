@@ -13,9 +13,9 @@ Any alert can start an automation. That includes homeCore's own alerts (somethin
 
 On the Alerts page, every alert has **Do something…** next to **Seen** and **Ignore…**. In **Settings › Alerts**, each of your rules, each of homeCore's own kinds and each plugin's kind of alert has **+ Do something…** as well.
 
-The dialog asks two things. **For** picks which alerts: this one alone (this sensor, this rule, this device's plugin alert), any like it ("any YoLink leak sensor", including ones you add later, or "this plugin's alert on any of its devices"), or something broader ("anything wet in the house", "anything this serious or worse"). **When it** picks *happens*, *ends* or *is still on after N min*, where N is 10 unless you change it.
+The dialog asks two things. **For** picks which alerts: this one alone (this sensor, this rule, this device's plugin alert), any like it, or something broader. "Any YoLink leak sensor" covers the ones you add later too, and a plugin's alert can be picked on any of that plugin's devices. The broader choices include "Anything wet in the house" and "Anything this serious or worse". **When it** picks *happens*, *ends* or *is still on after N min*, where N is 10 unless you change it.
 
-**Make the automation** opens the [automation editor](./editor.md) with a new automation whose moment is already filled in and marked *from the alert*. It is an ordinary trigger, so you can widen it or change "happens" to "ends" like any other. Under *What should happen?* the editor suggests a few steps to start from: set a device, run a scene, or send to another channel.
+**Make the automation** opens the [automation editor](./editor.md) with a new automation whose moment is already filled in and marked *from the alert*. It is an ordinary trigger, so you can widen it or change "happens" to "ends" like any other. Under *What should happen?* the editor offers a few steps to start from: **Set a device…**, **Run a scene…** and **Send to another channel…**.
 
 A message can include the alert's words as `{alert.message}`. The other placeholders are `{alert.device}`, `{alert.device_id}`, `{alert.reason}`, `{alert.severity}`, `{alert.kind}`, `{alert.key}`, `{alert.raised_at}` (as `HH:MM` in the house's time) and `{alert.id}`. They work in `Notify` messages and titles and in `LogMessage`.
 
@@ -39,7 +39,7 @@ Nothing is saved until you press **Save**.
 
 An automation that also has another trigger, one that can still happen, isn't waiting. It runs on that trigger.
 
-"Ends" triggers also run when an alert is withdrawn because its rule was turned off or the alert was ignored, so clean-up automations still do their job.
+"Ends" triggers also run when an alert is withdrawn because its rule was turned off or the alert was ignored, so cleanup automations still do their job.
 
 ### Deleting an alert rule that starts automations
 

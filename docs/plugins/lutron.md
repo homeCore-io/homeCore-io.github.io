@@ -181,7 +181,7 @@ curl -s -X PATCH http://localhost:8080/api/v1/devices/lutron_21/state \
   -d '{"on": true, "brightness_pct": 75}'
 ```
 
-Some details worth knowing:
+Notes on commands and timeclock state:
 
 - `{"on": true}` with no level turns a dimmer or fan back on at the last level
   the repeater reported. If none has been seen since the plugin started, it

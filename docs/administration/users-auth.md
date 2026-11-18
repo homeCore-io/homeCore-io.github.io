@@ -336,7 +336,7 @@ A plugin that declares `api_scopes` gets its own key from homeCore every
 time it starts, delivered over MQTT. The previous key is deleted then, and
 the key goes when the plugin is uninstalled. These keys:
 
-- are labelled `plugin <plugin_id>`, belong to no person, and show in the
+- are labeled `plugin <plugin_id>`, belong to no person, and show in the
   API keys list under their plugin;
 - never hold `users:write` or `api_keys:admin`, whatever the plugin asks
   for;

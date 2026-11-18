@@ -51,8 +51,8 @@ UDP broadcast to port 45000.
    allowed_source_ips = ["192.168.1.42"]   # the gateway's IP
    ```
 
-   The loopback default is on purpose. Ecowitt's upload protocol has no real
-   authentication. Its PASSKEY is the gateway's MAC address, sent in clear
+   The loopback default is deliberate, since Ecowitt's upload protocol has no
+   real authentication. Its PASSKEY is the gateway's MAC address, sent in clear
    text, so an open listener would let any host on your network send fake
    weather. **Accept readings from** closes that gap. Give the gateway a
    fixed DHCP lease so the entry stays right. Entries that aren't valid IP
@@ -233,8 +233,9 @@ port and path `/data/report/`, and that no firewall blocks the port. Run
 If readings stop, `gateway_silent` appears after 10 minutes, or after three
 missed polls with a long poll interval. Check that the gateway has power and
 still uploads to this host. When polling, check that it answers at its
-**Console address**; the plugin's log says why each poll failed. A gateway that changed
-its IP is rejected when **Accept readings from** lists the old address.
+**Console address**; the plugin's log says why each poll failed. If the
+gateway's IP changed and **Accept readings from** still lists the old
+address, its uploads are rejected.
 
 On a host with several network interfaces, `discover_gateways` sends its
 broadcast out of the default interface, which may not face the gateways. Add
@@ -251,4 +252,5 @@ homeCore stops the plugin, it marks its devices offline before it exits.
   them.
 - The gateway's display units (`units.*`) are published as the gateway's raw
   codes.
-- Ecowitt's cloud is not used. The receiver reads only the Ecowitt upload protocol.
+- The plugin doesn't use Ecowitt's cloud, and the receiver reads only the
+  Ecowitt upload protocol.

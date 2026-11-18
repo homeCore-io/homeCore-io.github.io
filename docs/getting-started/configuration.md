@@ -346,7 +346,7 @@ accepts the logins core makes itself: each plugin runtime's, and the one in
 each installed plugin's settings.
 
 :::warning
-The embedded broker checks logins but **does not enforce per-topic access**. `allow_pub` and `allow_sub` are recorded, not enforced. `hc-cli broker generate-mosquitto-config` turns them into a Mosquitto ACL file; see [the broker deployment guide](../administration/broker#external-mosquitto-deployment).
+The embedded broker checks logins but does not enforce per-topic access: it records `allow_pub` and `allow_sub` and ignores them. `hc-cli broker generate-mosquitto-config` turns them into a Mosquitto ACL file; see [the broker deployment guide](../administration/broker#external-mosquitto-deployment).
 :::
 
 ### `[storage]`
@@ -512,6 +512,10 @@ core's log level while it runs.
 | `compress` | bool | `true` | Gzip rotated files. |
 | `prune_after_days` | integer | `0` | Delete rotated files older than this many days. `0` keeps them all. |
 | `format` | string | `"json"` | `"json"`, `"compact"` or `"pretty"`. |
+
+These defaults apply when `homecore.toml` has no `[logging.file]` table.
+Once you add the table, `enabled` defaults to `false` and `format` to
+`"pretty"`, so set both yourself. The example config does.
 
 `[logging.rules_file]` is a separate log for the rule engine. It records
 only `hc_core` at `debug`, whatever the global level, and is off by

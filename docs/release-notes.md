@@ -7,7 +7,7 @@ sidebar_position: 99
 
 # Release Notes
 
-Detailed history of homeCore releases. Each entry summarises what
+Detailed history of homeCore releases. Each entry summarizes what
 operators see: UI changes, stability fixes, configuration updates,
 and any flags that affect upgrade. Per-component git tags and CI
 state are tracked separately on the
@@ -208,7 +208,7 @@ from other machines** in the plugin's settings to allow it again.
 - **Devices named by name work in every part of a rule.** Battery triggers,
   a notification's picture, alert filters and the steps inside "for each
   alert" and "if the alert doesn't clear" now accept a device's name, like
-  everywhere else. Before, those quietly never matched.
+  everywhere else. Before, those never matched.
 - Deleting or repointing a device now finds it in every part of a rule,
   including "last changed" checks.
 
@@ -1052,7 +1052,7 @@ See [Plugin Runtimes](plugins/runtimes.md).
   placed on them could not log in. It now also accepts each runtime's login
   and the login in each installed or placed plugin's config, checked when
   they connect. A broker with no `[[broker.clients]]` still asks for no login.
-- **Opening the broker to the network** can be done from the app. It sets
+- **You can open the broker to the network from the app.** It sets
   `[broker].host = "0.0.0.0"` and adds a login for homeCore itself if there
   is none.
 - **A broker port that is already in use stops homeCore at startup** with an
@@ -1084,8 +1084,8 @@ See [Plugin Runtimes](plugins/runtimes.md).
 - **Portrait:** from 761 to 900 px wide, an iPad held upright, the sidebar
   is the rail of icons and pages get the whole width. Home shows three
   columns of rooms and the weather band side by side. Tap Rooms or the
-  sidebar button and the sidebar slides over the page; it goes on the
-  next tap elsewhere or the next page. Your saved sidebar choice on a
+  sidebar button and the sidebar slides over the page; it closes on the
+  next tap elsewhere or when you open another page. Your saved sidebar choice on a
   desktop is unchanged.
 - **Cameras:** on a screen taller than wide, the live picture runs across
   the top with the snapshots in rows under it. Beside the picture, two
@@ -1267,7 +1267,7 @@ No core change needed.
   off the broker every few seconds. Needs core v0.1.107 or later, which
   tells it who started it.
 - Its manifest names its Catalog category. It is named Nuheat Signature,
-  the thermostats it serves.
+  after the thermostats it serves.
 
 ### Release matrix
 
@@ -1370,9 +1370,9 @@ No core change needed.
 
 - Core sets `HOMECORE_SUPERVISED` to its own process id on each plugin it
   starts. A plugin built on this round's SDKs watches for that process and
-  exits once it is gone. Stopped normally, core already stopped its
-  plugins; this covers core being killed or crashing, after which the old
-  plugins used to run beside the next core's copies.
+  exits once it is gone. Core already stopped its plugins when it shut
+  down normally. This covers core being killed or crashing, after which the
+  old plugins used to keep running beside the next core's copies.
 - Under systemd the service's plugins are stopped with it anyway; this
   matters most when homeCore is run by hand.
 
@@ -1390,7 +1390,7 @@ No core change needed.
 ## App v0.1.70, 2026-11-15
 
 - **Home has a weather band.** It shows the current conditions, the next
-  24 hours and a three day forecast, with a link to show more days. It
+  24 hours and a three-day forecast, with a link to show more days. It
   works on desktop, tablet and phone layouts.
 - **The weather source is a setting.** Settings › System › Units and
   region picks the source: automatic, the weather service, or a single
@@ -1399,7 +1399,9 @@ No core change needed.
 - **The favorites and scenes row fits the screen.** With a mouse or
   trackpad the row wraps onto more lines. On a touch screen it scrolls
   sideways with no scroll bar, and an edge fades only while more items
-  lie past it. No core change needed.
+  lie past it.
+
+No core change needed.
 
 ### Release matrix
 
@@ -1449,8 +1451,8 @@ No core change needed.
   Home, take them off, or move them to a room. New scene, Export and
   Import are still here.
 - **A scenes row on Home.** The scenes you choose sit next to "Every
-  light off", in your order. A scene that can tell lights up while it's
-  active, like a keypad LED, and one tap runs it. On a phone the row is
+  light off", in your order. One tap runs a scene. A scene that can tell
+  when it's active, like a keypad LED, lights up while it is. On a phone the row is
   two across.
 - **Yours or the house's.** Edit on the row sets the house's row
   (Everyone) or your own (Just me), which follows you to every screen you
@@ -1581,7 +1583,7 @@ No core change needed.
   Catalog can say what's installed. A plugin configured by hand outside
   an install folder still reports none.
 - Every automation endpoint answers 404 for a rule that doesn't exist.
-  Saving one answered 422, its history 503 and resuming it 200. An id
+  Before, saving one answered 422, its history 503 and resuming it 200. An id
   that isn't one gets a JSON 400.
 
 ### Release matrix
@@ -1765,7 +1767,7 @@ knows, and the keyboard.
 - **A scene for one lamp.** In a room's Lights tab, tap a Hue lamp's label
   under its fader to select it. The scenes line then reads "Scene for Floor
   Lamp", and a scene chip gives that lamp only its part of the scene. A chip
-  is greyed out when the scene doesn't set that lamp. With All selected, a
+  is grayed out when the scene doesn't set that lamp. With All selected, a
   chip runs the whole scene as before.
 - **Which scene is on.** The scenes line names the scene the group shows, and
   its chip is outlined. A lamp showing a different scene has the name under
@@ -2004,7 +2006,7 @@ unchanged.
 - **It stops itself.** A siren that's been on for `siren_max_secs` (60 seconds
   unless changed, 5 to 600) is turned off, and so is any siren still sounding
   when the plugin stops. A stop the camera refuses is tried again, and the
-  siren keeps reading on until one is taken.
+  siren keeps reading on until a stop succeeds.
 - **`on` shows what the camera says.** Where a camera pushes its siren's
   status, the plugin publishes it as it comes.
 - **The camera panel's siren button stops a sounding siren** without asking.
@@ -2058,7 +2060,8 @@ unchanged.
 ### Upgrade notes
 
 - Nothing to change. The app's Room on and Room off buttons come with the
-  console look in a later app release; until then this is the API and rules.
+  Console look in a later app release. Until then, Room on and Room off
+  are available through the API and rules.
 
 ---
 
@@ -2230,7 +2233,7 @@ their own tags: hc-zwave v0.1.21 and hc-thermostat v0.1.20.
   but hasn't connected to homeCore". It goes wherever offline alerts go. A
   plugin someone stopped isn't down.
 
-"Not responding" reads as such from app v0.1.56.
+The app shows "Not responding" from v0.1.56 on.
 
 ### Release matrix
 
@@ -2403,8 +2406,9 @@ still show.
   each heartbeat, so it moved by a fraction of a second every time, and the
   app took that for a restart. It now changes only when the plugin
   restarts.
-- **Alpine 3.24.4** is the image's base. v0.1.99's image already had its
-  fixed packages (OpenSSH and apk-tools); OpenSSH isn't in the image.
+- **The image is now based on Alpine 3.24.4.** v0.1.99's image already had
+  its fixed packages (OpenSSH and apk-tools), and OpenSSH isn't in the
+  image.
 
 ### Release matrix
 
@@ -2723,7 +2727,8 @@ Needs nothing new from homeCore.
 - **Options for drawings.** A plugin's or an extension's drawing can offer
   on-or-off choices, shown under it in the look editor once a look chooses
   it, and the look keeps them. The animated thermostat's first is **Pulse
-  while it works**. What changed lists an option you change.
+  while it works**. The look editor's What changed list includes any
+  option you change.
 - **The animated thermostat is drawn once.** It was rebuilt, reloading its
   file, each time its card recomputed; now it stays and is told what changed.
 
@@ -2890,8 +2895,8 @@ v0.1.97.
   or an animated thermostat once one is installed (below).
 - **The Catalog.** Settings › Plugins › Catalog replaces "Add a plugin".
   It has a tab for Plugins and one for UI extensions, each grouped by
-  category (Lighting, Climate, Media, Hubs, Weather). It isn't a shop:
-  everything in it is free.
+  category (Lighting, Climate, Media, Hubs, Weather). Everything in it is
+  free.
 - **UI extensions:** drawings and cards made outside the app, which looks
   can choose.
   - *Installing:* from the Catalog, or by an admin from a file.
@@ -3129,8 +3134,8 @@ An app release on its own: homeCore and the plugins are unchanged.
     loop. Before, they saw the devices as they were when the automation
     started, so a loop waiting for a door to close ran to its limit.
   - An automation set to start over if it runs again ("Restart") now
-    stops the earlier run. Before, it cut the earlier
-    run's wait short and let it carry on, so "turn off in 5 minutes"
+    stops the earlier run. Before, it cut the earlier run's wait
+    short and let it carry on, so "turn off in 5 minutes"
     turned the light off at once.
   - An automation that queues its runs ("Queued") runs them one at a
     time, in order. Before, it ran up to the queue size at the same time.
@@ -3161,8 +3166,8 @@ An app release on its own: homeCore and the plugins are unchanged.
 
 - Nothing to change. If you copied `homecore.service` or
   `homecore-mosquitto.service` from an older release, you can delete its
-  `ExecReload=` line so that `systemctl
-  reload` can't stop homeCore.
+  `ExecReload=` line so that `systemctl reload`
+  can't stop homeCore.
 - If you use "Restart" or "Queued", or *Repeat until*, check that
   the automation still does what you want: these now behave as their
   names say, which may differ from what you tuned them to.
@@ -3434,7 +3439,7 @@ Alerts: ignore a low-battery alert and the warning goes from the plugin's
 page, panels and cards as well. On YoLink's screens a battery at 1 of 4
 now reads "A quarter"; "Low — change soon" appears when homeCore says the
 battery is low. Update YoLink and Ecowitt from the Plugins page (app
-v0.1.34 or later; an older app keeps the plugins' own judgement).
+v0.1.34 or later; an older app keeps the plugins' own judgment).
 
 **`hc-thermostat` 0.1.19 (2026-10-29)**, no core or app change. **A
 thermostat's hold, a hand-flip override, its short-cycle guard and today's
@@ -3476,7 +3481,7 @@ Lights on, Playing, Open, Someone here, Humidity) can be shown across the
 top of Home, chosen and put in order; Inside and Outside take any sensor or
 an average. **Nothing changes until someone picks a style**: Home looks as
 before after the update. Also: a temperature from an older plugin that
-labelled its reading in °F next to a °C schema now reads correctly
+labeled its reading in °F next to a °C schema now reads correctly
 everywhere. **After updating, reload the app everywhere it's open**: an
 older copy still open forgets the big numbers' settings if someone presses
 Done in Edit.
@@ -3581,7 +3586,7 @@ Plugins are now asked to stop before they are killed.
 - **A sensor that goes quiet turns the switch off.** After 2 hours with
   no reading (changeable) a sensor no longer counts; with none left the
   AC, heater or fan is turned off and an alert says so. Before, a dead
-  sensor's last reading was trusted for ever.
+  sensor's last reading was trusted forever.
 - **Every on and off is checked.** If the plug doesn't confirm within 30 s,
   or is offline, an alert says so and the command is tried again.
 - **A switch flipped by hand is left alone for 1 hour** (or until the
@@ -3630,7 +3635,7 @@ Plugins are now asked to stop before they are killed.
   68 °F (20 °C)" on the Thermostat page or fix the file.
 - New in config: `kind` (`ac`, `heater` or `fan`; an entry without one
   follows its mode), `max_run_secs`, `sensor_timeout_secs`, `on_stale`
-  (`off` by default, `hold` to keep the old behaviour) and
+  (`off` by default, `hold` to keep the old behavior) and
   `override_secs`. New thermostats get their kind's guards (AC 3 min on /
   5 min off). An AC with no guards gets a notice; very large swings and
   guards are capped.
@@ -3662,7 +3667,7 @@ across the whole app, from a walkthrough of every screen:
 - **Times, dates and units said one way.** Your own 12- or 24-hour clock
   everywhere, never "02:04 PM"; "Today" and "Yesterday"; "12 d ago", not
   "285 h ago"; degrees against the number ("70.7°F"). Device pages say
-  times, named values ("Lock failed", a WLED effect's name) and colours
+  times, named values ("Lock failed", a WLED effect's name) and colors
   instead of raw data.
 - **Offline looks offline.** A card for a device that's offline drops its
   switch and controls and says "Offline", the same word on every card.
@@ -3684,7 +3689,7 @@ across the whole app, from a walkthrough of every screen:
   their names wrap to two lines.
 
 **Plugins' cards, same day, no core change:** `hc-hue` 0.2.4 (the
-card laid out as the app's own, with its symbol, switch and colour bar; a
+card laid out as the app's own, with its symbol, switch and color bar; a
 switched-off light's switch no longer dims), `hc-wled` 0.1.24 and
 `hc-sonos` 0.1.18 (an offline controller or speaker says "Offline" with
 nothing to press), `hc-zwave` 0.1.18 and `hc-roku` 0.1.14 ("Offline", not
@@ -3787,7 +3792,7 @@ the Roku plugin is reworked.
 ### Upgrade notes
 
 - Update core, the app (0.1.28) and `hc-roku` (0.1.13) together; channel
-  icons need all three. On an older app the screens show coloured name
+  icons need all three. On an older app the screens show colored name
   tiles instead.
 - Roku device ids are unchanged. No house automations use Rokus.
 - Removed from Roku state: `device_info`, `model_name`, `model_number`,
@@ -4076,11 +4081,11 @@ profiles in the shared names: step six of the device vocabulary.
 0.1.17 and app `hc-web-svelte` 0.1.23. No core change needed.
 
 - **The Sonos page** shows your speakers with what each is playing, a
-  play/pause button and its volume, your Sonos favourites (pick one, pick
+  play/pause button and its volume, your Sonos favorites (pick one, pick
   the speakers, Play), your alarms with a switch each, and which speakers
   aren't answering.
 - **Grouping is fixed.** A group shows within seconds of changing, not up to
-  five minutes later. Play, pause, skip and favourites go to the group
+  five minutes later. Play, pause, skip and favorites go to the group
   whichever speaker you touched. Before, pausing a grouped speaker reported
   success and did nothing. Grouped speakers show the group's music.
 - **Play together**: tick the speakers, choose which one the music plays
@@ -4093,7 +4098,7 @@ profiles in the shared names: step six of the device vocabulary.
   night mode, speech enhancement and switching to TV or line-in).
 - **Cards**: a speaker card in three sizes, and "Sonos speakers" and "Sonos
   favourites" cards for a dashboard.
-- **In automations**: play a favourite (optionally at a volume), set the
+- **In automations**: play a favorite (optionally at a volume), set the
   volume, pause, or group speakers; the group step names the speakers and
   makes exactly that group.
 - **A speaker that stops answering is no longer deleted.** It used to be
@@ -4103,7 +4108,7 @@ profiles in the shared names: step six of the device vocabulary.
   renames, restarts and a new IP address.
 - Also fixed: stereo pairs and surround speakers no longer appear as extra
   speakers; renames in the Sonos app carry through without a restart; Sonos
-  playlists and album favourites play (they failed with error 714); a
+  playlists and album favorites play (they failed with error 714); a
   command that fails says why on the speaker; a station no longer shows the
   last track's length; one sleeping speaker no longer slows the rest.
 - New setting `ssdp` (default on): turn it off to use only the addresses in
@@ -4215,9 +4220,9 @@ were tagged separately (see v0.1.88).
 ### Cards
 
 - **Devices get their plugin's own card.** Wherever a WLED controller or an
-  Ecowitt weather station appears (a room, Home's Pinned, your favourites),
+  Ecowitt weather station appears (a room, Home's Pinned, your favorites),
   it now has a card made for it:
-  - a WLED controller: on and off, its look as a strip of its colours, what
+  - a WLED controller: on and off, its look as a strip of its colors, what
     it runs and how bright; at the large size, its presets to tap;
   - a weather station: the temperature, humidity, wind and today's rain; at
     the large size, the wind on a compass, UV and pressure.
@@ -4270,7 +4275,7 @@ Python SDK v0.5.1, Node.js SDK v0.4.1, .NET SDK v0.4.1.
 - **The sidebar folds** to its icons for more room: its button at the top,
   or Ctrl+\ (⌘\ on a Mac). Each screen remembers its own choice.
 - **homeCore has its mark:** the roofline over a dot from the old web app, in
-  the app's colours: brown in light, amber in dark, and a household's own
+  the app's colors: brown in light, amber in dark, and a household's own
   palette when it has one. It is the browser tab's icon, the sidebar's and
   the sign-in page's, and the icon on a phone's home screen.
 - Fixed: Edit mode on a phone was wider than the screen and scrolled
@@ -4283,16 +4288,16 @@ its own screens, and a faster, steadier plugin under them:
   minute), adds a bridge (homeCore looks for it, you press its button), and
   shows every room and zone, which ones are devices of their own (switch it
   there), and what needs a look. A light's panel has white across the lamp's
-  own range, a colour wheel, a gradient lamp's colour points, Hue's effects
-  with their speed, and its room's scenes as swatches of their colours. A
-  room's panel applies its scenes (colours moving or still, with a fade) and
+  own range, a color wheel, a gradient lamp's color points, Hue's effects
+  with their speed, and its room's scenes as swatches of their colors. A
+  room's panel applies its scenes (colors moving or still, with a fade) and
   sets all its lights at once. A motion sensor shows the day's motion; a
   switch shows each button and how it was last pressed.
-- **Cards.** Hue lights glow in their own colour on Home and the rooms; a
+- **Cards.** Hue lights glow in their own color on Home and the rooms; a
   room's card shows each of its lights; large cards carry the room's scenes.
   **Hue scenes** is a card to add yourself: the scenes of the rooms you
   choose, and All off.
-- **Automations.** A Hue step applies a scene, sets a look (white, colour,
+- **Automations.** A Hue step applies a scene, sets a look (white, color,
   effect, brightness or a step brighter or dimmer), flashes the lights and
   puts them back (for a doorbell or a leak), or turns them on or off, each
   with a fade. A Hue switch's buttons are told apart: start on "Brighter
@@ -4309,7 +4314,7 @@ its own screens, and a faster, steadier plugin under them:
 
 **Upgrade:** update the plugin. Rooms and zones stay devices or not as they
 were set (`publish_grouped_lights_for`); turn others on from its page.
-Automations keep working; a room's device now also takes colour and white.
+Automations keep working; a room's device now also takes color and white.
 
 **hc-hue 0.2.1 (2026-10-19)** follows, again with no core change:
 
@@ -4326,7 +4331,7 @@ Automations keep working; a room's device now also takes colour and white.
 - **A room's panel lists the zones** its lights are also in.
 
 **Upgrade:** update the plugin; nothing to change. Entertainment areas are
-deliberately unchanged: starting one needs an app streaming colours over
+deliberately unchanged: starting one needs an app streaming colors over
 Hue's own protocol, which homeCore does not speak.
 
 **hc-wled 0.1.21 (2026-10-19)**, no core change: an automation step written
@@ -4356,7 +4361,7 @@ much, found by an audit of how every plugin names what devices report:
   and, since they were exposed, consider changing the codes.
 - **Z-Wave** no longer reports what a switch, dimmer or lock was *told* as
   what it *did*; only the device's own report counts. A thermostat's heating
-  setpoint is read and written where zwave-js keeps it, and colour lights are
+  setpoint is read and written where zwave-js keeps it, and color lights are
   polled on the right command class.
 - **Virtual thermostat:** setting the target temperature or mode from the app
   or an automation did nothing; it works now. A change also no longer
@@ -4384,10 +4389,10 @@ matching**; see the upgrade steps.
   temperature always °C and light level always lux, as `illuminance`; a
   contact sensor reports `open`; fades are `transition_ms`. The *Temperature
   in* and raw-light settings are gone. Rooms and zones declare *Activate a
-  scene*, and stop offering colour and white they never reported. A
+  scene*, and stop offering color and white they never reported. A
   brightness above 0 turns a light on.
 - **WLED:** `brightness_pct` only (the 0 to 255 `brightness` is gone);
-  `color_temp` in kelvin replaces `cct`; the main colour is `color_rgb`
+  `color_temp` in kelvin replaces `cct`; the main color is `color_rgb`
   `{r, g, b}`; fades are `transition_ms`; `led_power_mw` was really
   milliamps and is now `led_current_ma`. A preset, effect and palette are
   `preset_id`, `effect_id`, `palette_id`; *Restart* is the one restart.
@@ -4461,9 +4466,9 @@ automation reading one fails visibly instead of reading a frozen value.
   automation editor's WLED step look and work as they did. They now come
   with the WLED plugin itself, so they update with it, not with the app.
 - **Names everywhere.** Each controller now tells homeCore the names of its
-  presets, playlists, effects and palettes, so automations say “Halloween 1”
-  everywhere they are shown: in the moments ("Eaves lights' preset becomes “Halloween 1”"), the checks
-  and the steps.
+  presets, playlists, effects and palettes, so automations say "Halloween 1"
+  everywhere they are shown: in the moments (Eaves lights' preset becomes
+  "Halloween 1"), the checks and the steps.
 - **Firmware from a file** goes to the plugin through homeCore now; the
   plugin backs the controller up, sends the file and waits for it to come
   back, as before. A file that isn't a firmware image is turned away before
@@ -4552,15 +4557,15 @@ automations that act on alerts.
 
 ### WLED
 
-- **Changes made outside homeCore now show up.** Since newer WLED firmware,
+- **Changes made outside homeCore now show up.** With newer WLED firmware,
   the plugin couldn't read the controller's description at start, took it for
-  unreachable and polled every 30 seconds; and the live connection it should
-  have used was never read anyway. Both are fixed: a change made in WLED's
+  unreachable and polled every 30 seconds. It also never read the live
+  connection it should have used. Both are fixed, so a change made in WLED's
   app, on a button or by another WLED reaches homeCore at once.
 - **Everything WLED does, from its device page:** every segment (split, join,
   add, delete, their LEDs, grouping, direction, white temperature), each
-  effect with only the controls it uses (named as WLED names them), colours
-  and palettes drawn in their colours, presets and playlists by name (save,
+  effect with only the controls it uses (named as WLED names them), colors
+  and palettes drawn in their colors, presets and playlists by name (save,
   rename, delete, the preset at power-on), nightlight, sync with other WLEDs,
   live data, sound, the controller's own timers and LED outputs, backups,
   restoring them, and copying presets between controllers.
@@ -4612,7 +4617,7 @@ is released separately as v0.1.14, which uses all of the above.
 page now leads with its controllers instead of a list of the plugin's raw
 actions, lists the backups the plugin keeps (put a controller's presets or
 settings back, or download one), and has the plugin's few settings
-(where the effect catalogue lives, polling, which firmware to offer, and
+(where the effect catalog lives, polling, which firmware to offer, and
 controllers on other networks) on the page itself.
 
 **hc-wled 0.1.17 and app v0.1.16 (2026-10-19)** follow, again with no core
@@ -4659,7 +4664,7 @@ more, and plugins that say what's dangerous.
 
 ### Security
 
-- **An API key can't make or change keys any more** unless it was given
+- **An API key can't make or change keys anymore** unless it was given
   `api_keys:admin`. Before, any key (a wall tablet's display key included)
   could make itself a new key with everything its owner's role allows, widen
   itself, or drop its address fence. A key made by anyone also never gets
@@ -4795,7 +4800,7 @@ in on Me. It also, by itself:
   The app's server asks GitHub at most every six hours; homeCore never
   does. `HC_UPDATE_CHECK=off` on the app's container turns this off.
 - offers every option a device action takes.
-- adds number and colour controls (WLED).
+- adds number and color controls (WLED).
 - lists a plugin's own devices in its settings.
 - keeps screens up to date as they change.
 - shows each person only what their role lets them use.
@@ -5041,7 +5046,7 @@ above: address limits on keys, per-module log levels, calendar refresh).
 ### Repeating calendar events
 
 homeCore used to repeat only **yearly** events (holidays). A weekly bin day, a
-school day or a fortnightly recycling collection was kept only at its first
+school day or a recycling pickup every two weeks was kept only at its first
 date, so rules asking "is there a calendar event now?" or waiting for one
 missed every later occurrence.
 
@@ -5050,7 +5055,7 @@ Now every repeat in an `.ics` file is followed:
 - Daily, weekly, every other week, monthly (by date or "the second Tuesday")
   and yearly, with counts and end dates.
 - Dates the calendar skips, extra dates it adds, and single occurrences moved
-  or cancelled.
+  or canceled.
 - Times in their own time zone; a time with none, and all-day dates, in the
   house's. A weekly 07:00 stays 07:00 when the clocks change.
 
@@ -5307,7 +5312,7 @@ Existing clients do not ask for it and see no difference.
 
 ### Fixes
 
-- **The event stream honours who you signed in as.** From an address on the
+- **The event stream honors who you signed in as.** From an address on the
   `[auth].whitelist`, the stream treated everybody as admin even when they had
   signed in as someone else; the REST API never did. Now a sign-in always
   counts, on both.
@@ -5342,26 +5347,25 @@ Existing clients do not ask for it and see no difference.
 ### "Clear for 40 minutes" is answerable now
 
 Every device carried a `last_change` timestamp that looked like it said when
-the device last changed. It did not. It said when homeCore last *heard* from
-it, which for a sensor reporting every few seconds is always "a moment ago".
+the device last changed. In fact it said when homeCore last *heard* from it,
+which for a sensor reporting every few seconds is always "a moment ago".
 An occupancy sensor clear since breakfast looked like it had just gone clear.
 
 `attributes_changed_at` records when each reading last actually moved, and it
 survives a restart, so a wall panel that rebooted overnight does not tell you
-the whole house changed at 3am. It is **per reading**, which matters: asking
-how long a room has been clear should not be reset by the same sensor's
-battery percentage ticking over.
+the whole house changed at 3am. It is kept **per reading**, so the same
+sensor's battery percentage ticking over doesn't reset how long the room has
+been clear.
 
-The old field keeps its job: it answers "what turned that on?", which is a
-different and equally useful question.
+The old field keeps its job of answering "what turned that on?".
 
-Automations get the same fix: a rule saying "no motion for 20 minutes" could
-not become true until 20 minutes after a restart. It can now.
+Automations get the same fix. A rule saying "no motion for 20 minutes" used
+to be unable to become true until 20 minutes after a restart.
 
 ### A Hue sensor's temperature said °C and meant °F
 
 If you have your Hue bridge set to Fahrenheit, the motion sensor's temperature
-was labelled °C while reporting °F, so 71 °F read as 71 °C, which is 160 °F.
+was labeled °C while reporting °F, so 71 °F read as 71 °C, which is 160 °F.
 The label now follows what the device says it is using.
 
 ### Release matrix
@@ -5381,20 +5385,20 @@ The label now follows what the device says it is using.
 
 **Theme:** Every device says exactly what it shows you.
 
-The end of a run that started with 82 of 178 devices publishing at least one
-attribute nothing described. This release takes it to none.
+This release finishes a run that started with 82 of 178 devices publishing at
+least one attribute nothing described. Now none do.
 
 **Timers** publish when they started and, if you named the countdown, that
-name. Both are now labelled, and both sit with the housekeeping rather than
+name. Both are now labeled, and both sit with the housekeeping rather than
 beside the time remaining.
 
 **Rokus** publish eleven facts about the box itself (model, serial, firmware,
 the network it is on), lifted out of a nested blob so an automation can ask
-"is this a TV?" without picking through JSON. They are labelled and folded
+"is this a TV?" without picking through JSON. They are labeled and folded
 away now, while the channel that is playing stays where you can see it.
 
 Earlier in the run: Hue's lights, scenes and bridge (v0.1.71 and v0.1.72), Lutron's
-keypads, dimmers and scenes, and Sonos's now-playing and catalogues (their own
+keypads, dimmers and scenes, and Sonos's now-playing and catalogs (their own
 plugin releases).
 
 ### Release matrix
@@ -5418,14 +5422,14 @@ plugin releases).
 bookkeeping arriving as a device reading, and said existing ones would clear
 on the device's next report. That was only true for a plugin that publishes
 its whole state each time; one that publishes changes (which is most of them,
-and hc-wled since 0.1.13) would have carried it indefinitely. The keys are
-cleared from what is stored now, so any device that reports again cleans
+and hc-wled since 0.1.13) would have carried it indefinitely. homeCore now
+clears the keys from stored state, so any device that reports again cleans
 itself.
 
 **The Hue bridge was the one device its own fix missed.** Lights and scenes
 were filled in from what they publish; the bridge is registered on a different
 path and kept showing its id, kind and name with nothing to label them. It
-goes through the same filler.
+now goes through the same filler.
 
 ### Release matrix
 
@@ -5449,11 +5453,11 @@ devices published at least one attribute their own schema never mentioned.**
 An undeclared attribute still shows up, as a raw name and a raw value, with
 nothing to label it, rank it, or fold it away as housekeeping.
 
-Two unrelated causes, both closed.
+There were two unrelated causes, and both are fixed.
 
 **Hue's hand-written schemas covered the controls and stopped.** A light
 declared four attributes and published nineteen: the bridge and resource ids,
-its capability flags, the colour-temperature bounds. A scene declared whether
+its capability flags, the color-temperature bounds. A scene declared whether
 it was active and published eight. They are all described now, and demoted
 where they are not readings, so a light's page leads with brightness rather
 than with the id of the bridge it is on.
@@ -5503,14 +5507,13 @@ now reads it, and on the reference network that means:
 | Test Motion Sensor | `motion_sensor` |
 | The controller itself | `gateway` |
 
-The two sensors are worth a note: Z-Wave describes both of them identically
-("Notification Sensor"), so the class alone cannot separate a door sensor from
-a motion sensor. What separates them is that one reports a contact and the
-other reports motion, so that is what the plugin reads when the class runs
-out.
+Z-Wave describes the two sensors identically ("Notification Sensor"), so the
+class alone cannot tell a door sensor from a motion sensor. When the class
+runs out, the plugin looks at what the node reports: one reports a contact
+and the other reports motion.
 
-A node that has not finished its interview yet says nothing rather than
-guessing, and fills its type in on the next registration.
+A node that has not finished its interview leaves its type empty instead of
+guessing, and fills it in on the next registration.
 
 ### Modes had no type at all
 
@@ -5529,7 +5532,7 @@ and lead with whether they are on.
   re-registers them.
 - **A dashboard or rule that filters on `device_type == "zwave"` will stop
   matching.** Nothing in homeCore does this by default, but a hand-written
-  filter might; point it at the real type, which is what it wanted.
+  filter might. Point it at the real type instead.
 - Modes gaining a type is additive; nothing filtered on "no type".
 
 ---
@@ -5545,23 +5548,23 @@ what it *declares* (the attributes and actions it says it has) rather than
 when a value changes. The event carries the names, so a client can decide
 whether it cares before refetching `GET /devices/{id}/schema`.
 
-This matters because device schemas are not static, and became less so with
-the September schema work. A Lutron phantom scene upgrades its own about a
+Device schemas change, and they changed more often after the September
+schema work. A Lutron phantom scene upgrades its own about a
 second after the bridge connects, once its LED query is answered. The Ecowitt
 plugin republishes when a sensor's set of readings changes. Hue republishes
 when a sensor gains a facet, Z-Wave on a rescan. Until now nothing announced
 any of it: a client showing controls built from the schema kept the old ones
 until somebody reloaded the page.
 
-**The event stream's documented type list was eight of twenty-one.** It had
-never included `device_name_changed`, and nothing added since. All twenty-one
+**The event stream's documentation listed eight of the twenty-one types.** It
+had never included `device_name_changed`, and nothing added since. All twenty-one
 are listed now, checked against the code that names them, so filtering by
 `?type=` can be written from the spec rather than by experiment.
 
 ### Unchanged
 
-Nothing an operator does changes here, and no device behaves differently.
-This is an addition to the API surface for the people writing against it.
+Operators have nothing to change, and no device behaves differently. The
+addition is to the API, for people writing against it.
 
 ### Release matrix
 
@@ -5582,17 +5585,16 @@ This is an addition to the API surface for the people writing against it.
 
 **Theme:** An API key is a credential for the whole API.
 
-Two things an API key could not do, both found while working out how a
-wall panel should authenticate. If you use API keys, this release
-matters; if you only ever log in with a password, nothing here changes
-what you see.
+This release fixes two things an API key could not do, both found while
+working out how a wall panel should authenticate. If you only ever log in
+with a password, nothing here changes what you see.
 
 ### A key opened no stream
 
 `/events/stream`, `/logs/stream` and the media route take their
 credential in a `?token=` query parameter, because a browser cannot set
 a header on a WebSocket upgrade. All three validated it as a JWT, so an
-API key worked for every REST call and silently for none of these.
+API key worked for every REST call and silently failed on all three.
 
 A display authenticated with a key would load its dashboard and then
 never hear another word from the house: a frozen picture with nothing
@@ -5608,7 +5610,7 @@ that role's rights gave a deliberately restricted key everything its
 creator could do.
 
 The response now carries `scopes`: what **this credential** may do, for
-password sessions and keys alike. **If you authorise against `/auth/me`,
+password sessions and keys alike. **If you authorize against `/auth/me`,
 read `scopes` and not `role`.**
 
 ### Two smaller things that came with consolidating
@@ -5629,14 +5631,13 @@ trusts an address, not a person, so there is no profile to return.
 
 **Theme:** The spec says which version it is.
 
-Nothing an operator will notice, and the entry exists because that is
-still worth knowing.
+Operators will notice nothing in this release.
 
 v0.1.66 shipped with `docs/openapi.yaml` stamped `0.1.65`. The version
 lives in two files (the crate manifest and the spec's `info.version`),
 and only one of them was bumped, so a release described itself as its
-predecessor. A test exists for exactly this and caught it, after the tag
-had already gone out and its artifacts had been built.
+predecessor. A test for exactly this caught it, but only after the tag had
+gone out and its artifacts had been built.
 
 This release stamps both. If you fetched the v0.1.66 spec and are
 matching it against a running core, take this one instead; the described
@@ -5664,15 +5665,15 @@ compiled ahead of time and could hold nothing itself, which is why
 `/assets` and `/dashboards/templates` exist. It is moving back to the
 client that makes it.
 
-What does *not* move is identity. The house has one set of users, roles
-and revocations and it is core's, so a client presents the caller's own
+Identity stays in core. The house has one set of users, roles and
+revocations, and core owns it. A client presents the caller's own
 bearer, asks `/auth/me` who it belongs to and `/auth/roles` what that
 role may do, and enforces the answer itself. These two scopes are the
 vocabulary for that conversation.
 
 You will find them in `GET /auth/roles` and on no operation in the API
-spec. That is deliberate: the thing they authorise is not here. The
-OpenAPI preamble says so, so a reader who notices does not go looking
+spec. That is deliberate, since what they authorize is not part of this
+API. The OpenAPI preamble says so, so a reader who notices does not go looking
 for a missing endpoint.
 
 **Upgrade notes:** none. Existing tokens keep working; a client that has
@@ -5693,7 +5694,7 @@ the chart came up empty on a device that plainly had the data.
 
 History now takes an attribute filter and downsamples server-side.
 
-**Upgrade notes:** none. The existing shape still answers.
+**Upgrade notes:** none. Requests in the old form still work.
 
 ---
 
@@ -5726,7 +5727,7 @@ hc-zwave 0.1.12.
 **Theme:** Every device says what it is.
 
 A reference house of 184 devices had 107 with a capability schema. It now
-has 184. The gap was never one problem: some devices had no schema
+has 184. The gap had several causes: some devices had no schema
 because core mis-wired its own, most because their plugin declared only
 part of what it supports, and the rest because two schema fields that
 already existed were set by nobody.
@@ -5757,7 +5758,7 @@ than here.
 - **Render a scene, a shade, a fan or a timeclock event.** See below.
 - **Show an enum value in a person's words.** An attribute's options may
   now carry a label and an icon, matching what action parameters have
-  always had. Accepted, not yet emitted: no plugin declares a label in
+  always had. Core accepts them, but nothing sends them yet: no plugin declares a label in
   this release, because a client that decodes options as plain strings
   must be updated first. An option carrying neither extra is still sent
   as the bare string it always was, so nothing changes on the wire yet.
@@ -5780,7 +5781,7 @@ than here.
 - **A momentary output declares an empty attribute set**, which is a
   different statement from having no schema. A pulsed contact closure
   has nothing to read (the Integration Guide forbids querying one) and
-  now says so rather than staying silent.
+  now says so.
 
 ### Fixed
 
@@ -5796,8 +5797,8 @@ than here.
 - **A Lutron LED event could be attributed to the wrong scene.** Phantom
   LEDs are `button + 100` and keypad LEDs are `button + 80`, and both
   subtractions land on real button numbers: component 106 is button 6's
-  LED, but 106 − 80 = 26 is a button someone may have a scene on. The
-  reading that applies is now chosen rather than guessed.
+  LED, but 106 − 80 = 26 is a button someone may have a scene on. homeCore
+  now works out which reading applies instead of guessing.
 - **A Lutron timeclock event ignored the attribute it publishes.** It
   reported `enabled` and accepted only `enable`, so a client echoing
   back what it had just read was silently dropped.
@@ -5864,7 +5865,7 @@ homeCore now ships as **two containers**, wired together by compose:
   every plugin into one container. Plugins install at runtime from the
   signed registry, so the merged image was a different product from the
   one being shipped. Existing appliance images stay in GHCR and keep
-  working; none are published any more. The
+  working; none are published anymore. The
   `homecore-appliance-*.tar.gz` release archive is gone for the same
   reason.
 - **hc-core no longer carries a web UI.** It used to bundle a Leptos WASM
@@ -5878,7 +5879,7 @@ homeCore now ships as **two containers**, wired together by compose:
 - **amd64 only.** aarch64 tarballs and images had in practice not been
   produced for months: the matrix entry was switched off behind a
   hardcoded override while the release still advertised a multi-arch
-  toggle. The pipeline now says amd64 and means it. If you need arm64,
+  toggle. The pipeline now builds and advertises amd64 only. If you need arm64,
   say so; restoring it is a small change.
 - **The whole plugin registry is current.** Ten plugins had shipped
   versions well ahead of what the index served (`hc-lutron` was at 0.1.10
@@ -5890,12 +5891,12 @@ live in the data directory, not the image, so they are untouched.
 
 ### Devices that no plugin owns
 
-**Theme:** the silence around them.
+**Theme:** devices that fail silently.
 
 A keypad button that had been dead since May turned out to be pointing
 at a Hue group the Hue plugin had stopped managing back in April. The
-device was still listed, still accepted commands, and still reported
-state. The state just never changed again. Everything downstream
+device was still listed, still accepted commands and still reported
+state, but the state never changed again, and everything downstream
 believed it.
 
 This round fixes that button, deletes the devices behind it, and adds
@@ -5911,7 +5912,7 @@ directions:
 
 - **Commands vanish.** Plugins subscribe to command topics per-device,
   only for devices they registered. An orphan has no subscriber, so the
-  broker drops its commands. No error, anywhere, and the rule engine
+  broker drops its commands. Nothing logs an error, and the rule engine
   still records the action as `fired: success`.
 - **State freezes.** Its attributes stay at whatever they last were,
   forever, and rule conditions keep reading them as truth.
@@ -5933,16 +5934,16 @@ broken; every layer reported success.
 - **`GET /api/v1/devices/orphaned`**: finds devices homeCore holds that
   their owning plugin no longer manages.
 
-  Detection is a **count comparison, not a staleness threshold**. Every
+  Detection compares counts instead of using a staleness threshold. Every
   management-capable plugin self-reports `device_count`; if core holds
   more devices for that plugin than the plugin claims, the difference is
-  exactly the orphan count. Flagging on `last_seen` age is the obvious
-  approach and is wrong: plugins that publish only on change leave
+  exactly the orphan count. Flagging on `last_seen` age would be wrong:
+  plugins that publish only on change leave
   healthy devices cold for months (a wall switch nobody flips is not
   orphaned), so an age rule cries wolf on exactly the quiet devices you
   care least about.
 
-  Worth running once after upgrading. On the system this was found on it
+  Run it once after upgrading. On the system where this was found, it
   immediately turned up 11 more orphans in a *second* plugin, unrelated
   and unnoticed.
 
@@ -5965,9 +5966,8 @@ broken; every layer reported success.
 - **`openapi.yaml` now matches the server**: 89 of 89 routes, 124 of 124
   operations, up from 39. It had also stopped parsing entirely at some
   point (an unquoted `description:` containing `": "` reads as YAML
-  mapping syntax), so nothing could consume it. Both fixed; the
-  "adding an endpoint" checklist now includes documenting it, which is
-  what was missing.
+  mapping syntax), so nothing could consume it. Both are fixed, and the
+  "adding an endpoint" checklist now includes documenting the endpoint.
 
 ### Upgrade notes
 
@@ -5996,9 +5996,9 @@ broken; every layer reported success.
 
 **Theme:** Comfort fix + diagnostic toolkit + client UX cleanup.
 
-A larger-than-usual patch round that closes out a cluster of
-operator-reported bugs and lands the WS-observability work that
-was deferred from 0.1.3.
+A larger patch round than usual. It fixes a group of
+operator-reported bugs and lands the WebSocket observability work
+deferred from 0.1.3.
 
 ### Added
 
@@ -6006,14 +6006,14 @@ was deferred from 0.1.3.
   WebSocket `/api/v1/logs/stream`. Same filter semantics
   (`level`, `target` prefix), plus `since=<RFC3339>` for
   incremental polling and `limit` (default 100, cap 1000).
-  CLI-friendly: `curl ... | jq` no longer needs a websocket
-  client. Same auth as the WS endpoint.
+  From the command line, `curl ... | jq` now works without a
+  WebSocket client. Same auth as the WS endpoint.
 - **`GET /api/v1/ws/connections`** (admin-only): live
   registry of every active WebSocket connection (events_stream
   + logs_stream) with `connection_id`, `endpoint`, `client_id`,
-  `ip`, `user`, `user_agent`, `connected_at`. Distinguishes
-  "one looping client" from "many churning clients" during
-  reconnect-storm investigations.
+  `ip`, `user`, `user_agent`, `connected_at`. When you are
+  investigating a reconnect storm, it tells one looping client
+  apart from many churning clients.
 - **WS lifecycle Prometheus metrics**:
   `homecore_ws_connects_total{endpoint}` and
   `homecore_ws_disconnects_total{endpoint, reason}`. The
@@ -6025,13 +6025,13 @@ was deferred from 0.1.3.
   `recalculate_all` plugin command now accepts
   `{"force": true}` which re-issues actuator commands
   unconditionally (regardless of cached `actuator_state`).
-  Recovery path for the cached-vs-physical-reality drift the
-  comfort fix below was added to prevent in the first place.
+  It recovers from the drift between cached and physical state
+  that the comfort fix below is meant to prevent.
 
 ### Changed
 
 - **WS disconnect log carries a `reason` field**: seven
-  categorised strings (`client_close`, `socket_closed`,
+  categorized strings (`client_close`, `socket_closed`,
   `recv_error`, `pong_timeout`, `ping_send_failed`,
   `event_send_failed`, `bus_closed`) replace the
   previously-indistinguishable `INFO "WebSocket client
@@ -6049,17 +6049,17 @@ was deferred from 0.1.3.
 - **Version-banner is direction-aware** (Leptos admin): it only
   fires when the server is strictly newer than the tab. The
   prior any-mismatch trigger fired during in-flight upgrades
-  too, where Reload couldn't help. Banner copy also rewritten
-  for clarity ("homeCore was upgraded — server is on v0.1.5,
+  too, where Reload couldn't help. The banner text was also
+  rewritten ("homeCore was upgraded — server is on v0.1.5,
   this tab is still on v0.1.4. Reload to pick up the new
   client.").
-- **Overview Security widget honours per-device opt-out**:
+- **Overview Security widget honors per-device opt-out**:
   unchecking a contact-sensor or lock on its detail page now
   actually excludes it from the Security tile. Previously the
   default-set fallback ("all locks + contact sensors when no
-  tags are explicit") swept unchecked devices back in. New
-  explicit-exclude store; checkbox semantics now match operator
-  expectations.
+  tags are explicit") swept unchecked devices back in. A new
+  explicit-exclude store makes the checkbox do what operators
+  expect.
 - **Overview widget click resets Devices-page filters**:
   clicking a Security/Climate/etc. tile now overrides
   persisted filter chips on the Devices page, instead of
@@ -6111,7 +6111,7 @@ plugins still at 0.1.3.
   POST /api/v1/plugins/plugin.thermostat/command
   {"action":"recalculate_all", "force": true}
   ```
-  Or: flip the setpoint by ±1°F to force a transition the
+  Or flip the setpoint by ±1°F to force a transition the
   old way.
 
 ---
@@ -6143,9 +6143,9 @@ through `/health`, the Leptos sidebar, and the login page.
 
 ### Upgrade notes
 
-- The proper architectural fix for this fragility ships in
-  v0.1.5 (HEALTH-VERSION-SOURCE-1). Lockstep-bump-everything
-  is no longer required from v0.1.5 forward.
+- The real fix ships in v0.1.5 (HEALTH-VERSION-SOURCE-1).
+  From v0.1.5 on, crates no longer have to be bumped in
+  lockstep.
 
 ---
 
@@ -6153,9 +6153,9 @@ through `/health`, the Leptos sidebar, and the login page.
 
 **Theme:** Leptos admin reliability + automation hygiene.
 
-The browser-side admin client got a substantial reliability pass after
+The browser-side admin client got a round of reliability fixes after
 field reports of disconnect storms and stale state. Three of the four
-fixes are behavioural changes invisible until you look at the
+fixes are behavioral changes invisible until you look at the
 WebSocket events log; the fourth is a banner that finally tells you
 your tab is running old code.
 
@@ -6171,12 +6171,12 @@ your tab is running old code.
   now compares its embedded `CARGO_PKG_VERSION` against
   `/api/v1/health` on connect and on every WS reconnect; on
   mismatch a "new version available — Reload" banner appears at
-  the top of the viewport. Dismissable per server-version in
-  `sessionStorage`.
+  the top of the viewport. It can be dismissed per server
+  version, stored in `sessionStorage`.
 - **Renovate digest-bump automation.** Every base-image digest
   pinned in 0.1.2 (alpine 3.23, rust 1.95-alpine3.23) now has
   Renovate watching it. Weekly Monday probe; digest + patch tag
-  bumps auto-merge on green CI; minor/major land as PRs labelled
+  bumps auto-merge on green CI; minor/major land as PRs labeled
   `review-required`. Twelve repos covered.
 - **CI for `hc-web-leptos`.** The crate now has a
   `.github/workflows/ci.yml` (fmt + tests via the shared
@@ -6184,7 +6184,7 @@ your tab is running old code.
   [ci-glance dashboard](https://homecore-io.github.io/ci-glance/).
 - **Per-repo `Dockerfile` for `hc-caseta`, `hc-ecowitt`,
   `hc-thermostat`.** These three plugins missed the original
-  Dockerfile copy-pass; now in line with the other seven plugins so
+  Dockerfile copy-pass; they now match the other seven plugins, so
   `docker build .` works from each plugin's checkout.
 
 ### Changed
@@ -6200,7 +6200,7 @@ your tab is running old code.
   and plugin maps now re-fetch from REST on every reconnect.
   Previously, state changes that happened during the disconnect
   window were silently lost until the next event for that device.
-  In particular: the symptom "Sonos shows paused while the
+  In particular, the symptom "Sonos shows paused while the
   speaker is actually playing, until something nudges it" should
   no longer recur.
 - **Plugins consume `plugin_sdk_rs::types::*` /
@@ -6209,9 +6209,9 @@ your tab is running old code.
   `hc-isy`, `hc-zwave`, `hc-caseta`, `hc-ecowitt`,
   `hc-thermostat`, `hc-captest`) dropped their direct
   `hc-types` / `hc-logging` git deps and now consume those
-  surfaces through the SDK. One upstream-homeCore dependency per
-  plugin instead of three. SDK SemVer becomes the only
-  homeCore-side version a plugin needs to track.
+  surfaces through the SDK. Each plugin now has one upstream
+  homeCore dependency instead of three, and the SDK's SemVer is
+  the only homeCore version a plugin needs to track.
 - **Release-tag policy: tag only what changed.** Starting with
   0.1.3 the project no longer publishes a fixed N-tag table per
   release. Components with operator-impact changes get a tag;
@@ -6253,7 +6253,7 @@ repo, not in production release flow).
   because it loaded the old WASM before the banner code existed.
 - **Renovate onboarding PRs** may appear once Mend Renovate
   Cloud's first scan completes (24-48 h after the App was
-  installed). They contain default config; close them; the
+  installed). They contain default config. Close them; the
   canonical `renovate.json` already shipped on `main` in each
   repo.
 
@@ -6281,7 +6281,7 @@ the new core image. Future releases follow the amended rule.
 image hardening.
 
 A targeted patch round after a 0.1.1 deploy debugging session
-exposed three orthogonal weaknesses: the server-side WS loop
+exposed three unrelated weaknesses: the server-side WS loop
 mishandled some edge cases, the tooling couldn't tell *which*
 component a heartbeat came from, and the Dockerfiles all floated
 on a single `alpine:3.20` tag.
@@ -6308,9 +6308,9 @@ on a single `alpine:3.20` tag.
 - **Server WebSocket loop refactored** to `select!` over
   `socket.recv()`, a 30-second ping ticker, and the event bus;
   closed clients are detected within one ping interval rather
-  than waiting for the next event broadcast. NAT/proxy idle
-  timeouts also kept warm.
-- **Activity page WebSocket consolidated.** Pre-0.1.2, the
+  than waiting for the next event broadcast. The pings also
+  keep connections alive through NAT and proxy idle timeouts.
+- **Activity page WebSocket consolidated.** Before 0.1.2, the
   Activity page opened its own `/events/stream` socket *in
   addition* to the shared NavShell socket. Both cycled in
   lockstep, doubling the disconnect-storm signal. The page now
@@ -6318,7 +6318,7 @@ on a single `alpine:3.20` tag.
 - **Base images digest-pinned.** Three canonical Dockerfiles in
   `homeCore-io/docker` plus eight per-plugin local Dockerfiles
   moved from `alpine:3.20` (floating) to
-  `alpine:3.23@sha256:5b10f432…` (3.23.4 digest-pinned). Driven
+  `alpine:3.23@sha256:5b10f432…` (3.23.4 digest-pinned), prompted
   by a kernel CVE in the 3.20 lineage. Rust toolchain pinned to
   `1.95` across the board.
 - **`apk upgrade` runs in every Dockerfile** before
@@ -6334,8 +6334,8 @@ on a single `alpine:3.20` tag.
   doesn't match the tag being pushed.
 - **`result_large_err` boxing in `hc-api`**: the largest
   variant of the auth-middleware error type was inlined in
-  every `Result<T, _>` return. Boxed it; smaller stack frames,
-  same surface.
+  every `Result<T, _>` return. It is boxed now, which shrinks
+  stack frames without changing the API surface.
 - **Duplicate `debug!` disconnect log** in the WS handler
   removed.
 

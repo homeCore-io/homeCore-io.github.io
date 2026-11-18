@@ -32,7 +32,7 @@ as a place yourself.
    device `weather_home`.
 3. To cover somewhere else, add a place under **Places**. Give it an id and a
    name, then either its latitude and longitude, a postal code and two letter
-   country, or its name ("Or its name"). The plugin looks up a postal code or
+   country, or a place name under **Or its name**. The plugin looks up a postal code or
    name once and remembers the answer.
 4. For a European place, fill in **MeteoAlarm region** to get warnings (see
    [Alerts](#alerts)).
@@ -77,8 +77,8 @@ With `auto`, a place in the US or Puerto Rico gets National Weather Service
 warnings. A place in a country MeteoAlarm covers gets MeteoAlarm warnings
 if it has a region, and none if it doesn't. Anywhere else gets none.
 
-Each reading has its own timer, so one slow service doesn't hold up the
-others. The defaults come to about 240 calls a day to Open-Meteo per place,
+Each kind of reading has its own timer, so one slow service doesn't hold up
+the others. The defaults come to about 240 calls a day to Open-Meteo per place,
 well inside the free service's limit of 10,000.
 
 ## Devices
@@ -189,8 +189,8 @@ one.
 
 ## Troubleshooting
 
-A failed read is tried again after 1 minute, then 2, 4 and 8, and after
-that on the normal timer. A retry never waits longer than the normal timer.
+A failed read is tried again after 1 minute, then 2, 4, 8 and so on,
+doubling each time but never waiting longer than the normal timer.
 While a read keeps failing, a notice on the plugin's page names the place
 and the reason, such as a refused connection or a timeout. Check that the
 host can reach the internet.

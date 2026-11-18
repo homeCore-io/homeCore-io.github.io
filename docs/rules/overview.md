@@ -64,7 +64,7 @@ Around those sit the rule's identity (`id`, `name`, `enabled`, `priority`, `tags
 | `cooldown_secs` | none | After the rule fires, ignore new triggers for this many seconds. The app calls this "Rest after running". |
 | `run_mode` | `Parallel` | What happens if the rule is triggered while a previous run is still going. See [Run modes](#run-modes). |
 | `required_expression` | none | Rhai gate checked before the conditions. |
-| `cancel_on_false` | `false` | When `required_expression` is false, also cancel this rule's pending cancellable delays. |
+| `cancel_on_false` | `false` | When `required_expression` is false, also cancel this rule's pending cancelable delays. |
 | `trigger_condition` | none | A second Rhai gate, checked after `required_expression`. |
 | `variables` | `{}` | Starting values for rule-local variables. |
 | `trigger_label` | none | A label for the trigger, readable in scripts and fire history. |
@@ -223,7 +223,7 @@ Subdirectories are not loaded, so a folder such as `rules/archive/` can hold fil
 |---|---|---|
 | `Parallel` | run both | Default. Every trigger starts a new run, alongside any that are still going. |
 | `Single` | skip the new one | If a run is still going, the new trigger is skipped. |
-| `Restart` | start over | Stops the earlier run at its next step (cutting its cancellable delays short), then starts a new run. |
+| `Restart` | start over | Stops the earlier run at its next step (cutting its cancelable delays short), then starts a new run. |
 | `Queued` | queue it | Runs one at a time, in the order they were triggered. Up to `max_queue` (default 10) may be waiting or running. Past that, new triggers are skipped. |
 
 ```ron
@@ -262,7 +262,7 @@ When you delete a device, homeCore rewrites the rules that named it to `DELETED:
 
 ## Testing a rule
 
-`POST /api/v1/automations/{id}/test` is a dry run. It evaluates the conditions against the house as it is now, or at a time you give, and reports which actions would run without running them. `POST /api/v1/automations/{id}/run` runs the rule for real, straight away. See [Debugging rules](./examples.md#debugging-rules) for both, plus fire history. The app has the same tools on each automation's page.
+`POST /api/v1/automations/{id}/test` is a dry run. It evaluates the conditions against the house as it is now, or at a time you give, and reports which actions would run without running them. `POST /api/v1/automations/{id}/run` runs the rule for real, right away. See [Debugging rules](./examples.md#debugging-rules) for both, plus fire history. The app has the same tools on each automation's page.
 
 ## Key source files
 

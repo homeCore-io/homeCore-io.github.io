@@ -36,9 +36,9 @@ directly, use its name, for example `/homecore:plugin-development`.
 
 [hc-mcp](./hc-mcp.md) ships a copy of the skills (v0.1.3 and later):
 
-- An MCP client such as Claude Desktop sees each skill as a **prompt**, to
+- An MCP client such as Claude Desktop sees each skill as a prompt, to
   start a conversation with.
-- Every file of a skill is a **resource** at
+- Every file of a skill is a resource at
   `homecore-skill://<skill>/<file>`, for example
   `homecore-skill://plugin-development/references/python.md`.
 - Two tools, `list_skills` and `read_skill`, list them and read one.

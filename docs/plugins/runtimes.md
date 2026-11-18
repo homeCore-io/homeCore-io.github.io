@@ -104,7 +104,7 @@ An update goes to the runtime the plugin already runs on, even when that
 runtime is full. The plugin's page shows that it is updating until the new
 version is running.
 
-A plugin in a runtime offers only **Uninstall** on its page. The runtime
+A plugin in a runtime offers only **Uninstall…** on its page. The runtime
 starts and stops it, so Turn off, Start, Stop and Restart aren't offered. The
 runtime restarts a plugin that exits, waiting 2 seconds at first and doubling
 up to 60, the same as homeCore does for its own plugins.

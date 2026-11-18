@@ -11,8 +11,8 @@ This plugin connects Reolink cameras, NVRs and Home Hubs on your home network.
 It reports what each camera sees (motion, a person, a vehicle, an animal, a
 package) as soon as the camera does, keeps a snapshot of each detection, and
 lets rules and cards switch spotlights, sound sirens, move PTZ cameras and play
-live video. It talks only to the devices on your network, never through
-Reolink's cloud. It has been tried on an RLN36 NVR with E1 Outdoor SE and Duo
+live video. It talks to the devices directly on your network and doesn't use Reolink's
+cloud. It has been tested on an RLN36 NVR with E1 Outdoor SE and Duo
 3 cameras, and on those cameras on their own.
 
 ## Before you start
@@ -37,9 +37,8 @@ Reolink's cloud. It has been tried on an RLN36 NVR with E1 Outdoor SE and Duo
    **Cameras and NVRs** for each address: a camera on its own, or an NVR or
    Home Hub, whose cameras arrive as its channels. Usually only the name,
    address, user name and password need filling in.
-3. Save. The plugin signs in to each address, finds out what it is and what
-   each camera can do, and registers the cameras. It never guesses a camera's
-   features; it reads them from the device.
+3. Save. The plugin signs in to each address, finds out what it is, reads each
+   camera's features from the device, and registers the cameras.
 
 A camera with two lenses (a Duo) is one camera, because it joins its lenses
 into one picture. The plugin looks for new or removed NVR channels now and
@@ -58,7 +57,7 @@ browser can play. Without go2rtc, cameras show their snapshots.
 
 Set **go2rtc address** under **Live video** to go2rtc's web address as the
 plugin reaches it, usually `http://127.0.0.1:1984`. With **Add the cameras'
-streams to go2rtc** on (the default), that's all. The plugin gives go2rtc two
+streams to go2rtc** on (the default), nothing else is needed. The plugin gives go2rtc two
 streams per camera, `reolink_<camera>` (the sub stream, H.264, which every
 browser plays) and `reolink_<camera>_hd` (the main stream). It keeps them
 current when a password or address changes. go2rtc saves them in its own
@@ -193,8 +192,8 @@ email; see [Notify](../rules/actions#notify).
 ## Actions
 
 The plugin has one action of its own, **Cameras and NVRs** (`status`,
-read-only, 5 second timeout), which reports each address: whether it is signed
-in, its model and its cameras. Its screens use it.
+read-only, 5 second timeout). It reports whether each address is signed in,
+its model and its cameras, and the plugin's screens use it.
 
 ## Alerts
 
@@ -232,8 +231,8 @@ set.
   two minutes. Its cameras come back online when it answers.
 - `login_refused`: check the user name and password. If the password is right
   and it still can't sign in, try turning HTTPS off for that row.
-- A siren that firmware won't sound until stopped is played a few times
-  instead.
+- If a camera's firmware won't sound its siren until it is stopped, the
+  plugin plays the siren a few times instead.
 - When homeCore stops or restarts the plugin, the plugin turns off any siren
   it started, signs out of each address and marks its devices offline before
   it exits.

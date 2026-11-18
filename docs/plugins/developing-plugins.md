@@ -47,12 +47,12 @@ repository's `cargo fmt`, `clippy` and `test` cover homeCore, the SDK and
 every plugin together, so a change that breaks a plugin fails at once.
 
 For a Rust plugin outside the homeCore repository, pin a core release tag,
-the newest when you start (v0.1.114 at the time of writing, with SDK 0.6.5).
+the newest when you start (v0.1.117 at the time of writing, with SDK 0.6.5).
 The SDK re-exports `hc-types`, the types plugins and homeCore share, so the
 tag keeps them from changing under you:
 
 ```toml
-plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.114" }
+plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.117" }
 ```
 
 No `path` key is needed. Cargo finds `plugin-sdk-rs` by package name among
@@ -715,9 +715,8 @@ neither and they get a TOML text box.
 | Config schema | JSON Schema of your config: which fields exist, of what type | Derived from your config structs |
 | Config descriptor | How to show them: sections, units, help text, secrets, conditions | You |
 
-Publish both. The schema says which fields exist and is what homeCore
-validates against; the descriptor says how to show them. homeCore serves them
-at `GET /api/v1/plugins/{id}/config/schema` and `/config/descriptor`. The app
+Publish both. homeCore validates settings against the schema, and serves the
+two at `GET /api/v1/plugins/{id}/config/schema` and `/config/descriptor`. The app
 writes only what changed and keeps the file's comments, and homeCore restarts
 the plugin when its settings change. A change to only `[logging] level`
 reaches the plugin through `set_log_level` instead.
@@ -1111,8 +1110,8 @@ should publish its schema again with it.
 ### Both names of a boolean
 
 A boolean attribute stands for two events. A client given only `open` offers
-one row, and catching the door closing then needs a Not wrapped around the
-trigger, a logic gate standing in for a word the device already has.
+one row, so catching the door closing means wrapping the trigger in a Not,
+even though the device already has a word for it.
 
 ```rust
 states: Some(BoolStates {
@@ -1128,9 +1127,9 @@ trigger reads the verb ("when the door opens").
 
 ### Which readings are the point of the device
 
-A door lock reports whether it is locked. It also reports battery, signal
-strength and firmware. Showing all four the same way buries the one people
-came for.
+A door lock reports whether it is locked, and also its battery, signal
+strength and firmware. Shown the same way, the three extras bury the reading
+people came for.
 
 - `category: diagnostic` is health and identity: battery, RSSI, firmware, IP
   address, model, a `*_unit` sibling, anything `supports_*`.
@@ -1183,8 +1182,8 @@ params (`Param`), the attribute it writes (`writes`), a `confirm` prompt and
 a `requires_role` (`device_actions::Role`).
 
 Declare an action only if the command path really accepts it, and back that
-with a test (see [Let the build check it](#let-the-build-check-it)). A
-control that does nothing is worse than none.
+with a test (see [Let the build check it](#let-the-build-check-it)).
+Otherwise people get a control that does nothing.
 
 ### A device that takes pictures
 
@@ -1272,8 +1271,8 @@ The command path and the schema must agree, attribute by attribute:
 | `enabled` | `enable` | Same |
 | `effect_id` | `effect` | Same |
 
-All three shipped. If you must keep an old spelling for existing rules,
-accept both and declare the one you publish.
+All three mismatches have shipped. If you must keep an old
+spelling for existing rules, accept both and declare the one you publish.
 
 ### Names and units
 

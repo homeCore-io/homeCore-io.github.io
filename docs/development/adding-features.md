@@ -180,12 +180,12 @@ earlier ones. For a new plugin, see
    (`Event::MqttMessage`) travels on `internal_bus`. Time-based triggers
    are not matched against events at all: the scheduler fires them
    directly with a synthetic `scheduler_tick` event, so they belong in
-   `crates/hc-core/src/scheduler.rs`, along with any catch-up behaviour on
+   `crates/hc-core/src/scheduler.rs`, along with any catch-up behavior on
    restart.
 
 4. Write unit tests covering both match and no-match cases. The
    engine's test module has many examples
-   (`webhook_trigger_matches_correct_path` and its neighbours).
+   (`webhook_trigger_matches_correct_path` and its neighbors).
 
    ```bash
    cargo test -p hc-core
@@ -219,8 +219,8 @@ earlier ones. For a new plugin, see
    `crates/hc-core/src/engine.rs`. It is async and returns
    `Result<(bool, ConditionTrace)>`. Read device state from the
    `snapshot` it is given, a map of device ID to attribute object built
-   from the engine's in-memory device cache, not from redb. Conditions
-   must have no side effects.
+   from the engine's in-memory device cache. Don't read redb, and keep
+   conditions free of side effects.
 
    ```rust
    Condition::MyNewCondition { device_id, attribute, expected_value } => {
@@ -271,7 +271,7 @@ earlier ones. For a new plugin, see
    }
    ```
 
-   `send_picture` has a default that sends the words alone. Override it
+   By default `send_picture` sends the text alone. Override it
    if the service can attach an image, as the email, Pushover and
    Telegram channels do.
 
@@ -285,9 +285,10 @@ earlier ones. For a new plugin, see
 4. Add `pub mod <name>;` to `lib.rs`.
 
 Config parsing, the executor and the rule engine need no changes.
-`[[notify.channels]]` is left out of the config descriptor on purpose,
-because the web app's Notifications screen edits it by channel type. A
-new type needs its fields on that screen in hc-web-svelte. Then update
+The config descriptor leaves `[[notify.channels]]` out on purpose,
+because the web app's Notifications screen edits it by channel type, so
+a new type needs its fields added to that screen in hc-web-svelte. Then
+update
 [Notifications](../events/notifications.md) with setup instructions.
 
 ---
@@ -396,5 +397,6 @@ The response has `conditions_pass`, `would_fire`, the rule's `actions`,
 and one entry per condition with `condition`, `passed`, and where they
 apply `actual`, `expected`, `elapsed_ms` and `reason`. Add `?at=` with a
 time (`22:30`) or a date and time to judge the conditions at that moment.
-Only the clock moves; the devices stay as they are now. `POST /automations/test` does the same for an unsaved rule sent in
-the body.
+Only the clock moves, and the devices keep their current state.
+`POST /automations/test` does the same for an unsaved rule sent in the
+body.
