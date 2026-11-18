@@ -25,6 +25,48 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-tui v0.1.4, 2026-11-18
+
+A rebuild of the terminal UI. It now uses the app's screens and names, and
+covers most of what the app can do. See [hc-tui](tools/hc-tui.md).
+
+- **The app's screens.** Home, Rooms, Devices, Scenes, Modes, Helpers,
+  Automations, Alerts and Plugins, then People, Data & backups, Logs,
+  Events, Audit and System under Settings. Each person sees only the
+  screens their role can use.
+- **Home.** Pin rooms, devices, scenes, modes, helpers and automations
+  under headings you name, and switch them from one screen. Home is kept
+  per server and per person.
+- **Devices.** Controls built from each device's schema, a 24-hour
+  sparkline, the app's tabs, and editing of name, room and Security.
+- **Helpers work again.** hc-tui uses `/glue` for every kind of helper,
+  in place of the `/switches` and `/timers` endpoints core removed.
+- **Automations.** Run now, dry run at a time, resume, point a missing
+  device's place at another device, groups and marking several at once.
+- **Plugins.** Installed, Catalog, Runtimes and Matter, with each
+  plugin's settings form, actions with parameters, notices and live log.
+- **People, Data & backups and System.** People and roles, API keys,
+  sessions, backups with restore, calendars, core's log level and
+  restart.
+- One key table per screen: the footer shows the main keys and `?` lists
+  them all. `x` deletes everywhere, after a `y` confirmation.
+- Sessions are refreshed before they expire, and `L` signs out. The live
+  stream reconnects with backoff and reloads after a reconnect.
+- Config and cache follow XDG (`~/.config/hc-tui`, `~/.cache/hc-tui`).
+  Every file hc-tui writes is 0600 and every folder 0700. A
+  `./config/config.toml` is still read when it is the only config.
+
+### Upgrading
+
+Move `./config/config.toml` to `~/.config/hc-tui/config.toml` when you
+can. Cached data starts fresh in `~/.cache/hc-tui`.
+
+### Release matrix
+
+**Tagged:** `hc-tui v0.1.4`.
+
+---
+
 ## hc-reolink v0.1.7, 2026-11-17
 
 - **Camera passwords stay out of alerts and logs.** When go2rtc couldn't
