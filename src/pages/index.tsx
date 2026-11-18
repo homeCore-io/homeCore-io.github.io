@@ -155,13 +155,13 @@ export default function Home(): ReactNode {
               <div className={styles.fPic}>
                 <div className={clsx(styles.card, styles.rule)}>
                   <div className={styles.ruleHead}>
-                    <b>Porch light at sunset</b>
+                    <b>Porch lights at sunset</b>
                     <span className={styles.on}>On</span>
                   </div>
                   {[
-                    ['WHEN', 'Sunset, 15 minutes before'],
+                    ['WHEN', "It's 15 minutes before sunset"],
                     ['IF', 'Away mode is off'],
-                    ['THEN', 'Porch lights on at 80%'],
+                    ['THEN', 'Turn the porch lights on to 80%'],
                   ].map(([k, v]) => (
                     <div key={k} className={styles.ruleRow}>
                       <span>{k}</span>
