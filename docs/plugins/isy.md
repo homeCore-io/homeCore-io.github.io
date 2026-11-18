@@ -16,7 +16,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   version="0.1.15"
   runs="Under core (Rust)"
   talks="The controller on your network"
-  account="Controller login"
+  account="The controller's login"
   devices={["light", "switch", "lock", "thermostat", "scene"]}
   source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-isy"
   setup="#install-and-set-up"

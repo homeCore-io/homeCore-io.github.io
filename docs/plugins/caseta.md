@@ -16,7 +16,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   version="0.1.18"
   runs="Under core (Rust)"
   talks="The Smart Bridge Pro on your network"
-  account="Bridge integration login"
+  account="None; the factory login works"
   devices={["light", "switch", "cover", "pico_remote", "scene"]}
   source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-caseta"
   setup="#install-and-set-up"

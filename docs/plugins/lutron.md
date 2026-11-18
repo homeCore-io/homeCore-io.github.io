@@ -16,7 +16,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   version="0.1.27"
   runs="Under core (Rust)"
   talks="The main repeater on your network"
-  account="Repeater integration login"
+  account="The repeater's integration login"
   devices={["light", "switch", "cover", "keypad", "scene"]}
   source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-lutron"
   setup="#install-and-set-up"
