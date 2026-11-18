@@ -71,9 +71,9 @@ Sign in with a username and password. The UI server holds the session in cookies
 
 How the house is drawn is a [look](./looks.md). Three come with the app:
 
-- **Classic**, cards of one size with a switch on each. A house that chooses nothing gets Classic.
+- **Console**, a desktop app with rooms down the side, faders, and switches. A house that chooses nothing gets the Console.
+- **Classic**, cards of one size with a switch on each.
 - **Lit**, which draws each room as a lit room you drag to dim.
-- **Console**, a desktop app with rooms down the side, faders, and switches.
 
 The house has a look (**Settings › Look**), and each person can pick their own. Classic and Lit share one frame, and Console has a frame of its own. Each frame has its own way of getting around.
 

@@ -15,8 +15,7 @@ app comes with three. Drawings can also come from plugins and
 
 ## The built-in looks
 
-**Classic** is a card for each thing, with a switch on it. A house that
-chooses nothing stays Classic.
+**Classic** is a card for each thing, with a switch on it.
 
 **Lit** draws each room as a lit room. Lights are bars you drag across to
 dim, switches are rockers, and scenes are swatches of their colors. Doors,
@@ -24,7 +23,7 @@ garage doors and locks are drawn as what they are. Readings show their day,
 and quiet sensors sit in a Watching list. A room opens over Home instead of
 leaving the page, and Back closes it.
 
-**Console** puts the app in a desktop frame: a toolbar, a sidebar of
+**Console** is the look a house gets when it chooses nothing. It puts the app in a desktop frame: a toolbar, a sidebar of
 Everywhere views and rooms, and each room's devices in tabs with faders and
 switches like a lighting desk. It has its own Home with lit room tiles, a
 favorites and scenes row and a weather band, plus a phone layout and a
