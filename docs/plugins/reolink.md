@@ -16,7 +16,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   version="0.1.7"
   runs="Under core (Rust)"
   talks="Your network"
-  account="Each camera's login"
+  account="Each device's login"
   devices={["camera", "light", "siren"]}
   source="https://github.com/homeCore-io/homeCore/tree/develop/plugins/hc-reolink"
   setup="#install-and-set-up"
