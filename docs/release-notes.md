@@ -25,6 +25,24 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.83, 2026-11-18
+
+- **The Console is the default look.** A house that hasn't chosen a look,
+  and a person who hasn't chosen their own, now get the Console in place of
+  Classic. A screen opening for the first time starts in the Console's dark
+  frame, unless the person chose light. Anyone who picked Classic keeps it.
+
+### Upgrading
+
+A house with no look set changes to the Console. To keep Classic, choose it
+in **Settings › Look**.
+
+### Release matrix
+
+**Tagged:** `v0.1.83` (hc-web-svelte).
+
+---
+
 ## hc-tui v0.1.4, 2026-11-18
 
 A rebuild of the terminal UI. It now uses the app's screens and names, and
