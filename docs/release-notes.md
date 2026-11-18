@@ -25,6 +25,56 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-reolink v0.1.7, 2026-11-17
+
+- **Camera passwords stay out of alerts and logs.** When go2rtc couldn't
+  take the cameras' streams, the alert could include the stream address with
+  the camera's user name and password in it, and every role can read alerts.
+  Errors from snapshots and camera answers could also carry the camera's
+  session token. Alerts and logged errors now hide addresses, tokens and
+  passwords.
+
+### Release matrix
+
+**Tagged:** `hc-reolink-v0.1.7`.
+
+---
+
+## v0.1.117, 2026-11-17
+
+Security fixes. Update soon.
+
+- **A plugin's settings no longer reach event readers.** When core asked a
+  plugin for something, such as its settings, the answer went out as an
+  event. Anyone who could read events could see it through the events
+  history and the live stream, passwords and keys included. These answers now
+  stay inside core. Core keeps its event history in memory only, so updating
+  (which restarts core) clears what was already there.
+- **Each caller gets only the events they may read.** The live event stream
+  used to send every event to any signed-in caller or API key, and the events
+  history needed only `devices:read`. Each kind of event now needs the same
+  read scope as the matching screen: device events need `devices:read`,
+  automation and webhook events `automations:read`, rooms `areas:read`,
+  scenes `scenes:read`, and plugin details `plugins:read`. Events core can't
+  place, such as an automation's own custom events, go to admins only. The
+  built-in roles still get everything the app shows them.
+- The live event stream now closes when its sign-in expires or is revoked
+  (within 30 seconds), and clients sign in again.
+- **Saving a stopped plugin's settings no longer starts it.** A plugin that is
+  turned off or stopped stays that way and reads the new settings when it
+  next starts. A running plugin still restarts to use them.
+
+### Upgrading
+
+An API key with narrow scopes now sees fewer events, on the stream and in
+`GET /api/v1/events`. Give it the read scope for what it needs.
+
+### Release matrix
+
+**Tagged:** `v0.1.117` (core). Image `hc-runtime-python:0.1.117`.
+
+---
+
 ## App v0.1.82, 2026-11-17
 
 - An automation's **Recent runs** no longer says homeCore forgets them when
