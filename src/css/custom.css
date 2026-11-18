@@ -451,3 +451,50 @@ h1, h2, h3, h4 {
 .blog-post-title a:hover {
   color: var(--hc-accent);
 }
+
+/* ── Release notes: each release heading carries its kind ── */
+.theme-doc-markdown > h2[data-kind] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2.6rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--hc-line);
+}
+
+.theme-doc-markdown > h2[data-kind]::before {
+  font: 600 0.72rem/1 var(--ifm-font-family-monospace);
+  letter-spacing: 0.04em;
+  color: #fff;
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.theme-doc-markdown > h2[data-kind='core']::before { content: 'CORE'; background: #9a4a07; }
+.theme-doc-markdown > h2[data-kind='app']::before { content: 'APP'; background: #1f5f8b; }
+.theme-doc-markdown > h2[data-kind='plugin']::before { content: 'PLUGIN'; background: #7a3b74; }
+.theme-doc-markdown > h2[data-kind='tool']::before { content: 'TOOL'; background: #3f6b3a; }
+.theme-doc-markdown > h2[data-kind='other']::before { content: none; }
+
+.theme-doc-markdown > h2[data-upgrade]::after {
+  content: 'Upgrade steps';
+  font: 700 0.75rem/1 var(--ifm-font-family-base);
+  color: #7a3a05;
+  background: #fdf1df;
+  border: 1px solid #f1d6ad;
+  border-radius: 999px;
+  padding: 5px 10px;
+  order: 3;
+}
+
+[data-theme='dark'] .theme-doc-markdown > h2[data-upgrade]::after {
+  color: #f7c866;
+  background: rgba(242, 181, 68, 0.1);
+  border-color: rgba(242, 181, 68, 0.3);
+}
+
+/* The separators between releases give way to the heading's own rule */
+html.docs-doc-id-release-notes .theme-doc-markdown > hr {
+  display: none;
+}

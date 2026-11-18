@@ -1,9 +1,12 @@
 ---
 id: release-notes
 title: Release Notes
-sidebar_label: Release Notes
+sidebar_label: Release notes
 sidebar_position: 99
+toc_max_heading_level: 2
 ---
+
+import ReleaseFilter from '@site/src/components/ReleaseFilter';
 
 # Release Notes
 
@@ -23,6 +26,8 @@ nothing an operator would notice changed; those say so. An entry is
 written as part of cutting the release, because a tag with no entry is
 a release nobody outside the workspace can find out about.
 
+<ReleaseFilter />
+
 ---
 
 ## App v0.1.83, 2026-11-18
@@ -32,7 +37,7 @@ a release nobody outside the workspace can find out about.
   Classic. A screen opening for the first time starts in the Console's dark
   frame, unless the person chose light. Anyone who picked Classic keeps it.
 
-### Upgrading
+### Upgrade notes
 
 A house with no look set changes to the Console. To keep Classic, choose it
 in **Settings › Look**.
@@ -74,7 +79,7 @@ covers most of what the app can do. See [hc-tui](tools/hc-tui.md).
   Every file hc-tui writes is 0600 and every folder 0700. A
   `./config/config.toml` is still read when it is the only config.
 
-### Upgrading
+### Upgrade notes
 
 Move `./config/config.toml` to `~/.config/hc-tui/config.toml` when you
 can. Cached data starts fresh in `~/.cache/hc-tui`.
@@ -124,7 +129,7 @@ Security fixes. Update soon.
   turned off or stopped stays that way and reads the new settings when it
   next starts. A running plugin still restarts to use them.
 
-### Upgrading
+### Upgrade notes
 
 An API key with narrow scopes now sees fewer events, on the stream and in
 `GET /api/v1/events`. Give it the read scope for what it needs.
