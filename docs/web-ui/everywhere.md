@@ -11,13 +11,13 @@ import Shot from '@site/src/components/Shot';
 
 The Everywhere views show one kind of thing across the whole house: every light, every player, every thermostat, every lock and door, every leak sensor and every camera. Each sits in the sidebar with a short status, such as "27 on", "3 playing" or "2 to check", so you can see at a glance where to look.
 
-Each view has one button that reaches the whole house. Most ask before they act.
+Each view has one button that reaches the whole house, and each asks before it acts.
 
 | View | Lists | For the whole house |
 |---|---|---|
 | **Lights** | Each room's lights, lit to their level | **Turn every light off** (asks first) |
 | **Media** | Every player by room, with what's playing and its volume | **Pause everything** (asks first) |
-| **Climate** | Thermostats, fans, then every temperature and humidity reading | **Fans off** |
+| **Climate** | Thermostats, fans, then every temperature and humidity reading | **Fans off** (asks first) |
 | **Security** | What needs attention first, then each room's locks and doors | **Lock everything** (asks first) |
 | **Water** | Wet sensors first, then valves and leak sensors | **Shut off all water** (asks first) |
 | **Cameras** | Every camera, one large and live | |

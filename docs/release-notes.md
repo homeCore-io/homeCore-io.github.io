@@ -30,6 +30,18 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.84, 2026-11-18
+
+- **Fans off asks first.** In Everywhere › Climate, **Fans off** turns off
+  every fan in the house, so it now asks before it acts, like the other
+  house-wide buttons.
+
+### Release matrix
+
+**Tagged:** `v0.1.84` (hc-web-svelte).
+
+---
+
 ## App v0.1.83, 2026-11-18
 
 - **The Console is the default look.** A house that hasn't chosen a look,
