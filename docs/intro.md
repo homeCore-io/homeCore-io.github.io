@@ -10,7 +10,7 @@ slug: /
 
 homeCore is home automation that runs on your own hardware. Core is written in Rust. It needs no cloud account, no subscription, and no internet connection to run the house.
 
-A normal install is two containers: core, which holds the devices, rules and the API, and the web app, which is what the household and the admins use. Plugins connect core to your hardware, and you install them from the app's Catalog.
+A normal install is [one compose file](./getting-started/docker) that runs core, which holds the devices, rules and the API, beside the web app, which is what the household and the admins use. Plugins connect core to your hardware, and you install them from the app's Catalog.
 
 ## How it fits together
 

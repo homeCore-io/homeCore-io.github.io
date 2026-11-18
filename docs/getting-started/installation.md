@@ -12,10 +12,9 @@ HTTP server built in. A basic install needs no other services.
 
 There are three ways to install it. Most people should use the first:
 
-1. [Docker](./docker) runs core (`hc-core`) and the web app
-   (`hc-web-svelte`) as two containers, wired together by compose. You get
-   the web app, which is where you install plugins, add people and set up
-   the house.
+1. [Docker](./docker): download one compose file and run it. It starts
+   core (`hc-core`) and the web app (`hc-web-svelte`) together. The web app
+   is where you install plugins, add people and set up the house.
 2. A [binary release](./binary-releases) is a pre-built static tarball of
    core that you extract and run. It has no web app; run that separately,
    for example from its container image (see

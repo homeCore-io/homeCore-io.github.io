@@ -277,7 +277,7 @@ export default function Home(): ReactNode {
               <div className={styles.eyebrow}>Getting started</div>
               <h3>Running in three steps.</h3>
               {[
-                ['1', 'Start two containers', 'Core and the app, with one compose file.'],
+                ['1', 'Download one compose file', 'Then run docker compose up -d. It starts core and the app.'],
                 ['2', 'Install plugins from the Catalog', 'Pick your hardware; homeCore finds the devices.'],
                 ['3', 'Sort devices into rooms', 'Then add your first automation.'],
               ].map(([n, t, b]) => (
