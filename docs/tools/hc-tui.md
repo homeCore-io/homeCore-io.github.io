@@ -7,13 +7,9 @@ sidebar_position: 2
 
 # hc-tui
 
-`hc-tui` is a keyboard-driven terminal UI for homeCore, written in Rust with `ratatui`. It talks to the same REST and WebSocket API as the [web app](../web-ui/overview.md), so it works over SSH and on headless machines.
+`hc-tui` is a keyboard-driven terminal UI for homeCore, written in Rust with `ratatui`. It talks to the same REST and WebSocket API as the [web app](../web-ui/overview.md), uses the app's names for things, and works over SSH and on headless machines.
 
-The repo is [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui), a separate Rust repo with its own lockfile (the latest release is v0.1.3). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`. You can also build it from source with `cargo build --release`.
-
-:::caution Helpers don't work yet
-homeCore 0.1.82 replaced the `/timers` and `/switches` endpoints with `/glue`. hc-tui's Switches and Timers sub-tabs still call the old endpoints, so they stay empty and can't create anything. Its helper creator (`g` in Manage) calls `/glue` but sends the type as `glue_type` where core expects `type`, so it fails too. Create and manage helpers in the web app (**Settings → Helpers**) or with the [`/glue` API](../devices/virtual-devices.md#managing-helpers) until hc-tui catches up.
-:::
+The repo is [homeCore-io/hc-tui](https://github.com/homeCore-io/hc-tui), a separate Rust repo with its own lockfile (the latest release is v0.1.4). Tagged releases publish a statically linked Linux x86_64 binary as a `.tar.gz`. You can also build it from source with `cargo build --release`.
 
 ---
 
@@ -21,11 +17,12 @@ homeCore 0.1.82 replaced the `/timers` and `/switches` endpoints with `/glue`. h
 
 | Scenario | Use |
 |---|---|
-| Quick device toggle from an SSH session | `hc-tui` |
-| Showing automations on a screen-shared call | Web app (richer visuals) |
-| Writing or editing a rule | Web app (rule editor) |
+| Quick device or room toggle from an SSH session | `hc-tui` |
+| Writing or editing an automation | Web app (automation editor) |
+| Making alert rules | Web app |
 | Triaging a flood of events or logs on a remote box | `hc-tui` (low-overhead live stream) |
-| Commissioning a Matter device from the command line | `hc-tui` (Manage → Matter) |
+| Changing a plugin's settings on a headless machine | `hc-tui` (Plugins → Settings) |
+| Commissioning a Matter device from the command line | `hc-tui` (Plugins → Matter) |
 
 Both talk to the same endpoints, so anything you do in one shows up live in the other.
 
@@ -34,202 +31,155 @@ Both talk to the same endpoints, so anything you do in one shows up live in the 
 ## Running
 
 ```bash
-hc-tui --base-url http://127.0.0.1:8080 --cache-dir ~/.cache/hc-tui
+hc-tui --base-url http://127.0.0.1:8080
 ```
 
 | Flag | Default | Description |
 |---|---|---|
 | `--base-url` | `http://127.0.0.1:8080` | The homeCore server, without the `/api/v1` suffix |
-| `--cache-dir` | `./cache` | Where per-user JSON snapshots and the saved session go |
-| `--config` | `config/config.toml` | Optional config file |
+| `--config` | `~/.config/hc-tui/config.toml` | Optional config file |
+| `--cache-dir` | `~/.cache/hc-tui` | Where cached data and the saved session go |
 
-Flags override the config file, and the file is optional:
+The config file is read from `$XDG_CONFIG_HOME/hc-tui/config.toml` (usually `~/.config/hc-tui/config.toml`), or from `./config/config.toml` when only that one exists. Flags override the file, and the file is optional:
 
 ```toml
 [server]
 base_url = "http://127.0.0.1:8080"   # without /api/v1
 
-[cache]
-dir = "./cache"
-
 [session]
-# Save the JWT to {cache_dir}/session.json and skip the login screen while it is valid.
+# Save the session and skip the login screen while it can be refreshed.
 persist_token = true
 
-# Optional: log in automatically when the saved token is missing or expired.
+# Optional: log in automatically when there is no usable saved session.
 #[auto_login]
 #username = "admin"
 #password = "..."
 ```
 
-Without a valid saved session, a login screen appears first. Sign in with the same credentials you use in the web app. The config file can hold a password, so keep it private.
+Without a usable saved session, a login screen appears first. Sign in with the same credentials you use in the web app. The session is refreshed before it expires; when it can't be refreshed any more, the TUI goes back to the login screen. `L` signs out.
+
+The config file can hold a password, so keep it private. Every folder hc-tui creates is 0700 and every file 0600.
 
 ---
 
 ## Layout
 
-The main screen is a row of tabs across the top with a status line at the bottom:
+A sidebar lists the screens, with the same names as the app:
 
-**Devices · Scenes · Areas · Rules · Plugins · Manage**
+**1 Home · 2 Rooms · 3 Devices · 4 Scenes · 5 Modes · 6 Helpers · 7 Automations · 8 Alerts · 9 Plugins**
 
-Plugins appears only for admins. Manage appears for everyone, but most of its panels use admin-only endpoints, so other roles get homeCore's refusal there.
+and under **Settings**: **People · Data & backups · Logs · Events · Audit · System**.
 
-A live subscription to `/api/v1/events/stream` keeps device state, availability and names current, and reconnects by itself if the connection drops. Screens redraw only when something changes, so leaving the TUI open doesn't burn CPU.
+Each person sees only the screens their role can use. Plugins needs `plugins:read`, People `users:read`, Audit `audit:read`, Logs the admin role, and Data & backups the admin role or `automations:write`.
+
+The header shows the homeCore version, the modes that are on and the outside temperature when a weather device reports one. On the right it shows your role and whether the live stream is connected. Alerts shows the number of open alerts in the sidebar.
+
+A live subscription to `/api/v1/events/stream` keeps devices, rooms, scenes, automations, modes, alerts and plugins current. It reconnects by itself with backoff (1 to 30 seconds) and reloads everything after a reconnect. Screens redraw only when something changes, so leaving the TUI open doesn't burn CPU.
+
+Temperatures are shown in the unit set on homeCore.
+
+---
+
+## Home
+
+Home is the first screen. It holds the rooms, devices, scenes, modes, helpers and automations you pick, under headings you name, each with its live state. `Space` does the item's main action: a room's lights on or off, a light toggled, a scene activated, a manual mode switched, a timer started, an automation turned on or off.
+
+Press `*` on any screen to pin or unpin the selected item, or `a` on Home to add items from a picker. Home is saved per server and per person in `~/.config/hc-tui/home/`. Core keeps no UI settings and the web app's favorites live on the app's own server, so this Home belongs to hc-tui alone.
 
 ---
 
 ## Key bindings
 
-### Login screen
-
-| Key | Action |
-|---|---|
-| `Tab` | Switch field |
-| `Enter` | Submit login |
-| `Esc` | Quit |
+The footer shows the main keys for the screen you are on, and `?` lists all of them.
 
 ### Everywhere
 
 | Key | Action |
 |---|---|
-| `Tab` / `Shift+Tab` | Next / previous tab |
-| `1` to `9` | Jump to a tab |
-| `j` / `k` (or `Down` / `Up`) | Move selection |
+| `1` to `9`, `Tab`, `Shift+Tab` | Jump between screens |
+| `j` / `k` or arrows | Move |
+| `Enter` | Open or edit |
+| `Space` | The main action: on or off, enable or disable, activate |
+| `n` | New |
+| `x` | Delete, remove or uninstall, after a `y` confirmation |
+| `/` | Search the current list as you type; `Enter` keeps it, `Esc` clears it |
+| `*` | Pin or unpin the selected item on Home |
 | `r` | Refresh from the server |
+| `?` | Every key for this screen |
+| `Esc` | Back or close |
 | `T` | Show times in UTC or local time |
-| `q` | Quit |
+| `L` | Sign out |
+| `q`, `Ctrl+C` | Quit |
 
-### Devices tab
+On the login screen, `Tab` switches field, `Enter` signs in and `Esc` quits.
 
-`Left` / `Right` switch between the **All**, **Media Players**, **Switches** and **Timers** sub-tabs.
+### Screens
 
-On **All**:
-
-| Key | Action |
+| Screen | Keys |
 |---|---|
-| `t` | Toggle the selected device (lights and switches on/off; media players play/stop, falling back to pause if stop isn't supported) |
-| `Space` | Lock/unlock a lock, or toggle a switch |
-| `l` / `u` | Lock / unlock |
-| `+` / `-` | Brightness up / down |
-| `Enter` | Edit name, area and canonical name |
-| `d` | Delete the device |
-| `/` | Search (matches name, `device_id` and `canonical_name`) |
-| `f` | Filter: all, online, offline, low battery |
-| `s` | Sort: name, status, last seen |
-| `v` | Grouped or flat list |
+| Home | `Space` main action; `Enter` open the item on its own screen; `a` add; `x` take off Home (no confirmation); `J` / `K` move; `h` rename the heading |
+| Rooms | `Space` room on or off; `Enter` its devices, where `a` adds devices and `x` takes one out; `n` new room; `e` rename; `x` delete |
+| Devices | `←` / `→` tabs (All, Lights, Climate, Media, Covers, Locks, Sensors, Offline, Removed); `Tab` into the controls; `Space` or `t` on or off; `+` / `-` brightness; `l` / `u` lock and unlock; `f` filter; `s` sort; `v` grouped or flat; `Enter` edit; `x` remove. On Removed, `Space` lets a device come back |
+| Media | `Space` play or stop; `p` play or pause; `s` stop; `>` / `<` next and previous; `+` / `-` volume; `m` mute |
+| Scenes | `Space` or `a` activate; `n` new; `Enter` edit; `x` delete |
+| Modes | `Space` manual mode on or off; `n` new; `Enter` edit (name, sun event and offset); `x` delete |
+| Helpers | `Space` the helper's main action; `n` new; `Enter` edit; `x` delete. A timer adds `0` cancel; a counter `+`, `-` and `0` reset; a number `←` / `→` and `s` set |
+| Automations | `Space` on or off; `R` run now; `t` dry run at a time; `u` resume one another automation paused; `F` point a missing device's place at another device; `Enter` the RON; `m` mark several; `c` copy; `x` delete; `g` groups; `f` filter; `s` only those that need fixing |
+| Alerts | `←` / `→` Open, Acknowledged, Rules, Ignored. On an alert, `a` acknowledge, `p` run its action, `i` ignore its device. Rules: `Space` on or off, `x` delete. Ignored: `x` show again |
+| Plugins | `←` / `→` Installed, Catalog, Runtimes, Matter. Installed: `Enter` detail; for admins `Space` on or off, `s` start or stop, `R` restart, `U` update, `x` uninstall. Catalog: `i` install. Runtimes: `R` reset login. Matter: `c` commission, `i` reinterview, `x` remove a node |
+| People | `←` / `→` People, Roles, API keys, Sessions. People: `n` new, `Enter` change role, `p` password, `c` remove PIN, `x` delete. API keys: `n` new, `s` new secret, `x` revoke. Sessions: `x` end one, `X` end all others |
+| Data & backups | `n` back up now; `Enter` download a kept backup or run an action (restore from a file, export, import); `R` restore a kept backup; `x` delete a calendar |
+| Logs | `Space` or `p` pause; `e` / `w` / `i` / `d` level; `c` clear |
+| Events | `f` event type |
+| Audit | `Enter` detail; `]` / `[` next and previous page |
+| System | `←` / `→` core's log level until it restarts; `R` restart core (admin, asks first) |
 
-On **Media Players**, with generic transport controls:
+### Devices
 
-| Key | Action |
-|---|---|
-| `p` | Play / pause |
-| `x` | Stop |
-| `n` / `b` | Next / previous track |
-| `+` / `-` | Volume up / down |
-| `m` | Mute toggle |
-| `Enter` | Edit metadata |
+The device detail has controls built from the device's schema: on and off, brightness, color temperature, color presets, position, lock, mode, setpoints, fan, and the actions that need no input. Changes are sent 600 ms after the last key. Temperatures step by 1°F or 0.5°C. A sparkline shows the last 24 hours of the device's main reading. Unlocking, and any action that asks first, needs `y`.
 
-### Scenes tab
+Editing a device sends only the fields that changed: its name (empty restores the plugin's name), room, Security choice and name in automations. Removing a device first says how many automations use it.
 
-| Key | Action |
-|---|---|
-| `a` | Activate the selected scene |
+### Automations
 
-### Areas tab
+Each automation shows what starts it in words (`sunset -15m`, `Garage Door open 10m`), its last run and its group. `‖` marks one that another automation paused, and `!` one that needs fixing, with the missing device named. The selected automation shows When, If and Then, and its last 20 runs. A dry run (`t`) evaluates it at a time you give, and sends nothing to devices.
 
-Two panes: the areas, and the devices in the selected one.
+The TUI has no automation editor; write automations in the web app or as RON files.
 
-| Key | Action |
-|---|---|
-| `n` | New area |
-| `Enter` | Edit the selected area |
-| `d` | Delete the selected area |
+### Plugins
 
-### Rules tab
+A plugin's detail has **Overview**, **Settings**, **Actions**, **Notices** and **Logs**.
 
-| Key | Action |
-|---|---|
-| `Enter` | Open the rule's detail view with its RON (`j`/`k`, `PageUp`/`PageDown` scroll; `Esc` back) |
-| `e` / `d` | Enable / disable |
-| `Space` | Select several rules; then `e` enables them all and `D` disables them all |
-| `c` | Clone |
-| `x` / `Delete` | Delete, after a `y`/`n` confirmation |
-| `h` | Recent firing history |
-| `f` | Filter bar: tag, trigger type, stale |
-| `s` | Show only rules with stale device references |
-| `g` | Rule groups: enable (`e`), disable (`d`) or delete (`x`) a group |
-| `Esc` | Close history, or clear the selection |
+- **Settings** is a form built from the plugin's settings description. `Enter` edits a field, `u` undoes a change, `Ctrl+S` saves and `Esc` discards. Only what changed is written, in place, so comments and keys the form doesn't know about stay in the file. Secrets are never shown.
+- **Actions** asks for an action's parameters first, and a dangerous action asks before it runs. A streaming action opens a progress window that can take replies and be cancelled.
+- **Logs** streams the plugin's own log while the tab is open.
 
-The TUI has no rule editor; write rules in the web app.
+When more than one runtime can run a plugin from the Catalog, hc-tui asks which one to use.
 
-### Plugins tab (admin)
+### Data & backups
 
-| Key | Action |
-|---|---|
-| `Enter` | Open the plugin's detail view |
-| `d` | Deregister the plugin |
-
-In the detail view, `1` to `4` (or `Left`/`Right`) switch between **Overview**, **Actions**, **Diagnostics** and **Metrics**, and `Esc` closes it. On **Actions**, `Enter` runs the selected action from the plugin's manifest, with no parameters. A streaming action opens a progress window that shows progress, items, warnings and prompts; type a reply and press `Enter` to answer a prompt, and press `c` (`Ctrl+C` while replying) to cancel. `Esc` closes the window; the action keeps running unless you cancelled it. `b` and `p` start bridge discovery and pairing for plugins that have bridges.
-
-### Manage tab
-
-`Left` / `Right` move between the panels: **Modes**, **Matter**, **Status**, **Users**, **Logs**, **Events**, **Audit** and **Backup**.
-
-| Panel | Keys |
-|---|---|
-| Modes | `n` or `Enter` new mode; `d` delete |
-| Matter | `c` or `n` commission (pairing code, optional name, room, discriminator, passcode); `r` refresh nodes; `i` or `Enter` re-interview; `d` remove node |
-| Status | `r` refresh system status |
-| Users | `n` or `Enter` new user (admins; for other roles `Enter` opens the role editor); `p` change password; `d` delete |
-| Logs | `p` or `Space` pause/resume; `e`, `w`, `i` show ERROR, WARN or INFO and above; `/` filter by module; `c` or `d` clear the buffer |
-| Events | `f` filter: all, Hue inputs, entertainment, plugin metrics |
-| Audit | `Enter` expand an entry; `n` / `p` next / previous page; `r` refresh |
-| Backup | `Enter` runs the selected action: download a system backup (`.zip`), export all rules or scenes to JSON, or import rules or scenes from `~/.homecore/imports/rules.json` and `~/.homecore/imports/scenes.json` |
-
-The Logs panel opens its log WebSocket only while you are on it, and closes it when you leave.
+Downloads and exports go to `~/.homecore/exports`, and imports are read from `~/.homecore/imports`. To restore a kept backup you type its date to go ahead. A restore is staged for core's next start, and hc-tui asks whether to restart core now. A new API key's secret is shown once in a dialog, and hc-tui never writes it anywhere.
 
 ---
 
 ## Caching
 
-- On login, the TUI shows cached state first (if there is any), then syncs fresh data from homeCore, so later launches appear at once even on a slow link.
-- `r` pulls fresh data and updates the cache.
-- After a device or scene action, the TUI re-fetches and re-caches what changed.
-- There is no background polling; live updates come from the event stream.
+- After sign-in, the TUI shows cached data at once and syncs in the background. A spinner in the status bar shows work in flight.
+- Each request of a sync succeeds or fails on its own. The status bar names failures, and only data from requests that succeeded is cached, so a failed request never replaces good cached data.
+- `r` syncs again. Live changes come from the event stream; there is no background polling.
+- The log stream is open only while Logs (or a plugin's Logs tab) is on screen.
 
 ---
 
 ## Endpoints used
 
-The TUI uses only the documented `/api/v1` API, so anything it does, another client can do too.
+The TUI uses only the documented `/api/v1` API, so anything it does, another client can do too. The full list is in the repo's [README](https://github.com/homeCore-io/hc-tui#homecore-api-integration). The streams it opens are:
 
 ```
-POST   /auth/login, GET /auth/me, POST /auth/change-password
-GET    /devices                      PATCH /devices/{id}/state
-PATCH  /devices/{id}                 DELETE /devices/{id}
-GET    /scenes                       POST /scenes/{id}/activate
-GET    /areas (+ create, edit, delete, PUT /areas/{id}/devices)
-GET    /automations, /automations/{id}, /automations/{id}/ron, /automations/{id}/history
-POST   /automations/{id}/clone       PATCH, DELETE /automations/{id}
-GET    /automations/groups (+ enable, disable, delete)
-GET    /automations/export           POST /automations/import
-GET    /scenes/export                POST /scenes/import
-GET    /events?limit=...
-GET    /plugins, /plugins/{id}/capabilities
-POST   /plugins/{id}/command         DELETE /plugins/{id}
-GET    /modes                        POST /modes, DELETE /modes/{id}
-GET    /auth/users (+ create, role, password, delete)
-GET    /system/status                POST /system/backup
-GET    /audit
-POST   /plugins/matter/commission    GET /plugins/matter/nodes
-POST   /plugins/matter/reinterview   DELETE /plugins/matter/nodes/{id}
-
+WS     /events/stream                              # live state
+WS     /logs/stream                                # only while Logs is open (admin)
 GET    /plugins/{id}/command/{request_id}/stream   # SSE, streaming actions
-WS     /events/stream?token=...                    # live state
-WS     /logs/stream                                # only while Manage → Logs is open
 ```
-
-It also still calls `/switches`, `/timers` and `/glue` as described in the note at the top.
 
 ---
 
@@ -237,18 +187,19 @@ It also still calls `/switches`, `/timers` and `/glue` as described in the note 
 
 | Feature | Web app | TUI |
 |---|---|---|
-| Device control | yes | yes |
-| Scene activation | yes | yes |
-| Live event stream | yes | yes |
-| Rule editor | yes | no (enable, disable, clone, delete, import, export) |
-| Helpers (timers, switches, counters …) | yes | no (see the note above) |
-| Plugin actions, including streaming ones | yes | yes (without parameters) |
-| Audit log | yes | yes |
-| Matter commissioning | yes | yes (Manage → Matter) |
-| Live logs | yes | yes (Manage → Logs, on demand) |
-| Backup | yes | download, plus rules and scenes in and out |
-| Restore | yes | no |
+| Home with your own picks | yes | yes (kept by hc-tui) |
+| Rooms, devices, scenes, modes | yes | yes |
+| Helpers | yes | yes |
+| Automation editor | yes | no (run, dry run, enable, disable, copy, delete, repoint, groups) |
+| Alerts | yes | yes (alert rules are made in the app) |
+| Plugin settings, actions and logs | yes | yes |
+| Plugin Catalog and runtimes | yes | yes |
+| People, API keys and sessions | yes | yes |
+| Backup and restore | yes | yes |
+| Live logs, events and audit | yes | yes |
+| Matter commissioning | yes | yes |
+| Cameras and pictures | yes | no |
 | Phones and tablets | yes | no (terminal) |
 | Works over plain SSH | no | yes |
 
-For writing rules, helpers, restore or anything on a phone, use the [web app](../web-ui/overview.md). For quick control and for watching events and logs on a remote or headless machine, the TUI is the lighter choice.
+For writing automations, cameras or anything on a phone, use the [web app](../web-ui/overview.md). For quick control, plugin settings, and watching events and logs on a remote or headless machine, the TUI is the lighter choice.
