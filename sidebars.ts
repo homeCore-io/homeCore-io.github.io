@@ -113,6 +113,7 @@ const sidebars = {
       type: 'category',
       label: 'Building',
       items: [
+        'development/contributing',
         'plugins/developing-plugins',
         'plugins/capabilities',
         'plugins/plugin-screens',
