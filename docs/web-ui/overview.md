@@ -207,7 +207,7 @@ The app hides what the API would refuse. For example, someone who can read autom
 
 - [hc-tui](../tools/hc-tui.md): a terminal UI.
 - [hc-mcp](../tools/hc-mcp.md): an MCP server for driving homeCore from Claude Desktop or another LLM client. It is also the Assistant plugin.
-- `hc-cli`: a command-line tool for scripting and same-host administration. It is not in the image or the release tarball; build it from the homeCore repository with `cargo build -p hc-cli`.
+- [hc-cli](../tools/hc-cli.md): a command-line tool for scripts and administration. It's in the core image and release archive, and has its own small release for other machines.
 
 ## Earlier web UIs
 
