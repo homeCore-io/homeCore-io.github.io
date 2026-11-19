@@ -1577,6 +1577,8 @@ line under its name in the Catalog, and `[package.metadata.homecore]` holds
 `name` (as people see it) and `category` (Lighting, Climate, Media, Hubs,
 Weather, Tools, or a new one), which the Catalog groups by.
 
+This is for a plugin inside the homeCore repository. For one in a repository of your own, see [Contributing a plugin](../development/contributing.md#contributing-a-plugin).
+
 Releasing takes one tag on the homeCore repository. Bump the version in your
 plugin's `Cargo.toml` on `develop`, merge to `main`, wait for CI to pass, and
 push `hc-my-plugin-v0.1.0`. The release workflow recognizes the
@@ -1653,10 +1655,9 @@ Its index is signed with a key only the registry's own workflows hold. An
 entry is added by a release in a homeCore-io repository, or by a maintainer
 running the registry's **Publish plugin to registry** workflow with the
 package's URL and SHA-256 (and, if needed, `min_core`, the oldest homeCore
-the version runs on). If you have written a plugin you'd like listed, publish
-its package on a GitHub Release and open an issue or pull request on
-[homeCore-io/registry](https://github.com/homeCore-io/registry/issues) with
-the link.
+the version runs on). If you have written a plugin you'd like listed, see
+[Getting listed](../development/contributing.md#getting-listed) for what to
+send and what maintainers check.
 
-Anyone can run a registry of their own: point `[registry] url` and
-`public_key` at it.
+Anyone can run a registry of their own; see
+[Running your own registry](../development/contributing.md#running-your-own-registry).
