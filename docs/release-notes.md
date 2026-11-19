@@ -30,6 +30,28 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.120, 2026-11-19
+
+- **A runtime updated in place starts again.** Tools that update a container
+  in place, such as Portainer, Unraid and Watchtower, keep the old image's
+  settings, so `HC_RUNTIME_ABI=cp312-manylinux_2_28` overrode the new
+  image's and the runtime stopped at once with "this image says it hosts
+  python cp312-manylinux_2_28 but its adapter is python manylinux_2_28".
+  Runtime host 0.2.4 uses the platform part of that value and logs a warning
+  saying to remove it.
+
+### Upgrade notes
+
+If a runtime stopped with that error after v0.1.119, pull
+`hc-runtime-python:latest` again, or remove `HC_RUNTIME_ABI` from the
+container's settings. Either one is enough.
+
+### Release matrix
+
+**Tagged:** `v0.1.120` (core). Image `hc-runtime-python:0.1.120`.
+
+---
+
 ## App v0.1.85, 2026-11-19
 
 - **Python updates on the runtime's card.** When the registry has a newer
@@ -91,6 +113,9 @@ docker pull ghcr.io/homecore-io/hc-runtime-python:latest
 
 then recreate the container with the same volume. Its plugins come back by
 themselves, now on Python 3.12.16, and nothing needs to be installed again.
+If a tool updates the container in place and keeps its old settings, remove
+`HC_RUNTIME_ABI` from them, or use v0.1.120's image, which ignores the old
+value.
 The old image is turned away when it connects, with a note on its page; its
 plugins keep running until you replace it.
 

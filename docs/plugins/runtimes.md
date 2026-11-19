@@ -155,7 +155,9 @@ Pythons through homeCore. An older one is marked as outdated on its card and
 in the Catalog, and an image that brings its own Python is turned away when
 it connects; its page says to pull the new image. To update a runtime, pull
 the newer image and restart the container. Its plugins come back by
-themselves.
+themselves. A container updated in place keeps the old image's
+settings; if `HC_RUNTIME_ABI` is among them, remove it, since the image sets
+its own.
 
 ## Change limit, Reset login and Remove
 
