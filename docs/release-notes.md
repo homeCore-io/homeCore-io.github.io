@@ -30,6 +30,78 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.85, 2026-11-19
+
+- **Python updates on the runtime's card.** When the registry has a newer
+  patch of a Python a runtime's plugins use, the card says so, lists the
+  plugins it would restart and offers **Update Python**, which asks first.
+  A Python that no longer gets fixes gets a note. Each plugin row shows the
+  Python it runs on.
+- **The Plugins page counts them.** **Plugin runtimes** is tagged
+  **Python update**, and so is each plugin it would restart. Update all
+  still covers plugin versions only.
+- The Catalog matches Python plugins to runtimes by platform, as homeCore
+  v0.1.119 expects.
+
+### Upgrade notes
+
+Needs homeCore v0.1.119. With an older core, the Catalog says no runtime can
+run a Python plugin.
+
+### Release matrix
+
+**Tagged:** `v0.1.85` (hc-web-svelte).
+
+---
+
+## v0.1.119, 2026-11-19
+
+Python plugins now bring their own Python. Before, every plugin in a runtime
+ran on the Python inside its image, 3.12. See
+[Which Python a plugin runs on](plugins/runtimes.md#which-python-a-plugin-runs-on).
+
+- **Pythons from the registry.** The registry publishes Python 3.12, 3.13
+  and 3.14 for x86_64, signed like plugins, from the new
+  [interpreters](https://github.com/homeCore-io/interpreters) repository.
+  Each is about 13 MB.
+- **Each plugin runs on the Python it was built for.** homeCore records one
+  for each plugin in a runtime and serves it to the runtime after checking
+  it. The runtime keeps one copy of each and builds every plugin's
+  environment on it with uv.
+- **Python updates wait for an admin.** `GET /plugin-runtimes/interpreters`
+  lists what each runtime uses and any newer patch, and
+  `POST /plugin-runtimes/{id}/interpreters/update` moves a runtime's plugins
+  to it. Nothing updates Python by itself. The update is in the audit log as
+  `plugin_runtime.interpreter_updated`.
+- **A smaller runtime image.** `hc-runtime-python` is Debian with uv and the
+  runtime host 0.2.3, and no Python. A runtime keeps the current install of
+  each plugin and the one before it, and leaves a plugin's own files alone.
+- **Plugin authors choose their Python.** hc-scripts' `python-release.yml`
+  takes `python_version` per plugin (3.14 when left out) and tests the
+  package on the registry's own build of it. See
+  [Choosing a Python](plugins/developing-plugins.md#choosing-a-python).
+
+### Upgrade notes
+
+Replace each runtime's container with the new image:
+
+```sh
+docker pull ghcr.io/homecore-io/hc-runtime-python:latest
+```
+
+then recreate the container with the same volume. Its plugins come back by
+themselves, now on Python 3.12.16, and nothing needs to be installed again.
+The old image is turned away when it connects, with a note on its page; its
+plugins keep running until you replace it.
+
+### Release matrix
+
+**Tagged:** `v0.1.119` (core). Image `hc-runtime-python:0.1.119`.
+**Also released:** `python-3.12.16`, `python-3.13.18`, `python-3.14.10`
+(homeCore-io/interpreters).
+
+---
+
 ## hc-cli v0.1.5, 2026-11-18
 
 `hc-cli` is now a tool for scripts as well as for administration, and its

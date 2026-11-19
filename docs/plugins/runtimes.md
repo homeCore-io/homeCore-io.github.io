@@ -15,7 +15,8 @@ plugin. The [Assistant](../tools/hc-mcp) is a Python plugin and runs this way.
 
 One runtime holds any number of plugins, up to a limit you can set. Each
 plugin gets its own process and its own Python environment, so two plugins
-that want different versions of a library don't conflict. That is the only
+that want different versions of a library, or even of Python, don't
+conflict. That is the only
 separation between them. Put a plugin you want kept apart from the rest in a
 runtime of its own.
 
@@ -84,8 +85,10 @@ runtime up by hand.
 
 The image is published with every core release as
 `ghcr.io/homecore-io/hc-runtime-python`, tagged with core's version and
-`latest`. It runs Python 3.12. The published image is x86_64 (amd64) only for
-now, although Python plugins are released for both x86_64 and aarch64.
+`latest`. The image has no Python of its own: each plugin runs on the Python
+it was built for, which the runtime gets through homeCore (see
+[Which Python a plugin runs on](#which-python-a-plugin-runs-on)). The
+published image and those Pythons are x86_64 (amd64) only for now.
 
 ## Install plugins into it
 
@@ -109,6 +112,32 @@ starts and stops it, so Turn off, Start, Stop and Restart aren't offered. The
 runtime restarts a plugin that exits, waiting 2 seconds at first and doubling
 up to 60, the same as homeCore does for its own plugins.
 
+## Which Python a plugin runs on
+
+Each plugin is built for one Python version, such as 3.13, and runs on that
+version whatever else the runtime holds. The registry publishes the Pythons
+themselves, signed like plugins, from
+[homeCore-io/interpreters](https://github.com/homeCore-io/interpreters). When
+a plugin is installed, homeCore picks the newest patch of its version, for
+example 3.13.18, and the runtime fetches it through homeCore, checks it and
+keeps one copy for every plugin that uses it. Each plugin row on the runtime's
+card shows the Python it runs on.
+
+New Python patch releases never install by themselves. When the registry has
+one, the runtime's card says so and lists the plugins it would restart, and
+the Plugins page tags **Plugin runtimes** with **Python update**. Choose
+**Update Python** on the card to move them. The runtime builds new
+environments beside the old ones from the packages it already has, so the
+update downloads only the new Python. Each plugin restarts on it within a
+minute. Update all on the Plugins page covers plugin versions only.
+
+When a Python version stops getting fixes upstream, the card notes it. Its
+plugins keep running on it and move to a newer Python when their next version
+is built for one.
+
+The runtime keeps the current install of each plugin and the one before it,
+and removes a Python once no install uses it.
+
 ## Watching a runtime
 
 The runtime shows up in homeCore's plugin list as a plugin of its own, named
@@ -121,9 +150,12 @@ and keeps the last 500 log lines from the runtime and from each plugin,
 including what a plugin printed before it reached homeCore. Passwords and
 keys are masked. **Open its page** on the Plugin runtimes screen links to it.
 
-The oldest runtime homeCore works with is 0.2.0. An older one is marked as
-outdated on its card and in the Catalog. To update a runtime, pull the newer
-image and restart the container.
+The oldest runtime homeCore works with is 0.2.3, the first that gets its
+Pythons through homeCore. An older one is marked as outdated on its card and
+in the Catalog, and an image that brings its own Python is turned away when
+it connects; its page says to pull the new image. To update a runtime, pull
+the newer image and restart the container. Its plugins come back by
+themselves.
 
 ## Change limit, Reset login and Remove
 
@@ -149,7 +181,8 @@ To move it, remove it from the first homeCore, then paste the new key.
 | `HC_RUNTIME_POLL_SECS` | `30` | How often it checks in with homeCore. homeCore 0.1.114 and runtime 0.2.2 also check in at once when a plugin is installed, updated or uninstalled there. |
 | `HC_RUNTIME_NETWORK_MODE` | | Shown in homeCore's list (for example `bridge` or `host`). |
 
-The volume at `/var/lib/hc-runtime` holds the key and the installed plugins.
+The volume at `/var/lib/hc-runtime` holds the key, the installed plugins and
+their Pythons.
 If you lose it, paste the key again and homeCore sends every plugin back.
 
 For how to package a Python plugin for a runtime, see

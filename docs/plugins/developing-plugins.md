@@ -461,7 +461,9 @@ broader than the usual plugin's, when the broker enforces topic ACLs. See
 `on_command`, and start it with `from_config()`, which reads `[homecore]`
 from the config file homeCore passes as `sys.argv[1]`. The API is
 synchronous: the SDK runs paho-mqtt's loop for you, so background work goes
-in a thread. It needs Python 3.11 or later; plugin runtimes run 3.12.
+in a thread. It needs Python 3.11 or later. A plugin released to the Catalog
+runs on the Python it was built for; see
+[Choosing a Python](#choosing-a-python).
 
 ```python
 from homecore_plugin_sdk import PluginBase
@@ -1627,16 +1629,32 @@ jobs:
     with:
       plugin_dir: .
       sdk_ref: v0.5.6   # the SDK tag built into the package
+      python_version: '3.13'   # optional; the newest supported if left out
     secrets: inherit
 ```
 
-It builds a package for x86_64 and aarch64 on Python 3.12, installs it into a
-clean environment and starts it against a broker before anything is
-published, then attaches it to the GitHub Release and notifies the registry.
+It builds a package for x86_64 and aarch64 on the Python you chose, installs
+it on the registry's own build of that Python in a clean environment and
+starts it against a broker before anything is published, then attaches it to the GitHub Release and notifies the registry.
 `sdk_ref` defaults to the SDK tag the workflow currently pins; set it to match
 your `pyproject.toml`. [hc-mcp](https://github.com/homeCore-io/hc-mcp), the
 Assistant, is the working example: its `pyproject.toml` and
 `.github/workflows/release.yml` are a complete Python plugin release.
+
+#### Choosing a Python
+
+A package holds compiled wheels (pydantic-core, cryptography and the like)
+that load on one Python version only, so each plugin is built for one, and
+the runtime gives it exactly that one. Set `python_version` to the version you
+develop and test on. The registry publishes 3.12, 3.13 and 3.14 today; the
+build fails early, listing the versions it has, if you ask for another.
+
+Use the same Python locally. The registry's Pythons are the
+python-build-standalone builds that uv installs, so `uv python install 3.13`
+gives you the one the house runs. Patch releases reach houses as Python
+updates, which an admin applies from the runtime's card; your plugin doesn't
+need a new release for them. When a version stops getting upstream fixes,
+release your next version for a newer one.
 
 ### Node.js and .NET plugins
 
