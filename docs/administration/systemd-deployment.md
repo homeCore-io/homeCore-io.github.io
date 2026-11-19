@@ -83,8 +83,8 @@ sudo install -m 0755 target/release/homecore /usr/local/bin/
 sudo install -m 0755 target/release/hc-cli /usr/local/bin/
 ```
 
-From a release archive, extract it and copy the two binaries the same
-way.
+From a release archive, extract it and copy the two binaries from
+`homecore/bin/` the same way.
 
 Create the service user and directories:
 

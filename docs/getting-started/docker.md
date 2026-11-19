@@ -324,13 +324,13 @@ client publishes or subscribes. `hc-cli` can turn your `[[broker.clients]]`
 entries into a Mosquitto configuration with a matching ACL file:
 
 ```bash
-hc-cli broker generate-mosquitto-config \
-    --config homecore-data/config/homecore.toml \
-    --out-dir mosquitto-config/
+docker exec -u "$(id -u)" homecore hc-cli broker generate-mosquitto-config \
+    --config /homecore/config/homecore.toml \
+    --out-dir /homecore/mosquitto-config
 ```
 
-`hc-cli` is not in the core image or the release tarball. Build it from
-the homeCore repository (`cargo build -p hc-cli`).
+The files land in `homecore-data/mosquitto-config/`. [hc-cli](../tools/hc-cli.md)
+ships in the core image.
 
 Then point core at that broker with `[broker] external_url` (for example
 `"mqtt://mosquitto:1883"`). Core skips its embedded broker and logs in as

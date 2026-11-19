@@ -12,7 +12,7 @@ const FILTERS: Array<[string, Kind | 'all']> = [
   ['Tools and SDKs', 'tool'],
 ];
 
-const TOOLS = /^(hc-tui|hc-mcp|hc-plugin-sdk-[a-z]+)\b/;
+const TOOLS = /^(hc-cli|hc-tui|hc-mcp|hc-plugin-sdk-[a-z]+)\b/;
 
 /** What a release heading is about, from its text. */
 function kindOf(title: string): Kind {

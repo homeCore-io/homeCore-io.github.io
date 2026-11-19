@@ -107,7 +107,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Tools',
-      items: ['tools/hc-mcp', 'tools/hc-tui', 'tools/skills'],
+      items: ['tools/hc-cli', 'tools/hc-tui', 'tools/hc-mcp', 'tools/skills'],
     },
     {
       type: 'category',

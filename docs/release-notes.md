@@ -30,6 +30,43 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-cli v0.1.5, 2026-11-18
+
+`hc-cli` is now a tool for scripts as well as for administration, and its
+first release on its own. See [hc-cli](tools/hc-cli.md).
+
+- **Connect with an API key.** `--url` and `--token`, or `HOMECORE_URL` and
+  `HOMECORE_TOKEN`, reach core from any machine. Before, the only way to
+  give it a token was a password login saved in its config file.
+- **Devices, scenes, rules and modes.** `device list|get|attr|set`,
+  `scene list|activate`, `rule list|get|enable|disable|run` and
+  `mode list|get|set`, each by id or by name.
+- **Logs.** `hc-cli logs` prints core's and plugins' recent lines, and `-f`
+  follows them, filtered by level, plugin, source or time.
+- **Events.** `events list` prints recent events, and `events watch` prints
+  them live.
+- **For scripts.** `-o json` on every command, with one object per line for
+  logs and events, and exit codes for unreachable (3), not allowed (4) and
+  not found (5).
+
+### Release matrix
+
+**Tagged:** `hc-cli-v0.1.5` (a static Linux x86_64 binary).
+
+---
+
+## v0.1.118, 2026-11-18
+
+- **hc-cli ships with core.** The `hc-core` image and the core release
+  archive now include `hc-cli`, so `docker exec homecore hc-cli ...` works,
+  for example to generate a Mosquitto config. Nothing else changed.
+
+### Release matrix
+
+**Tagged:** `v0.1.118` (core). Image `hc-runtime-python:0.1.118`.
+
+---
+
 ## App v0.1.84, 2026-11-18
 
 - **Fans off asks first.** In Everywhere › Climate, **Fans off** turns off
