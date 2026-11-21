@@ -30,6 +30,39 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.122, 2026-11-21
+
+- **Clearing the temperature unit no longer stops the next start.** Setting
+  the temperature unit back to the default (`PUT
+  /api/v1/system/temperature-unit` with `null`) on a `homecore.toml` with no
+  `[location]` left an empty `[location]` behind. Without a latitude and
+  longitude it doesn't load, so the next start fell back to default settings.
+  A settings change that leaves a section empty now removes it.
+- **The API reference shows how rules are really written.** It said a
+  trigger, condition or action carries a `type` field, but homeCore refuses
+  one. Each is written with its kind as the only key, holding its fields:
+  `{"DeviceState": {"device": "kitchen.lamp", "attribute": "on", "op": "Eq",
+  "value": true}}`. A kind with no fields is just its name, such as
+  `"ManualTrigger"`. Each of a rule's actions is `{"action": {...},
+  "enabled": true}`. The examples in the developer notes are corrected the
+  same way. The OpenAPI spec (`GET /api/v1/openapi.json`) is now also valid
+  OpenAPI 3.1, so code generators and validators read it without errors.
+- Unused libraries removed from the build. Nothing else changes.
+
+### Upgrade notes
+
+- Nothing to change. If an earlier start fell back to defaults after the
+  temperature unit was cleared, delete the empty `[location]` line from
+  `homecore.toml`, or add your latitude and longitude under it.
+- If you generated a client from the spec, generate it again: rules from
+  the old schema were refused.
+
+### Release matrix
+
+**Tagged:** `v0.1.122` (core). Image `hc-runtime-python:0.1.122`.
+
+---
+
 ## hc-tui v0.1.5, 2026-11-21
 
 More of what the app does, and fixes for what had fallen behind core. See
