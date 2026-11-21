@@ -55,11 +55,13 @@ To activate a profile, copy it out of `examples/`:
 ```bash
 cp config/profiles/examples/tasmota.toml config/profiles/tasmota.toml
 cp config/profiles/examples/zigbee2mqtt.toml config/profiles/zigbee2mqtt.toml
+# Tasmota's dimmer commands use a Rhai transform:
+cp config/profiles/examples/custom-transforms.rhai config/profiles/
 ```
 
 At startup homeCore loads every `.toml` file in the directory except
 `device-types.toml`, which is the device type catalog and is loaded
-separately. Several profiles can be active at once. A file that fails to
+separately, and every `.rhai` file ([Rhai transforms](#rhai-transforms)). Several profiles can be active at once. A file that fails to
 parse is logged and skipped. Profiles are read once, so restart homeCore
 after changing one.
 
@@ -309,23 +311,42 @@ a JSON-RPC call; see `shelly-gen2.toml`.
 ## Rhai transforms
 
 `state_topics` and `cmd_topics` both accept a `transform` naming a Rhai
-function, and `EcosystemRouter` can run one: it calls the function with
-the raw payload as a string and uses the returned value's string form as
-the new payload. On a state topic, that output then goes through the
-normal JSON parsing, `field_map` and `coerce`. On a command topic it is
-published as-is.
+function, for payloads that `field_map`, `attribute`, `value_map` and
+`coerce` can't express. homeCore loads every `.rhai` file in the profiles
+directory at startup, beside the profiles, and calls the function with the
+raw payload as a string.
 
-:::warning Not wired up in the server
-homeCore does not currently load any Rhai source into the router
-(`homecore/src/main.rs` builds it with
-`EcosystemRouter::new(profiles, None)`), and nothing reads `.rhai` files
-from `config/profiles/`. A topic with a `transform` therefore fails with "Rhai transform … called but no
-script loaded", logged as an inbound or outbound router error, and the
-message is not translated. Until that changes, express mappings with
-`field_map`, `attribute`, `value_map` and `coerce`. The comment in
-`tasmota.toml` that suggests a `custom-transforms.rhai` file describes
-the same unwired hook.
-:::
+```rust
+// config/profiles/my-transforms.rhai
+fn kitchen_power(payload) {
+    #{ on: payload == "ON" }
+}
+```
+
+- **Return a string** to publish it as it is, or **a map** to publish it as
+  JSON. A number or bool is published as its text. Returning nothing is an
+  error, and the message isn't translated.
+- On a **state topic** the result then goes through the topic's
+  `field_map` and `coerce` like any payload. On a **command topic** it is
+  published as it is.
+- `parse_json(text)` reads JSON into a map, and `map.to_json()` writes one.
+  `print()` and `debug()` go to homeCore's log (`hc_topic_map::rhai`).
+- Each file compiles on its own. One that doesn't is logged and skipped,
+  as a profile that doesn't parse is, and only its functions are lost. A
+  function defined in two files is taken from the later file in name
+  order, with a warning.
+- At startup homeCore warns about any `transform` that names no loaded
+  function. Scripts, like profiles, are read once, so restart homeCore
+  after changing one.
+- A transform runs at most 100,000 operations and 16 nested calls, so a
+  mistaken loop stops instead of holding up the router.
+
+Before v0.1.121 homeCore loaded no scripts, and every topic with a
+`transform` failed with "Rhai transform … called but no script loaded".
+
+The example profiles' transforms are in
+`config/profiles/examples/custom-transforms.rhai`. Copy it with the
+profiles that use it.
 
 ---
 
@@ -353,6 +374,16 @@ those topics, and because only the first match is used, temperature,
 humidity and the dimmer fields were never published. If you copied the
 profile from an older release, replace your copy with the current
 example, or merge each pair of entries into one.
+
+Commands: a relay's or dimmer's whole command goes out as one Backlog
+message (`POWER ON; Dimmer 80; CT 333`) through the
+`homecore_cmd_to_tasmota_backlog` transform in `custom-transforms.rhai`,
+and dual relays get `POWER1` and `POWER2`. Before v0.1.121 the dimmer entry
+sat behind a plain `POWER` entry with the same source and never ran, and
+that entry also caught `tasmota_{device}_relay1`, sending
+`cmnd/{device}_relay1/POWER` instead of `cmnd/{device}/POWER1`. If you
+copied the profile from an older release, replace your copy, or move the
+relay entries above the general one.
 
 ### `shelly-gen1.toml`
 
@@ -442,4 +473,4 @@ Common problems:
 | Attributes missing | `field_map` is present and the key isn't in it | Add the key to `field_map`, or remove `field_map` entirely for full passthrough |
 | `on` attribute is a string, not a bool | Missing `coerce` | Add `on = "onoff_to_bool"` to `[coerce]` |
 | Commands not reaching device | `source` pattern wrong or attribute name mismatch | Check that `source` matches the homeCore device ID exactly |
-| "Rhai transform … called but no script loaded" | The topic uses `transform` | See [Rhai transforms](#rhai-transforms) |
+| "Rhai transform … called but no script loaded", or a startup warning that a transform names no function | No `.rhai` file in the profiles directory defines it, or the file failed to compile | Check the startup log for "Loaded Rhai transforms" or "does not compile"; see [Rhai transforms](#rhai-transforms) |
