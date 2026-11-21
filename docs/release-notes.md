@@ -30,6 +30,49 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.121, 2026-11-21
+
+- **A command to a device homeCore doesn't know is refused.**
+  `PATCH /api/v1/devices/{id}/state` with an id that isn't a device answers
+  `404` and sends nothing. Before, it published the command anyway and
+  answered "accepted", so a mistyped id looked like it had worked.
+- **A command says what to follow.** The `202` reply now carries the
+  `correlation_id` that the command, the state change it causes and
+  anything that follows from it carry in the event log (`GET /events`).
+  hc-mcp's `correlation_trace` uses it.
+- **Topic-mapper Rhai transforms work.** A profile's `transform` named a
+  Rhai function, but homeCore loaded no scripts, so every such topic failed
+  with "no script loaded". Every `.rhai` file in the profiles directory now
+  loads at startup. A script that doesn't compile is skipped and logged,
+  and a `transform` naming no loaded function is warned about once at
+  startup. See [Rhai transforms](development/topic-mapper.md#rhai-transforms).
+- **The Tasmota example profile's commands.** A relay's command for
+  `tasmota_<name>_relay1` went to `cmnd/<name>_relay1/POWER` instead of
+  `cmnd/<name>/POWER1`, and the dimmer entry never ran. Relays now come
+  first, and a single relay or dimmer gets one Backlog message through the
+  new `custom-transforms.rhai` example.
+- **Images** are built with Rust 1.100. `hc-runtime-python` is on Debian
+  13 (trixie, glibc 2.41) and uv 0.13.9; it takes the same
+  `manylinux_2_28` wheels as before.
+- `docker build .` from the core repository works again; it had stopped at
+  "failed to load manifest" since the plugins joined the workspace. The
+  release images were never affected.
+
+### Upgrade notes
+
+- A script or integration that commands devices now gets a `404` for an id
+  homeCore doesn't have. Check the id instead of retrying.
+- If you copied `tasmota.toml` from the examples, copy it again along with
+  `custom-transforms.rhai`, or move your relay entries above the general
+  `tasmota_{device}/cmd` one. Without the script, its single-relay and
+  dimmer commands are not translated (homeCore says so at startup).
+
+### Release matrix
+
+**Tagged:** `v0.1.121` (core). Image `hc-runtime-python:0.1.121`.
+
+---
+
 ## v0.1.120, 2026-11-19
 
 - **A runtime updated in place starts again.** Tools that update a container
