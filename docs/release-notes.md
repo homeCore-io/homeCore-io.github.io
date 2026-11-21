@@ -30,6 +30,48 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-tui v0.1.5, 2026-11-21
+
+More of what the app does, and fixes for what had fallen behind core. See
+[hc-tui](tools/hc-tui.md) for every key.
+
+- **History.** `h` on a device shows any of its readings over 1 hour to
+  30 days: a line of bars with the lowest, highest and latest, or each
+  change of an on/off reading and when.
+- **Automations and modes.** `v` shows the hub variables automations have
+  set, live. A criteria mode says what turns it on, and `d` shows when it
+  goes on and off.
+- **Alerts.** A Plugin kinds tab turns a plugin's kind of alert off or on.
+  Deleting an alert rule that alone starts automations names them and asks
+  whether to keep them, turned off, or delete them too.
+- **Rooms.** `s` shows what Room on would bring back. `M` merges a room
+  into another.
+- **Devices no plugin manages.** `o` lists them with when each was last
+  seen. They are homeCore's best guesses, so nothing is marked for you.
+- **Plugins.** `f` runs an action with a file from your computer, such as
+  WLED's firmware install. The Runtimes tab says which Python each plugin
+  runs on, and admins can add and remove runtimes.
+- **People.** A Displays tab makes and deletes displays. `P` sets your own
+  PIN for them. `e` changes an API key's label or what it may do.
+- **System.** `c` checks automations, scenes and devices against what
+  devices take. Admins can switch the household between °C and °F and send
+  a test notification. Audit's `f` filters the whole log.
+- **Calendars.** Add one from a web address; `Enter` lists what's coming.
+- **Fixes.** A device's controls follow a schema change instead of staying
+  as they were until hc-tui restarted. Read-only plugin actions work for
+  people without plugin write access. Plugin changes (a new action, going
+  offline, registering again) show without `r`.
+
+### Upgrade notes
+
+Nothing to change.
+
+### Release matrix
+
+**Tagged:** `hc-tui v0.1.5`.
+
+---
+
 ## v0.1.121, 2026-11-21
 
 - **A command to a device homeCore doesn't know is refused.**

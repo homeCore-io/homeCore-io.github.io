@@ -118,21 +118,21 @@ On the login screen, `Tab` switches field, `Enter` signs in and `Esc` quits.
 | Screen | Keys |
 |---|---|
 | Home | `Space` main action; `Enter` open the item on its own screen; `a` add; `x` take off Home (no confirmation); `J` / `K` move; `h` rename the heading |
-| Rooms | `Space` room on or off; `Enter` its devices, where `a` adds devices and `x` takes one out; `n` new room; `e` rename; `x` delete |
-| Devices | `←` / `→` tabs (All, Lights, Climate, Media, Covers, Locks, Sensors, Offline, Removed); `Tab` into the controls; `Space` or `t` on or off; `+` / `-` brightness; `l` / `u` lock and unlock; `f` filter; `s` sort; `v` grouped or flat; `Enter` edit; `x` remove. On Removed, `Space` lets a device come back |
+| Rooms | `Space` room on or off; `Enter` its devices, where `a` adds devices and `x` takes one out; `s` what Room on would bring back; `n` new room; `e` rename; `M` merge into another room (asks first); `x` delete |
+| Devices | `←` / `→` tabs (All, Lights, Climate, Media, Covers, Locks, Sensors, Offline, Removed); `Tab` into the controls; `Space` or `t` on or off; `+` / `-` brightness; `l` / `u` lock and unlock; `f` filter; `s` sort; `v` grouped or flat; `h` history of any reading, 1 hour to 30 days; `o` devices no plugin manages (`Space` mark, `x` remove); `Enter` edit; `x` remove. On Removed, `Space` lets a device come back |
 | Media | `Space` play or stop; `p` play or pause; `s` stop; `>` / `<` next and previous; `+` / `-` volume; `m` mute |
 | Scenes | `Space` or `a` activate; `n` new; `Enter` edit; `x` delete |
-| Modes | `Space` manual mode on or off; `n` new; `Enter` edit (name, sun event and offset); `x` delete |
+| Modes | `Space` manual mode on or off; `d` what turns a criteria mode on and off; `n` new; `Enter` edit (name, sun event and offset); `x` delete |
 | Helpers | `Space` the helper's main action; `n` new; `Enter` edit; `x` delete. A timer adds `0` cancel; a counter `+`, `-` and `0` reset; a number `←` / `→` and `s` set |
-| Automations | `Space` on or off; `R` run now; `t` dry run at a time; `u` resume one that another automation paused; `F` point a missing device's place at another device; `Enter` the RON; `m` mark several; `c` copy; `x` delete; `g` groups; `f` filter; `s` only those that need fixing |
-| Alerts | `←` / `→` Open, Acknowledged, Rules, Ignored. On an alert, `a` acknowledge, `p` run its action, `i` ignore its device. Rules: `Space` on or off, `x` delete. Ignored: `x` show again |
-| Plugins | `←` / `→` Installed, Catalog, Runtimes, Matter. Installed: `Enter` detail; for admins `Space` on or off, `s` start or stop, `R` restart, `U` update, `x` uninstall. Catalog: `i` install. Runtimes: `R` reset login. Matter: `c` commission, `i` reinterview, `x` remove a node |
-| People | `←` / `→` People, Roles, API keys, Sessions. People: `n` new, `Enter` change role, `p` password, `c` remove PIN, `x` delete. API keys: `n` new, `s` new secret, `x` revoke. Sessions: `x` end one, `X` end all others |
-| Data & backups | `n` back up now; `Enter` download a kept backup or run an action (restore from a file, export, import); `R` restore a kept backup; `x` delete a calendar |
+| Automations | `Space` on or off; `R` run now; `t` dry run at a time; `u` resume one that another automation paused; `F` point a missing device's place at another device; `Enter` the RON; `m` mark several; `c` copy; `x` delete; `g` groups; `v` hub variables; `f` filter; `s` only those that need fixing |
+| Alerts | `←` / `→` Open, Acknowledged, Rules, Plugin kinds, Ignored. On an alert, `a` acknowledge, `p` run its action, `i` ignore its device. Rules: `Space` on or off, `x` delete (asks what becomes of the automations it starts). Plugin kinds: `Space` off or on, `d` the plugin's choice. Ignored: `x` show again |
+| Plugins | `←` / `→` Installed, Catalog, Runtimes, Matter. Installed: `Enter` detail; for admins `Space` on or off, `s` start or stop, `R` restart, `U` update, `x` uninstall. Actions: `Enter` run, `f` run with a file. Catalog: `i` install. Runtimes: `R` reset login, `n` add, `x` remove. Matter: `c` commission, `i` reinterview, `x` remove a node |
+| People | `←` / `→` People, Roles, API keys, Sessions, Displays. People: `n` new, `Enter` change role, `p` password, `P` your PIN for displays, `c` remove PIN, `x` delete. API keys: `n` new, `e` label or scopes, `s` new secret, `x` revoke. Sessions: `x` end one, `X` end all others. Displays: `n` new (its key shown once), `x` delete |
+| Data & backups | `n` back up now; `Enter` download a kept backup, run an action (restore from a file, export, import, add a calendar from a file or a web address) or show a calendar's next events; `R` restore a kept backup; `x` delete a calendar |
 | Logs | `Space` or `p` pause; `e` / `w` / `i` / `d` level; `c` clear |
 | Events | `f` event type |
-| Audit | `Enter` detail; `]` / `[` next and previous page |
-| System | `←` / `→` core's log level until it restarts; `R` restart core (admin, asks first) |
+| Audit | `Enter` detail; `]` / `[` next and previous page; `f` everything, sign-ins, changes, refused or failed |
+| System | `c` check what devices take; `u` °C or °F for the household and `N` a test notification (admin); `←` / `→` core's log level until it restarts; `R` restart core (admin, asks first) |
 
 ### Devices
 
