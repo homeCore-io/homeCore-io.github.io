@@ -30,6 +30,52 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-tui v0.1.7, 2026-11-21
+
+- **Where a plugin's alerts are sent.** On Alerts, Plugin kinds, `n`
+  chooses where a kind of alert goes: not sent, one of homeCore's
+  notification channels, or all of them. Only where it's sent changes; on
+  or off stays. A channel that's no longer in `homecore.toml` is still
+  listed, marked as not configured. Needs core v0.1.123.
+- **A runtime's name and plugin limit.** On Plugins, Runtimes, `e`
+  (admins) changes a runtime's name and how many plugins it may hold. Leave
+  the limit empty for no limit. Lowering it removes nothing; it only stops
+  new plugins going there.
+- **Fixes.** The kinds table said "default channel" for a kind with no
+  channel, but such alerts are shown and not sent; it now says "not sent".
+  Tab moves between the add-runtime form's address and name, so the address
+  it starts with can be changed.
+
+### Upgrade notes
+
+Nothing to change. Choosing where alerts are sent needs core v0.1.123;
+with an older core, hc-tui says so.
+
+### Release matrix
+
+**Tagged:** `hc-tui v0.1.7`.
+
+---
+
+## v0.1.123, 2026-11-21
+
+- **homeCore lists its notification channels.** `GET
+  /api/v1/notify/channels` returns the names a rule's Notify action or an
+  alert's `notify` can send to, from `[[notify.channels]]`. Names only:
+  tokens, chats and addresses are never sent. Anyone who can read
+  automations can list them. hc-tui uses it to choose where a plugin's
+  alerts are sent.
+
+### Upgrade notes
+
+Nothing to change.
+
+### Release matrix
+
+**Tagged:** `v0.1.123` (core). Image `hc-runtime-python:0.1.123`.
+
+---
+
 ## hc-tui v0.1.6, 2026-11-21
 
 - **Python updates for plugin runtimes.** A runtime's detail on the
