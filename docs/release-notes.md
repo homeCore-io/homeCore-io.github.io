@@ -30,6 +30,24 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.86, 2026-11-21
+
+- **Your name opens Me.** In the menu under your picture (top right), your
+  picture and name at the top now open Me, where your theme, units, PIN,
+  password, API keys and sessions are. The "Everything else about you" row
+  is gone, since it went to the same page.
+- The app's image runs on Node 26.
+
+### Upgrade notes
+
+Nothing to change.
+
+### Release matrix
+
+**Tagged:** `v0.1.86` (hc-web-svelte).
+
+---
+
 ## hc-tui v0.1.7, 2026-11-21
 
 - **Where a plugin's alerts are sent.** On Alerts, Plugin kinds, `n`
