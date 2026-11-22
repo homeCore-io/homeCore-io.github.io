@@ -30,6 +30,25 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-tui v0.1.6, 2026-11-21
+
+- **Python updates for plugin runtimes.** A runtime's detail on the
+  Plugins Runtimes tab lists each Python version its plugins run on, and
+  says whether a newer patch is out and which plugins updating would
+  restart, or that the version gets no more fixes. The list marks a
+  runtime with an update waiting. Admins press `U` to move it to the newest
+  patch, after a confirm that names the plugins it restarts.
+
+### Upgrade notes
+
+Nothing to change. Python updates need core v0.1.119 or later.
+
+### Release matrix
+
+**Tagged:** `hc-tui v0.1.6`.
+
+---
+
 ## v0.1.122, 2026-11-21
 
 - **Clearing the temperature unit no longer stops the next start.** Setting
