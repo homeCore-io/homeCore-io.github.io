@@ -88,7 +88,7 @@ On a phone, a bar along the bottom holds **Home · Scenes · Alerts · More** by
 The toolbar across the top has Search, the alert count, Ask, the gear and your picture.
 
 - The gear opens the household settings menu: Rooms, Devices, Scenes, Plugins, Automations, People, Units and region, System, and All settings.
-- Your picture opens your own menu: Picture, Look, Temperature, how faders and switches look, Switches and timers as rows or tiles, the sidebar open or folded, what this screen opens on (for a wall panel), Customize the room, Everything else about you, and Sign out.
+- Your picture opens your own menu. Your name at its top opens Me (theme, units, PIN, password, API keys and sessions); below it: Picture, Look, Temperature, how faders and switches look, Switches and timers as rows or tiles, the sidebar open or folded, what this screen opens on (for a wall panel), Customize the room, and Sign out.
 
 The sidebar has Whole home, the Everywhere views, Cameras (when the house has cameras) and your rooms.
 
