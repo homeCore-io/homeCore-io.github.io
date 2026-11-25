@@ -20,9 +20,9 @@ Both serve tools from one list (`hc_mcp/registry.py`), so a tool added there sho
 
 ## Tools
 
-The MCP server has 29 tools: 20 that only read, and 9 that change things. Each write tool belongs to a category that you switch on with `HC_MCP_ALLOW_WRITE`. The server also serves homeCore's skills as prompts and resources (see [Skills](#skills)).
+The MCP server has 50 tools: 35 that only read, and 15 that change things. Each write tool belongs to a category that you switch on with `HC_MCP_ALLOW_WRITE`. The server also serves homeCore's skills as prompts and resources (see [Skills](#skills)).
 
-### Read-only (always on, 20 tools)
+### Read-only (always on, 35 tools)
 
 | Tool | Endpoint | Purpose |
 |---|---|---|
@@ -33,17 +33,32 @@ The MCP server has 29 tools: 20 that only read, and 9 that change things. Each w
 | `plugin_capabilities(plugin_id)` | `GET /plugins/:id/capabilities` | Declared actions and device schemas |
 | `list_plugin_actions` | capabilities of every plugin | Every plugin's declared actions in one flat list |
 | `list_devices` | `GET /devices` | All registered devices and their state |
-| `device_state(device_id)` | `GET /devices/:id` | One device's current state |
+| `device_state(device_id)` | `GET /devices/:id` and `/schema` | One device's current state and schema |
 | `device_history(device_id, ...)` | `GET /devices/:id/history` | Time series, optionally for one attribute and time window |
 | `list_rules` | `GET /automations` | All automations |
 | `get_rule(rule_id)` | `GET /automations/:id` | One automation's full body |
 | `rule_firings(rule_id, limit)` | `GET /automations/:id/history` | Recent firing history |
-| `rule_test(rule_id)` | `POST /automations/:id/test` | Dry-run a rule against current state |
+| `rule_test(rule_id, at)` | `POST /automations/:id/test` | Dry-run a rule against current state, or as of a time |
+| `test_draft_rule(rule)` | `POST /automations/test` | Dry-run a rule body before saving it |
 | `recent_events(limit, ...)` | `GET /events` | Tail of the event ring buffer, optionally by type or device |
 | `correlation_trace(correlation_id)` | `GET /events`, filtered here | Follow one command through its state changes and rule firings |
-| `core_logs(lines, level, grep)` | `WS /logs/stream` | Tail homeCore's structured logs |
-| `plugin_logs(plugin_id, lines, ...)` | `WS /logs/stream` | The same, for one plugin |
-| `find_recent_errors(lines)` | `WS /logs/stream` | WARN and ERROR lines from core and every plugin |
+| `core_logs` | `GET /logs` | The newest lines of homeCore's log, by level, target, time or text (admin) |
+| `plugin_logs(plugin_id, ...)` | `GET /logs` | The same, for one plugin (admin) |
+| `find_recent_errors` | `GET /logs` | WARN and ERROR lines from core and every plugin (admin) |
+| `query_plugin_action` | `POST /plugins/:id/query` | Run a plugin action that only reads |
+| `plugin_health` | `GET /plugins` | Every plugin's health and notices, the ones needing attention first |
+| `list_alerts` | `GET /alerts` | What needs attention now |
+| `audit_log` | `GET /audit` | Who changed what |
+| `paused_rules` | `GET /automations/paused` | Automations another automation has paused |
+| `stale_rule_refs` | `GET /automations/stale-refs` | Automations naming devices that no longer exist |
+| `hub_variables` | `GET /automations/variables` | The variables automations have set |
+| `orphaned_devices` | `GET /devices/orphaned` | Devices no plugin manages any more |
+| `vocabulary_check` | `GET /system/vocabulary-check` | Commands and conditions a device won't take, and why |
+| `system_versions` | `GET /system/versions` | Which version of everything is running |
+| `plugin_runtimes` | `GET /plugin-runtimes` | Runtimes, their health, and which plugins run where (admin) |
+| `list_backups` | `GET /system/backups` | The scheduled backups homeCore keeps (admin) |
+| `list_scenes` | `GET /scenes` | The house's scenes, by id and name |
+| `list_rooms` | `GET /areas` | The house's rooms, by id and name |
 | `list_skills` | none (shipped with hc-mcp) | The skills hc-mcp carries and their files |
 | `read_skill(name, file)` | none (shipped with hc-mcp) | One file of a skill; `file` defaults to `SKILL.md` |
 
@@ -54,7 +69,10 @@ The MCP server has 29 tools: 20 that only read, and 9 that change things. Each w
 | Tool | Endpoint | Effect |
 |---|---|---|
 | `command_device(device_id, command)` | `PATCH /devices/:id/state` | Turn things on or off, set brightness, lock doors, and so on |
-| `bulk_command(commands)` | one call per device | Send many commands in parallel, with success reported per device |
+| `bulk_command(commands)` | one call per device | Send many commands, 8 at a time, with success reported per device |
+| `run_scene(scene_id)` | `POST /scenes/:id/activate` | Run a scene |
+| `room_lights(room_id, on)` | `POST /areas/:id/on` or `/off` | A room's lights only, restored as they were |
+| `acknowledge_alert(alert_id)` | `POST /alerts/:id/acknowledge` | Mark an alert seen; it stays until it clears |
 
 ### Rule changes (category `rule_mutations`)
 
@@ -65,6 +83,7 @@ The MCP server has 29 tools: 20 that only read, and 9 that change things. Each w
 | `delete_rule(rule_id)` | `DELETE /automations/:id` | Remove the rule for good |
 | `create_rule(rule)` | `POST /automations` | Add a rule from a full body |
 | `update_rule(rule_id, rule)` | `PUT /automations/:id` | Replace an existing rule entirely |
+| `resume_rule(rule_id)` | `DELETE /automations/:id/pause` | Undo another automation's pause |
 
 ### Plugin actions (category `plugin_actions`)
 
@@ -72,20 +91,19 @@ The MCP server has 29 tools: 20 that only read, and 9 that change things. Each w
 |---|---|---|
 | `invoke_plugin_action(plugin_id, action, params)` | `POST /plugins/:id/command` | Run an action that doesn't stream |
 | `await_streaming_plugin_action(plugin_id, action, params)` | POST, then SSE | Run a streaming action and return its final result |
+| `plugin_control(plugin_id, op)` | `POST /plugins/:id/start`, `/stop` or `/restart` | Start, stop or restart a plugin homeCore runs |
+| `set_plugin_log_level(plugin_id, level)` | `PATCH /plugins/:id` | Change how much a plugin logs; lasts until changed back |
 
 `await_streaming_plugin_action` collects the progress, item and warning events and stops at a terminal stage (`complete`, `error`, `canceled` or `timeout`). It waits up to `timeout_secs` (default 90, at most 600). See [Capabilities → In hc-mcp](../plugins/capabilities#in-hc-mcp) for the full result shape.
 
 ### Tools only the Assistant has
 
-The chat leaves out `list_skills` (it already knows the skills by name) and the three log tools, because homeCore serves logs only to admins and the plugin's own key is never an admin's. It adds five tools of its own:
+The chat leaves out `list_skills` (it already knows the skills by name) and the admin tools (the three log tools, `plugin_runtimes` and `list_backups`), because the plugin's own key is never an admin's. It adds two tools of its own:
 
 | Tool | Category | What it does |
 |---|---|---|
-| `list_scenes` | read | The household's scenes, by name |
-| `list_rooms` | read | The household's rooms |
 | `show_devices` | read | Draws device cards in the chat |
 | `suggest_replies` | read | Offers replies the person can tap |
-| `run_scene` | `device_commands` | Runs a scene (`scenes:run`) |
 
 ## The MCP server
 
@@ -125,7 +143,7 @@ The JWT is used only to create the key and isn't stored. Other options:
 | `--rotate` | | Issue a new key and overwrite an existing config. The old key is not revoked; do that in the web app or with `DELETE /api/v1/auth/api-keys/{id}`. |
 | `--force` | | Overwrite an existing config without prompting |
 
-By default the key gets `areas:read`, `automations:read`, `audit:read`, `devices:read`, `plugins:read`, `plugins:write` and `scenes:read`. That covers the read-only tools and plugin actions. For the other write tools, add their scopes with `--scopes`: `devices:command` for device commands and `automations:write` for rule changes.
+By default the key gets `areas:read`, `automations:read`, `automations:write`, `audit:read`, `devices:command`, `devices:read`, `plugins:read`, `plugins:write`, `scenes:read` and `scenes:run`: the scope behind each write category, so switching one on works. Nothing is written until you switch a category on. The log tools, `plugin_runtimes` and `list_backups` also need `users:write`, which makes the key an admin's and is left out on purpose; add it with `--scopes` if you want them.
 
 ### Manual config
 
@@ -133,7 +151,7 @@ To make the key yourself, create one in the web app (**Settings › People & acc
 
 ```bash
 hc-cli api-key create --label hc-mcp \
-    --scopes areas:read,automations:read,audit:read,devices:read,plugins:read,plugins:write,scenes:read
+    --scopes areas:read,automations:read,automations:write,audit:read,devices:command,devices:read,plugins:read,plugins:write,scenes:read,scenes:run
 ```
 
 Then write `~/.config/hc-mcp/config.toml`:
@@ -153,12 +171,14 @@ Each write category is switched on separately. For example, `device_commands` le
 
 ```jsonc
 "env": {
-  // any subset; "all" enables everything
+  // any subset; add "security" for locks and doors; "all" enables everything
   "HC_MCP_ALLOW_WRITE": "device_commands,rule_mutations,plugin_actions"
 }
 ```
 
 Calling a write tool whose category is off returns a `PermissionError` that says what to set. Both checks apply: the category must be on in hc-mcp, and the API key must hold the scope homeCore requires for the call.
+
+A change that touches a device that counts for security (locks, doors, windows, covers, garages, alarms, or any device marked Security) also needs `security` in the list. That covers a device command, a scene or automation that names one, and a plugin action that names one or belongs to a plugin that owns one. Read-only actions never count. `all` includes it.
 
 ### Connect a Claude client
 
@@ -207,7 +227,7 @@ An admin sets these in **Settings › Plugins › Assistant**. The plugin keeps 
 | Model | Claude Sonnet 5.5 | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 4.5 |
 | Control devices | on | Category `device_commands` |
 | Make and change automations | on | Category `rule_mutations` |
-| Locks, doors and security | off | A device command or automation that touches a device marked Security needs this as well |
+| Locks, doors and security | off | A device command, scene, automation or plugin action that touches a device marked Security needs this as well |
 | Ask before every change | on | When off, changes run without a confirm card |
 | Keep each person's chats for | 30 days | 30 days, 7 days, or Don't keep |
 
@@ -269,7 +289,6 @@ hc-mcp can't answer an `awaiting_user` prompt from another plugin's streaming ac
 ## Current limitations
 
 - The only transport is stdio. An HTTP/SSE transport, for a client on another machine or a long-running sidecar, is planned but not built.
-- The log tools need a whitelisted address. `/logs/stream` is admin-only and reads its credential from the `token` query parameter, while hc-mcp sends its API key as an `Authorization` header. So `core_logs`, `plugin_logs` and `find_recent_errors` work only when hc-mcp's address is on homeCore's `[auth].whitelist`.
 - There is no host access: no tools that need the host itself (`journalctl`, `docker logs`, reading config files, restarting services). That design is on hold.
 - There is no live MQTT tap. A tool that subscribes to MQTT for a while (`mqtt_tap`) is deferred.
 
