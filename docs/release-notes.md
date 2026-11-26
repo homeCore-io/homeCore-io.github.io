@@ -30,6 +30,37 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-matter v0.1.2, 2026-11-26
+
+- **Admins only** for pairing, sharing a device to another app, removing a
+  device or another app from it, firmware, Wi-Fi and Thread settings, and
+  everything on the bridge. Before, anyone allowed to manage plugins could
+  do them, including sharing a lock with an outside app.
+- **A settings form** for the plugin, in three sections, instead of editing
+  its file.
+- **The bridge:** opening, closing and stopping blinds and garage doors from
+  the other app now works; renaming a shared device keeps it the same device
+  in the other app (with its room and automations); a bridge that fails to
+  start says why on the page and as a notice; Reset works while it is off.
+- **Fixed:** with the Matter server's log level at warn or error, the plugin
+  never connected. Stopping the plugin no longer cuts the Matter server off
+  mid-shutdown. A command a device can't act on is reported instead of
+  silently ignored. CO₂ reads correctly from sensors that report ppb.
+- The Matter server's routine log lines are now debug, not info, so the
+  plugin's log shows what matters.
+
+### Upgrade notes
+
+Nothing to change. A user who isn't an admin no longer gets the pairing and
+sharing actions.
+
+### Release matrix
+
+**Tagged:** `v0.1.2` (hc-matter), in the plugin registry as
+`plugin.matter`, for x86_64 and aarch64.
+
+---
+
 ## hc-matter v0.1.1, 2026-11-26
 
 - **Share homeCore devices with Apple Home, Google Home and Alexa.** Turn on
