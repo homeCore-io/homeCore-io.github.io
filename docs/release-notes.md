@@ -30,6 +30,37 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-matter v0.1.1, 2026-11-26
+
+- **Share homeCore devices with Apple Home, Google Home and Alexa.** Turn on
+  *Share with other apps* on the Matter page, pair "homeCore" in the other app
+  with the code it shows, and choose the devices to share: lights, switches,
+  locks, blinds and covers, thermostats, fans, and contact, occupancy,
+  temperature, humidity, leak and light sensors. Nothing is shared until you
+  choose it. Changes go both ways. See
+  [Sharing homeCore devices with other apps](plugins/matter.md#sharing-homecore-devices-with-other-apps).
+- **Locks and garage doors** can be shared only after a warning that the other
+  app, and its voice assistant, could then unlock or open them.
+- **Firmware updates as alerts.** A new *Firmware update available* alert,
+  off until you turn it on, says when a paired Matter device has newer
+  firmware, with a button that installs it.
+
+### Upgrade notes
+
+- The bridge is not a certified Matter product: Apple Home warns before adding
+  it, and Google Home may need it set up in Google's developer console.
+- The bridge uses UDP port 5541 on the runtime's host, beside the
+  controller's 5540.
+- Needs homeCore v0.1.124, as 0.1.0 did. The plugin now asks for its own API
+  key (`devices:read`, `devices:command`), which homeCore mints on start.
+
+### Release matrix
+
+**Tagged:** `v0.1.1` (hc-matter), in the plugin registry as
+`plugin.matter`, for x86_64 and aarch64.
+
+---
+
 ## hc-matter v0.1.0, 2026-11-26
 
 - **Matter devices in homeCore.** homeCore becomes a Matter controller of its
