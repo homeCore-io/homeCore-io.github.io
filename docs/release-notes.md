@@ -30,6 +30,43 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-mcp v0.1.5, 2026-11-24
+
+- **Twenty-one more tools over MCP.** Diagnosis (plugin health, alerts,
+  the audit log, paused automations, automations naming missing devices,
+  variables, orphaned devices, versions, runtimes, backups), scenes and
+  rooms, room lights, acknowledging an alert, resuming an automation, and
+  starting, stopping or restarting a plugin. Most are in the Assistant too.
+- **The log tools work.** `core_logs`, `plugin_logs` and
+  `find_recent_errors` never connected; they now read homeCore's log
+  history. They need an admin's key (`users:write`).
+- **`correlation_trace` finds the command it is asked about**, and
+  `device_state` includes the device's schema.
+- **Locks, doors and security apply over MCP too.** A change that touches
+  such a device needs `security` in `HC_MCP_ALLOW_WRITE`, as well as its
+  own category. The check, shared with the Assistant, now also covers
+  plugin actions, resuming an automation, and the automation an edit
+  replaces, and refuses when it can't look the automation up.
+- An automation can be tried before it is saved, and tried as of a time.
+- `hc-mcp setup` gives its key the scopes the write categories need.
+
+### Upgrade notes
+
+- If an MCP client controls locks, doors or other security devices, add
+  `security` to its `HC_MCP_ALLOW_WRITE` (`all` already includes it).
+- The Assistant now runs on Python 3.15 (it was 3.12). homeCore v0.1.119
+  and later fetch it for the runtime. On an older homeCore the Catalog keeps
+  offering 0.1.4; update homeCore first. Runtimes are x86_64 only for now.
+- A key made by an earlier `hc-mcp setup` lacks the scopes for device
+  commands, scenes and automations. Run `hc-mcp setup --rotate` for a new
+  one, then revoke the old key.
+
+### Release matrix
+
+**Tagged:** `v0.1.5` (hc-mcp), in the plugin registry as `plugin.mcp`.
+
+---
+
 ## App v0.1.86, 2026-11-21
 
 - **Your name opens Me.** In the menu under your picture (top right), your
