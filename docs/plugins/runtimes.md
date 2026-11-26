@@ -8,7 +8,8 @@ sidebar_position: 6
 # Plugin Runtimes
 
 A plugin runtime is a container you run yourself that holds plugins written
-in Python. homeCore never starts or stops it. You add the runtime in homeCore,
+in a language other than homeCore's own: Python today, with Node.js next.
+homeCore never starts or stops it. You add the runtime in homeCore,
 paste the key homeCore gives you into the runtime, and from then on you
 install, update and remove its plugins from the Catalog like any other
 plugin. The [Assistant](../tools/hc-mcp) is a Python plugin and runs this way.
@@ -22,6 +23,14 @@ runtime of its own.
 
 Runtimes are managed on the **Plugin runtimes** screen: open
 **Settings › Plugins** and choose **Plugin runtimes**, beside **Catalog**.
+
+homeCore itself knows no language. A runtime is added for a kind (`python`,
+`node`, …), the runtime's image says which platform it provides when it
+first connects, and the registry publishes the plugin builds and
+interpreters for each kind. **Add runtime** offers the kinds the registry
+publishes for, so a new language needs a runtime image and registry entries,
+not a new homeCore. This page describes the Python runtime, the one that
+exists today.
 
 ## Before you start: the broker
 
