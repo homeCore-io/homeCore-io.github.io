@@ -8,7 +8,7 @@ sidebar_position: 6
 # Plugin Runtimes
 
 A plugin runtime is a container you run yourself that holds plugins written
-in a language other than homeCore's own: Python today, with Node.js next.
+in a language other than homeCore's own: Python or Node.js.
 homeCore never starts or stops it. You add the runtime in homeCore,
 paste the key homeCore gives you into the runtime, and from then on you
 install, update and remove its plugins from the Catalog like any other
@@ -197,8 +197,9 @@ The volume at `/var/lib/hc-runtime` holds the key, the installed plugins and
 their Pythons.
 If you lose it, paste the key again and homeCore sends every plugin back.
 
-For how to package a Python plugin for a runtime, see
-[Releasing a Python plugin](./developing-plugins#releasing-a-python-plugin).
+For how to package a plugin for a runtime, see
+[Releasing a Python plugin](./developing-plugins#releasing-a-python-plugin) and
+[Releasing a Node.js plugin](./developing-plugins#releasing-a-nodejs-plugin).
 
 ## A runtime for Node.js plugins
 

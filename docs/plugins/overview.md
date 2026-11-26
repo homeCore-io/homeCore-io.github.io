@@ -109,8 +109,8 @@ Both `[registry].url` and `[registry].public_key` must be set, or the registry
 endpoints return `503`. See
 [Configuration](../getting-started/configuration.md).
 
-Python plugins, such as the Assistant, run in a [plugin runtime](./runtimes)
-instead of beside homeCore. Install them from the Catalog the same way once a
+Python and Node.js plugins, such as the Assistant and Matter, run in a
+[plugin runtime](./runtimes) instead of beside homeCore. Install them from the Catalog the same way once a
 runtime is added.
 
 homeCore records each installed plugin in `config/plugins/managed.toml`, a
