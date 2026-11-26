@@ -8,7 +8,8 @@ sidebar_position: 6
 # Plugin Runtimes
 
 A plugin runtime is a container you run yourself that holds plugins written
-in Python. homeCore never starts or stops it. You add the runtime in homeCore,
+in a language other than homeCore's own: Python today, with Node.js next.
+homeCore never starts or stops it. You add the runtime in homeCore,
 paste the key homeCore gives you into the runtime, and from then on you
 install, update and remove its plugins from the Catalog like any other
 plugin. The [Assistant](../tools/hc-mcp) is a Python plugin and runs this way.
@@ -22,6 +23,15 @@ runtime of its own.
 
 Runtimes are managed on the **Plugin runtimes** screen: open
 **Settings › Plugins** and choose **Plugin runtimes**, beside **Catalog**.
+
+homeCore itself knows no language. A runtime is added for a kind (`python`,
+`node`, …), the runtime's image says which platform it provides when it
+first connects, and the registry publishes the plugin builds and
+interpreters for each kind. **Add runtime** offers the kinds the registry
+publishes for, so a new language needs a runtime image and registry entries,
+not a new homeCore. Most of this page describes the Python runtime; the Node.js
+one works the same way, with the differences in
+[A runtime for Node.js plugins](#a-runtime-for-nodejs-plugins).
 
 ## Before you start: the broker
 
@@ -189,3 +199,31 @@ If you lose it, paste the key again and homeCore sends every plugin back.
 
 For how to package a Python plugin for a runtime, see
 [Releasing a Python plugin](./developing-plugins#releasing-a-python-plugin).
+
+## A runtime for Node.js plugins
+
+Plugins written for Node.js, such as Matter, run in
+`ghcr.io/homecore-io/hc-runtime-node`. Add the runtime the same way and choose
+**Node.js** in Add runtime, then start the container with the docker repo's
+`compose.runtime-node.yml`:
+
+```sh
+mkdir runtime-node-data
+docker compose -f compose.runtime-node.yml up -d
+```
+
+What differs from the Python runtime:
+
+- **Host networking.** Matter, and any plugin that finds devices over mDNS,
+  needs the host's network, IPv6 link-local multicast included, which a
+  Docker bridge network doesn't carry. Its page then listens on the host's
+  port 8790; set `HC_RUNTIME_PAGE_PORT` if a Python runtime on the same
+  machine already has it.
+- **Which Node.** Each plugin is built for one Node.js major, 24 or 26 today,
+  and homeCore sends the runtime the newest patch of it from the registry, as
+  it does Pythons. Updates are offered on the runtime's card as **Update
+  Node.js**.
+- **Nothing installs.** A Node plugin arrives with its dependencies already in
+  it, pure JavaScript, so the runtime never runs npm and the same plugin runs
+  on x86_64 and aarch64.
+
