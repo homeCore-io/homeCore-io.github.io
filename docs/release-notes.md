@@ -30,6 +30,28 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-ecowitt v0.1.28, 2026-11-26
+
+- **Devices for sensors you no longer have are removed.** Until now a device
+  stayed forever once the gateway stopped reporting it, such as a "Rain
+  Sensor" left over from before the piezo gauge got a device of its own. Once
+  an hour the plugin now reads the gateway's list of paired sensors. It
+  removes a device only when no sensor has been paired in any slot that could
+  feed it for a whole day, and the device hasn't reported since the plugin
+  started.
+- **A quiet sensor keeps its device.** A sensor still paired on the gateway
+  (a flat battery, say) is never removed, so its room and rules survive a
+  battery change. Re-pairing takes minutes, well inside the day.
+- **Unchanged:** the gateway's own device, the weather station and the indoor
+  sensor are never removed automatically, nor is any sensor the gateway's list
+  doesn't show. Remove one of those in Settings → Devices.
+
+### Release matrix
+
+**Tagged:** `hc-ecowitt-v0.1.28`.
+
+---
+
 ## hc-matter v0.1.3, 2026-11-26
 
 - **Back up the pairings.** The Matter page has *Download a backup* and
