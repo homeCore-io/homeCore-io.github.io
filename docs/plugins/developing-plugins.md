@@ -77,7 +77,7 @@ To pin a release instead:
 | | |
 |---|---|
 | Python | `pip install git+https://github.com/homeCore-io/hc-plugin-sdk-py@v0.5.6` |
-| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.4.6` |
+| Node.js | `npm install github:homeCore-io/hc-plugin-sdk-js#v0.4.7` |
 | .NET | clone at `v0.4.6` beside your project, then `dotnet add reference …/HomeCoreSdk.csproj` |
 
 These were the newest tags at the time of writing; each SDK's releases list
@@ -588,8 +588,8 @@ new MyPlugin({
 ```
 
 `examples/virtual_light.js` in the SDK repository is a complete plugin.
-Node.js plugins are not in the Catalog yet; see
-[Node.js and .NET plugins](#nodejs-and-net-plugins).
+To put one in the Catalog, see
+[Releasing a Node.js plugin](#releasing-a-nodejs-plugin).
 
 ## .NET SDK (`hc-plugin-sdk-dotnet`)
 
@@ -996,7 +996,9 @@ topic, or publish it yourself before you disconnect.
 
 ### 2. Register a device
 
-Publish to `homecore/plugins/plugin.my-device/register`:
+Publish to `homecore/plugins/plugin.my-device/register`, without retain:
+every device shares this topic, and a broker keeps only the last retained
+message on a topic. Register each device again whenever you reconnect.
 
 ```json
 {
@@ -1563,8 +1565,9 @@ proves the release layout.
 
 Plugins ship as `.tar.zst` packages listed in the
 [plugin registry](https://github.com/homeCore-io/registry): a `plugin.toml`
-manifest plus the binary (and its built `ui/`), or for Python the plugin and
-every dependency as wheels. The registry's `index.json` is signed with
+manifest plus the binary (and its built `ui/`); for Python the plugin and
+every dependency as wheels; for Node.js the plugin with its dependencies
+installed. The registry's `index.json` is signed with
 ed25519, and each entry pins its package by SHA-256. The packages themselves
 are not signed; the signed index is what vouches for them. homeCore installs
 from **Settings › Plugins › Catalog**; see
@@ -1656,15 +1659,79 @@ updates, which an admin applies from the runtime's card; your plugin doesn't
 need a new release for them. When a version stops getting upstream fixes,
 release your next version for a newer one.
 
-### Node.js and .NET plugins
+### Releasing a Node.js plugin
 
-Node.js and .NET plugins have no release path to the Catalog yet, and no
-plugin runtime runs them. Run one as a `[[plugins]]` entry in `homecore.toml`
+A Node.js plugin ships for the [Node.js runtime](./runtimes#a-runtime-for-nodejs-plugins)
+as one package: its files and every dependency, installed from its lock. The
+runtime unpacks it and runs it with no npm and no network. Its `package.json`
+says what it is:
+
+```json
+{
+  "name": "hc-mything",
+  "version": "0.1.0",
+  "description": "One line for its card in the Catalog",
+  "main": "out/main.js",
+  "files": ["out/**/*.js", "ui/dist/**"],
+  "dependencies": {
+    "homecore-plugin-sdk": "git+https://github.com/homeCore-io/hc-plugin-sdk-js.git#v0.4.7"
+  },
+  "homecore": {
+    "id": "plugin.mything",
+    "name": "My Thing",
+    "category": "Tools",
+    "ui": "ui/dist"
+  }
+}
+```
+
+- `homecore.id` is required and must look like `plugin.<name>`. `name` and
+  `category` are what the Catalog shows; `ui` is only for a plugin with its
+  own screens.
+- The runtime runs `homecore.entrypoint` if you set one, else `main`, else
+  `index.js`, with the config file's path as its argument. It must be in the
+  package, so list your built output in `files` and build before you release.
+- `homecore-plugin-sdk` must be in `dependencies`, and `package-lock.json`
+  must be committed. The package is installed from the lock with install
+  scripts off and optional dependencies left out.
+- **Pure JavaScript only.** A native addon (a `.node` file) is built for one
+  CPU and one Node.js version, so the build refuses one. That is what lets
+  the same package run on x86_64 and aarch64.
+
+The release is hc-scripts' shared `node-release.yml` workflow, called from
+your repository's release workflow when you push a tag:
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+jobs:
+  release:
+    uses: homeCore-io/hc-scripts/.github/workflows/node-release.yml@main
+    with:
+      plugin_dir: .
+      node_version: '24'   # the Node.js major it runs on
+    secrets: inherit
+```
+
+It builds the package, refuses one with native code, starts it on the
+registry's own build of that Node.js against a broker, then attaches it to the
+GitHub Release and notifies the registry. The registry publishes Node.js 24
+and 26 today; the build fails early, listing the majors it has, if you ask for
+another. Patch releases reach houses as Node.js updates, applied from the
+runtime's card. `build-node-artifact.sh` and `smoke-node-artifact.sh` in
+[hc-scripts](https://github.com/homeCore-io/hc-scripts) run the same build and
+check on your own machine. [hc-matter](https://github.com/homeCore-io/hc-matter)
+is the working example.
+
+### .NET plugins
+
+.NET plugins have no release path to the Catalog yet, and no plugin runtime
+runs them. Run one as a `[[plugins]]` entry in `homecore.toml`
 ([Configuration](../getting-started/configuration#plugins)). homeCore starts
 `binary` with the config file's path as its only argument and supervises it
-like any other plugin, so point `binary` at something that runs the plugin by
-itself: an entry script with a `#!/usr/bin/env node` line, marked executable,
-or the program `dotnet publish` makes.
+like any other plugin, so point `binary` at the program `dotnet publish`
+makes. Or run it as [a service you run yourself](../development/contributing.md#4-a-service-you-run-yourself).
 
 ### Getting listed in the Catalog
 

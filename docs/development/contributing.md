@@ -2,7 +2,7 @@
 id: contributing
 title: Contributing
 sidebar_label: Contributing
-description: How to send a change to homeCore, and the three ways to get a plugin into the Catalog.
+description: How to send a change to homeCore, and the ways to contribute a plugin.
 ---
 
 # Contributing
@@ -49,32 +49,49 @@ homeCore is licensed under MIT or Apache 2.0, at your option. Unless you say oth
 
 ## Contributing a plugin
 
-A plugin reaches the Catalog in one of three ways. Whichever you choose, read [Developing plugins](../plugins/developing-plugins.md) first and go through its [checklist](../plugins/developing-plugins.md#before-you-release-a-plugin).
+Whichever way you choose, read [Developing plugins](../plugins/developing-plugins.md) first and go through its [checklist](../plugins/developing-plugins.md#before-you-release-a-plugin).
+
+### Choosing how it runs
+
+| Where it runs | Language | Who builds and releases it | In the Catalog |
+|---|---|---|---|
+| [Inside the homeCore repository](#1-inside-the-homecore-repository-rust), started by homeCore | Rust | Maintainers | Yes |
+| [In a plugin runtime](#2-in-a-plugin-runtime-python-or-nodejs), from your own repository | Python or Node.js | You, with homeCore's shared release workflow | Once listed |
+| [Your own package](#3-your-own-repository-rust), started by homeCore | Rust | You | Once listed |
+| [A service you run yourself](#4-a-service-you-run-yourself) | Any | You | No |
+
+Start with the first two. A plugin inside the homeCore repository moves with the SDK as it changes and is kept building by homeCore's CI. A runtime plugin gets its interpreter, its updates and its restarts from homeCore and the runtime, and its release is tested before it's published.
 
 ### 1. Inside the homeCore repository (Rust)
 
-The plugin becomes part of homeCore: maintainers build, release and list it, and it moves with the SDK as it changes.
+The plugin becomes part of homeCore: maintainers build, release and list it.
 
 1. Copy the template: `cp -r plugins/hc-plugin-template plugins/hc-<name>`, and add it to the workspace `members` in the root `Cargo.toml`.
 2. Depend on the SDK by path (`plugin-sdk-rs = { path = "../../sdk/rust" }`).
 3. Set `package.description` and `[package.metadata.homecore]` `name` and `category` in its `Cargo.toml`; the Catalog shows them.
-4. Open a pull request against `develop` with the plugin, its `config/config.toml.example` and a README.
+4. Test it on a [sandbox](../plugins/developing-plugins.md#testing-your-plugin), never your own house, with a stand-in for the hardware if you can. Say in the pull request what you tested it against.
+5. Open a pull request against `develop` with the plugin, its `config/config.toml.example` and a README.
 
 Once it's merged, a maintainer releases it with an `hc-<name>-v<version>` tag, which builds the package and adds it to the registry.
 
-### 2. Your own repository, Python
+### 2. In a plugin runtime (Python or Node.js)
 
-A Python plugin runs in a [plugin runtime](../plugins/runtimes.md). Call the shared `python-release.yml` workflow from your repository's release workflow, as described in [Releasing a Python plugin](../plugins/developing-plugins.md#releasing-a-python-plugin), and add `publish_registry: false` under `with:`. Notifying the registry needs a secret only homeCore-io repositories hold, so without it the release would fail at that step. The release builds and tests the package and attaches it to a GitHub Release. Then [ask for a listing](#getting-listed).
+A Python or Node.js plugin runs in a [plugin runtime](../plugins/runtimes.md) and lives in its own repository. Its release calls one of hc-scripts' shared workflows, which builds the package, installs it the way a runtime would, starts it against a broker and only then attaches it to a GitHub Release:
 
-### 3. Your own repository, Rust
+- **Python:** `python-release.yml`, as in [Releasing a Python plugin](../plugins/developing-plugins.md#releasing-a-python-plugin).
+- **Node.js:** `node-release.yml`, as in [Releasing a Node.js plugin](../plugins/developing-plugins.md#releasing-a-nodejs-plugin).
+
+Add `publish_registry: false` under `with:`. Notifying the registry needs a secret only homeCore-io repositories hold, so without it the release would fail at that step. Then [ask for a listing](#getting-listed).
+
+### 3. Your own repository (Rust)
 
 Keep the plugin in its own repository and depend on the SDK by a homeCore tag:
 
 ```toml
-plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.118" }
+plugin-sdk-rs = { git = "https://github.com/homeCore-io/homeCore", tag = "v0.1.125" }
 ```
 
-Build a static binary for `x86_64-unknown-linux-musl`, then pack it into the package core installs, a `.tar.zst` named `plugin.<name>-<version>-linux-x86_64.tar.zst` that holds:
+Use the newest tag, and move to newer ones as homeCore releases; the SDK is versioned with homeCore. Build a static binary for `x86_64-unknown-linux-musl`, then pack it into the package core installs, a `.tar.zst` named `plugin.<name>-<version>-linux-x86_64.tar.zst` that holds:
 
 | File | What it is |
 |---|---|
@@ -96,6 +113,27 @@ sha256sum plugin.mything-0.1.0-linux-x86_64.tar.zst
 ```
 
 Attach the package to a GitHub Release, test it by installing it on your own homeCore (point a [registry of your own](#running-your-own-registry) at it), then [ask for a listing](#getting-listed).
+
+### 4. A service you run yourself
+
+Anything that speaks homeCore's MQTT protocol can add devices, wherever it runs: a container on another machine, a Kubernetes deployment, a program on a microcontroller. homeCore doesn't install, start, update or restart it. This suits an integration you run only for your own house, or one that has to live next to its hardware.
+
+- **Give it a login.** Add a [`[[broker.clients]]`](../getting-started/configuration.md#broker) entry whose `id` is the plugin id (`plugin.<name>`), and have the service connect with that id and password. The broker must listen on the network for a service on another machine.
+- **Use an SDK if you can.** It does the protocol for you: device registration, the schema, availability, heartbeats and actions. [Raw MQTT](../plugins/developing-plugins.md#raw-mqtt-any-language) shows the topics for anything else.
+- **Heartbeat.** The service appears in **Settings › Plugins** once it sends its first heartbeat, and reads offline when the heartbeats stop.
+- **Keep its own settings.** homeCore holds no config file for it, so it reads its own.
+- **Set a Last Will** that marks its devices offline if the connection drops.
+
+A service like this can't be listed in the Catalog, which installs packages into homeCore or a runtime. To share one, package it as a runtime plugin or a Rust package, as above.
+
+### Changing an SDK
+
+The SDKs serve every plugin, so a change to one has to work for plugins shaped differently from yours: many devices as well as one, started by homeCore, in a runtime or on their own. When a pull request adds something to an SDK:
+
+- Follow what the SDK's existing calls send. A heartbeat or capability manifest sent a new way should carry the same fields homeCore reads from the usual one.
+- Keep the protocol as it is. Topics, payloads and which messages are retained are the contract every plugin and homeCore share. Propose a change to them in an issue first.
+- Add tests for the new calls, and say which plugins use them.
+- Say whether the other SDKs need the same change. The [feature matrix](../plugins/developing-plugins.md#sdk-feature-matrix) keeps track.
 
 ### Getting listed
 
