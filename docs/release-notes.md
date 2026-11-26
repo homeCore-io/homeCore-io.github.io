@@ -30,6 +30,107 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-matter v0.1.0, 2026-11-26
+
+- **Matter devices in homeCore.** homeCore becomes a Matter controller of its
+  own: lights, plugs, locks, blinds, thermostats, fans and sensors from any
+  maker, over Wi-Fi, Ethernet or Thread. A device can be in homeCore and in
+  Apple Home, Google Home or Alexa at once. Share it from that app and pair
+  the code here. See [Matter](plugins/matter.md).
+- **A page of its own** (Settings › Plugins › Matter): pair with a setup code
+  and watch it go. Then for each paired device: share it to another app with
+  a QR code, see and remove the apps it is shared with, check for and install
+  firmware, read it again, or remove it.
+- A device keeps its homeCore id when it is paired again, so its name, room,
+  history and automations come back with it.
+- It is a rewrite on the Open Home Foundation's Matter server, the one Home
+  Assistant uses. The earlier hc-matter was never released, and nothing of it
+  is kept.
+
+### Upgrade notes
+
+- Needs homeCore v0.1.124 and a Node.js plugin runtime using the host's
+  network on a host with IPv6 (`compose.runtime-node.yml` in the docker
+  repository). Matter can't reach devices from a bridged container network.
+- Pairing is over the network. A brand-new device that has to be set up over
+  Bluetooth must be set up in its own app first, then shared.
+
+### Release matrix
+
+**Tagged:** `v0.1.0` (hc-matter), in the plugin registry as `plugin.matter`,
+for x86_64 and aarch64. (A `0.3.0` was published by mistake for about an hour
+the same day and withdrawn; nothing should have installed it.)
+
+---
+
+## hc-tui v0.1.8, 2026-11-26
+
+- **Runtimes for any language.** Adding a runtime asks which language it is
+  for, from the ones homeCore offers (Python, and Node.js from v0.1.124);
+  up and down change it. `U` updates a runtime's interpreter, whichever
+  language it is.
+
+### Upgrade notes
+
+Nothing to change. With homeCore v0.1.123 or older it offers Python alone.
+
+### Release matrix
+
+**Tagged:** `hc-tui v0.1.8`.
+
+---
+
+## App v0.1.87, 2026-11-26
+
+- **Runtimes for any language.** Settings › Plugins › Runtimes › Add offers
+  the languages homeCore can run plugins in (Python, and Node.js from
+  v0.1.124) and names the runtime after the one chosen. Interpreter updates
+  say which language they are for ("Node.js update").
+
+### Upgrade notes
+
+Nothing to change. With homeCore v0.1.123 or older it offers Python alone.
+
+### Release matrix
+
+**Tagged:** `v0.1.87` (app).
+
+---
+
+## v0.1.124, 2026-11-26
+
+- **Plugins in Node.js.** A new runtime image, `hc-runtime-node`, runs
+  plugins written in Node.js the way `hc-runtime-python` runs Python ones.
+  homeCore gives each plugin the Node.js it was built for (24 or 26, for
+  x86_64 and aarch64), from the plugin registry. The first is
+  [Matter](plugins/matter.md). See
+  [A runtime for Node.js plugins](plugins/runtimes.md#a-runtime-for-nodejs-plugins).
+- **Runtimes for any language.** homeCore no longer has a list of languages.
+  A runtime says which it hosts when it is added, and its platform when it
+  first connects. `GET /api/v1/plugin-runtimes/kinds` lists the languages the
+  registry has interpreters for, plus any already added.
+- **Fixed: a runtime plugin's settings showed its broker password.** Reading
+  the settings of a plugin running in a runtime returned its file as the
+  plugin had it, password included. Saving an edit changed only the
+  runtime's copy, which homeCore then replaced, and the plugin didn't
+  restart. homeCore's own copy is now read (password hidden) and written, and
+  the runtime restarts the plugin within seconds.
+
+### Upgrade notes
+
+- `POST /api/v1/plugin-runtimes` now requires `kind` (`python`, `node`, …).
+  The app from v0.1.87 and hc-tui from v0.1.8 send it; update them with this
+  release. Runtimes already added are unchanged.
+- Only someone who could edit plugins could see the password, and it gives
+  access to the broker as that plugin alone.
+
+### Release matrix
+
+**Tagged:** `v0.1.124` (core). Images `hc-runtime-python:0.1.124` and
+`hc-runtime-node:0.1.124`. Interpreters `node-24.22.3` and `node-26.13.1`.
+
+---
+
 ## hc-mcp v0.1.5, 2026-11-24
 
 - **Twenty-one more tools over MCP.** Diagnosis (plugin health, alerts,
