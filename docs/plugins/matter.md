@@ -13,7 +13,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   mark="MT"
   kind="hub"
   summary="Makes homeCore a Matter controller: lights, plugs, locks, blinds, thermostats, fans and sensors from any maker, over Wi-Fi, Ethernet or Thread."
-  version="0.1.2"
+  version="0.1.3"
   runs="In a Node.js plugin runtime"
   talks="Your network (Matter)"
   account="None"
@@ -122,6 +122,15 @@ devices you chose stay chosen.
 Devices that came from Matter in the first place aren't offered: share them
 from their own app instead.
 
+## Backing up the pairings
+
+Every pairing is kept on the runtime, not in homeCore's own backup: lose the
+runtime's data, and every device must be paired again, and the bridge in every
+app. On the plugin's page, **Download a backup** saves one small file; keep it
+off the house's server. **Restore from a backup** puts those pairings back (what
+was there is kept aside) and restarts the plugin. The plugin's card says when
+the pairings have never been backed up, or some are newer than the last backup.
+
 ## Devices
 
 Each part of a Matter device that is a device of its own becomes one homeCore
@@ -142,6 +151,9 @@ instance, so its name, room, history and automations come back with it.
 | Thermostats | `thermostat` | temperature, heat and cool setpoints, mode, what it is doing, fan | setpoints, mode, fan |
 | Fans | `fan` | on, speed | the same |
 | Contact, occupancy, leak and rain sensors | `contact_sensor`, `occupancy_sensor`, `water_sensor`, `rain_sensor` | open, occupied, water, rain | |
+| Smoke and CO alarms | `smoke_alarm` | smoke, carbon monoxide (raising homeCore's critical alerts), their levels, faults | a self-test |
+| Air quality sensors | `air_quality_sensor` | air quality, PM2.5, PM10, CO₂ | |
+| Buttons and remotes | `remote` | presses, holds and double presses per button, for button triggers | |
 | Temperature, humidity, light and pressure sensors | `temperature_sensor`, `humidity_sensor`, `light_sensor`, `pressure_sensor` | the reading | |
 
 Where a device has them, it also reports its battery, power and energy, and

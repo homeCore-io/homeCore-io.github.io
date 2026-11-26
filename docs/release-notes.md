@@ -30,6 +30,92 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## hc-matter v0.1.3, 2026-11-26
+
+- **Back up the pairings.** The Matter page has *Download a backup* and
+  *Restore from a backup*. Every pairing (the devices paired here, and the
+  apps the bridge is paired with) is kept on the runtime, not in homeCore's
+  own backup, so losing the runtime meant pairing everything again. A backup
+  is one small file; Matter pauses for a few seconds while it is made.
+  Restoring keeps what was there aside and restarts the plugin. A notice says
+  when the pairings have never been backed up, or some are newer than the last
+  backup.
+- **Buttons and remotes.** A Matter remote is one homeCore remote with
+  numbered buttons, and its presses, holds and double-presses work in
+  automations' button triggers, as Lutron Picos do.
+- **Smoke and CO alarms** raise homeCore's critical smoke and carbon monoxide
+  alerts, and have a *Test the alarm* action. **Air quality sensors** report
+  their rating, PM2.5 and PM10.
+
+### Upgrade notes
+
+- The carbon monoxide alert needs homeCore v0.1.125. On an older homeCore the
+  alarm still reports `co_detected`, but no alert is raised.
+- Restoring a backup needs homeCore v0.1.87 or later (it is sent as an upload).
+- Back up once after upgrading: until then the plugin's card says the
+  pairings aren't backed up.
+
+### Release matrix
+
+**Tagged:** `v0.1.3` (hc-matter), in the plugin registry as
+`plugin.matter`, for x86_64 and aarch64. Uses the Node.js plugin SDK v0.4.7.
+
+---
+
+## hc-tui v0.1.9, 2026-11-26
+
+- Carbon monoxide alerts are named, and a device reporting `co_detected`
+  shows *Carbon monoxide*.
+
+### Upgrade notes
+
+Nothing to change.
+
+### Release matrix
+
+**Tagged:** `hc-tui v0.1.9`.
+
+---
+
+## App v0.1.88, 2026-11-26
+
+- **Carbon monoxide alerts** are shown as smoke alerts are: in the alert list
+  and its filter, on the device's card and its room, as urgent on the home
+  console, and in automation wording.
+
+### Upgrade notes
+
+Nothing to change. The alert needs homeCore v0.1.125.
+
+### Release matrix
+
+**Tagged:** `v0.1.88` (app).
+
+---
+
+## v0.1.125, 2026-11-26
+
+- **A carbon monoxide alert.** A device reporting `co_detected` raises a
+  critical *Carbon monoxide* alert, homeCore's own, as smoke and water do.
+  Automations can start on it (*kind* `carbon_monoxide`).
+- Shared names for `smoke`, `co_detected` and `air_quality` (good, fair,
+  moderate, poor, very poor, extremely poor). `smoke_detected` is `smoke`'s
+  old spelling.
+- The Node.js plugin SDK v0.4.7 takes files sent to a plugin's actions, as the
+  Rust SDK does.
+
+### Upgrade notes
+
+Nothing to change. Update the app to v0.1.88 (and hc-tui to v0.1.9) to see
+carbon monoxide alerts by name.
+
+### Release matrix
+
+**Tagged:** `v0.1.125` (core). Images `hc-runtime-python:0.1.125` and
+`hc-runtime-node:0.1.125`. Node.js plugin SDK `v0.4.7`.
+
+---
+
 ## hc-matter v0.1.2, 2026-11-26
 
 - **Admins only** for pairing, sharing a device to another app, removing a
