@@ -13,7 +13,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   mark="MT"
   kind="hub"
   summary="Makes homeCore a Matter controller: lights, plugs, locks, blinds, thermostats, fans and sensors from any maker, over Wi-Fi, Ethernet or Thread."
-  version="0.1.1"
+  version="0.1.2"
   runs="In a Node.js plugin runtime"
   talks="Your network (Matter)"
   account="None"
@@ -89,7 +89,8 @@ firmware, and the homeCore devices it became (press one to open it). For each:
   apps keep it.
 
 Each of these is also a plugin action, for automations, the Assistant and the
-API; the plugin's README lists them.
+API; the plugin's README lists them. Pairing, sharing, removing, firmware and
+network settings are for admins only, on the page and through the API.
 
 ## Sharing homeCore devices with other apps
 
@@ -149,8 +150,8 @@ kinds not in the table still appear, with what they report.
 
 ## Settings
 
-The plugin's settings are its config file, under `[matter]` (edit it from the
-plugin's settings in the app; the plugin restarts when it is saved):
+The plugin's settings form in the app (Controller, Network, Advanced) edits
+its config file, under `[matter]`; the plugin restarts when it is saved:
 
 | Setting | Default | |
 |---|---|---|
