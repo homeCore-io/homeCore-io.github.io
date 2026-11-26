@@ -54,6 +54,9 @@ a release nobody outside the workspace can find out about.
 
 - If an MCP client controls locks, doors or other security devices, add
   `security` to its `HC_MCP_ALLOW_WRITE` (`all` already includes it).
+- The Assistant now runs on Python 3.15 (it was 3.12). homeCore v0.1.119
+  and later fetch it for the runtime. On an older homeCore the Catalog keeps
+  offering 0.1.4; update homeCore first. Runtimes are x86_64 only for now.
 - A key made by an earlier `hc-mcp setup` lacks the scopes for device
   commands, scenes and automations. Run `hc-mcp setup --rotate` for a new
   one, then revoke the old key.
