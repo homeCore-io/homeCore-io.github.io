@@ -8,7 +8,7 @@ sidebar_position: 5
 # Topic Mapper & Ecosystem Profiles
 
 The topic mapper (`hc-topic-map`) lets MQTT devices that don't speak
-homeCore's topic schema (Tasmota, Shelly, Zigbee2MQTT, ESPHome, homebrew
+homeCore's topic schema (Tasmota, Shelly, Zigbee2MQTT, or your own
 firmware) work with homeCore without a dedicated plugin. A profile file
 describes how to translate the device's native topics and payloads into
 homeCore's canonical ones, and back again for commands.
@@ -35,7 +35,11 @@ When at least one profile is loaded, core subscribes to every topic
 
 A device the registry has not seen is created on its first state message,
 so no registration step is needed. Its plugin ID is the part of the
-device ID before the first `_` (`shelly_abc` belongs to `shelly`).
+device ID before the first `_` (`shelly_abc` belongs to `shelly`). When the
+profile [says what the device is](#saying-what-a-device-is), it is registered
+with that type and name, and gets the type's schema, so the app shows its
+controls. Removing such a device in the app keeps it removed when it reports
+again (it is listed under **Deleted** in Settings › Devices, to bring back).
 
 Commands go the other way. A message on `homecore/devices/{id}/cmd` that
 matches a `cmd_topics` source is translated and published to the
@@ -70,10 +74,11 @@ after changing one.
 ## Profile structure
 
 A profile is a TOML file with an `[ecosystem]` block (`name`, an optional
-`description`, and `prefix`) and three optional arrays:
+`description`, and `prefix`), three optional arrays,
 `[[ecosystem.state_topics]]` (inbound state),
 `[[ecosystem.availability_topics]]` (inbound availability) and
-`[[ecosystem.cmd_topics]]` (outbound commands).
+`[[ecosystem.cmd_topics]]` (outbound commands), and an optional
+`[ecosystem.devices]` table that [says what a device is](#saying-what-a-device-is).
 
 ### Minimal example
 
@@ -202,6 +207,41 @@ A scalar (`attribute`) topic always merges into the device's existing
 state. A JSON topic replaces the whole state by default. Set
 `partial = true` on a JSON topic that carries only some of a device's
 attributes, so it does not wipe the rest.
+
+### Saying what a device is
+
+A device a profile creates has readings and nothing else: no type, so no
+schema, and the app can show what it reports but offers no controls for it.
+Say what it is, and homeCore registers it with that type and gives it the
+type's schema from the device type catalog (`device-types.toml` in the
+profiles folder), as it does for a plugin's devices:
+
+```toml
+[[ecosystem.state_topics]]
+pattern     = "stat/{device}/POWER"
+attribute   = "on"
+device_type = "switch"            # every device on this topic is a switch
+name        = "Plug {device}"     # the name homeCore shows; {var} works
+
+# One device, by its homeCore device ID. Wins over the topic, field by field.
+[ecosystem.devices.tasmota_hall]
+device_type = "dimmer_light"
+name        = "Hall lights"
+```
+
+- `device_type` on a state topic suits ecosystems with a topic per kind of
+  device (a relay topic, a roller topic). Where one topic carries every kind,
+  as Zigbee2MQTT's does, list devices under `[ecosystem.devices]` instead.
+- Give a device's type on one of its topics, or in `[ecosystem.devices]`;
+  two topics that disagree would retype it back and forth.
+- `name` is the name homeCore shows. A rename in the app is kept separately
+  and still wins. Without a `name`, a new device is named by its ID.
+- The type has to be in the catalog. Copy `device-types.toml` from
+  `config/profiles/examples/` into the profiles folder with the profile.
+  homeCore says at startup when a profile names a type the catalog doesn't
+  have, or when there is no catalog.
+- A device created before its profile said what it was gets the type on its
+  next report. One someone removed stays removed.
 
 ---
 
@@ -363,8 +403,12 @@ DHT22, SHT3x, DS18B20), and dimmer control. Availability via LWT
 (`tele/{device}/LWT`).
 
 Device IDs: `tasmota_{topic_name}`, where the topic name is set in the
-Tasmota console with `Topic mydevice`. The dual-relay entries use
-`{device}_relay1` and `{device}_relay2`, without the prefix.
+Tasmota console with `Topic mydevice`, and `tasmota_{topic_name}_relay1` and
+`_relay2` for a dual relay. Every relay is a `switch`; name a dimmer's type
+under `[ecosystem.devices]`. Before v0.1.126 the dual-relay state entries
+used `{device}_relay1` without the prefix, so a relay's readings went to one
+device and its commands to another. If you copied the profile from an older
+release, replace your copy; the old `{device}_relay1` devices can be removed.
 
 `tele/{device}/SENSOR` is one entry that maps both the power monitoring
 and the temperature and humidity fields, and `stat/{device}/RESULT` is
@@ -415,7 +459,8 @@ locks (`locked`), thermostats (`temperature`, `heat_setpoint`,
 quality. Availability via the `{device}/availability` JSON payload.
 
 Device IDs: `zigbee_{z2m_friendly_name}`. Use underscored names in Z2M
-for clean IDs.
+for clean IDs. Every kind of device shares one topic, so give each device its type
+under `[ecosystem.devices]`; the profile's end has an example.
 
 ---
 
@@ -433,6 +478,8 @@ for clean IDs.
 5. Add `[[ecosystem.cmd_topics]]` for each command the device accepts,
    mapping `homecore/devices/{prefix}{device}/cmd` to the device's
    command topic.
+   Then [say what the devices are](#saying-what-a-device-is), so they get a
+   schema and the app shows their controls.
 6. Test it on a sandbox homeCore, not the house: copy it into that
    sandbox's `config/profiles/`, restart, and watch the log.
 
