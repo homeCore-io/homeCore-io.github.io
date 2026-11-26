@@ -13,7 +13,7 @@ import PluginFacts from '@site/src/components/PluginFacts';
   mark="MT"
   kind="hub"
   summary="Makes homeCore a Matter controller: lights, plugs, locks, blinds, thermostats, fans and sensors from any maker, over Wi-Fi, Ethernet or Thread."
-  version="0.1.0"
+  version="0.1.1"
   runs="In a Node.js plugin runtime"
   talks="Your network (Matter)"
   account="None"
@@ -91,6 +91,36 @@ firmware, and the homeCore devices it became (press one to open it). For each:
 Each of these is also a plugin action, for automations, the Assistant and the
 API; the plugin's README lists them.
 
+## Sharing homeCore devices with other apps
+
+The other way round: homeCore's own devices, from any plugin, shown to Apple
+Home, Google Home, Alexa or another Matter app, as one Matter bridge called
+"homeCore". Lights, switches, locks, blinds and covers, thermostats, fans,
+and contact, occupancy, temperature, humidity, leak and light sensors.
+
+1. On the plugin's page, under **Share with other apps**, press **Turn on**.
+2. In the other app, add a Matter device and scan the code the page shows (or
+   type its number). The bridge is not a certified Matter product, so the app
+   may warn you before adding it. Google Home may refuse an uncertified device
+   unless it is set up in Google's developer console.
+3. Back on the page, press **Share** next to each device the other app should
+   have. Nothing is shared until you choose it, and a device added to homeCore
+   later stays private until you do.
+
+Locks, and covers that are garage doors, gates or doors, can be shared too,
+after a warning: anyone using the other app, and its voice assistant, could
+then unlock or open them without homeCore asking.
+
+Changes go both ways: what you do in the other app happens in homeCore (and
+its automations see it), and what happens in homeCore shows in the other app.
+A thermostat is shown as it is in homeCore, with only the modes it can take.
+To add the bridge to a second app, share it from the first, as for any Matter
+device. **Reset** unpairs it from every app and gives it a new code; the
+devices you chose stay chosen.
+
+Devices that came from Matter in the first place aren't offered: share them
+from their own app instead.
+
 ## Devices
 
 Each part of a Matter device that is a device of its own becomes one homeCore
@@ -135,6 +165,13 @@ plugin's settings in the app; the plugin restarts when it is saved):
 The fabric (the keys every paired device trusts) is kept with the plugin's
 data on the runtime, and survives updates. Back the runtime's data up: losing
 it means pairing every device again.
+
+## Alerts
+
+**Firmware update available** (off until you turn it on, in the plugin's
+alert settings): a newer firmware is published for a paired Matter device. Its
+**Update…** button installs it after a confirm. The plugin checks twice a
+day; the alert clears once the device runs that version.
 
 ## When something is wrong
 
