@@ -30,6 +30,28 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.92, 2026-11-27
+
+- **An ecosystem's Devices, Logins and Profile tabs share one header**: the
+  ecosystem's name, a link back to Devices over MQTT, and the tabs in the same
+  place on each, at one width. The Profile tab was titled "… profile" and led
+  back to the ecosystem.
+- **Smaller refinements** in Settings › Devices over MQTT:
+  - a device without a name of its own shows its id once;
+  - the **Need a type** filter hides when no device needs one;
+  - on a phone, a device that needs a type says so in the warning color;
+  - the broker card's **Open it** link stays on one line.
+
+### Upgrade notes
+
+None.
+
+### Release matrix
+
+**Tagged:** `v0.1.92` (hc-web-svelte).
+
+---
+
 ## App v0.1.91, 2026-11-27
 
 - **Several devices' type can be set from a phone.** On an ecosystem's page,
