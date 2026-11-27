@@ -108,6 +108,12 @@ loads is saved, and it applies at once. A profile that stopped loading is
 listed with its error and a **Fix it** button. If you edit the files by hand
 instead, **Read the folder again** on the page picks the change up.
 
+A copy of a profile homeCore ships is marked **Differs from homeCore's** when it
+no longer matches the one this homeCore ships (the devices it names aside):
+homeCore's may have been fixed since you copied it. Its Profile tab shows the
+two side by side, and **Take homeCore's, keeping your devices** replaces your
+copy while keeping the types and names you gave its devices.
+
 The [topic mapper reference](../development/topic-mapper.md) has every profile
 setting.
 
@@ -133,4 +139,4 @@ reporting at all, turn off MQTT on the device or remove it from its hub.
 | The device shows readings but no controls | homeCore doesn't know what it is | Say what it is (step 3); the page also says when the type catalog is missing. |
 | A device can't connect | The broker asks for a login it doesn't have, or the password changed | Give it a login (step 1), or a **New password**, and type it into the device. |
 | A Tasmota dimmer's commands do nothing | The transform isn't loaded | Turn Tasmota off and on again, which adds it, or copy `custom-transforms.rhai` from `config/profiles/examples` into the profiles folder. |
-| A dual-relay Tasmota has relays with no commands | A profile copied before v0.1.126 named relay devices without the `tasmota_` prefix | Replace your copy of `tasmota.toml` and delete the old `<name>_relay1` devices. |
+| A dual-relay Tasmota has relays with no commands | A profile copied before v0.1.126 named relay devices without the `tasmota_` prefix | On its Profile tab, **Take homeCore's, keeping your devices**, then delete the old `<name>_relay1` devices. |
