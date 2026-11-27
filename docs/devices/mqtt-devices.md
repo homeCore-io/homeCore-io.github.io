@@ -40,16 +40,21 @@ Give each device its own login: open its ecosystem, choose **Logins**, then
 **Add a login**. homeCore makes the password and shows it once, with the
 host, port and user to type into the device's MQTT settings (in Tasmota:
 Configuration › MQTT). A login works the moment it's made. **New password**
-or **Remove** shuts the old one out; a device connected at that moment stays
-connected until it drops. Zigbee2MQTT needs one login for itself, not one per
+or **Remove** shuts the old one out, and pushes a device connected with it off
+the broker. Zigbee2MQTT needs one login for itself, not one per
 Zigbee device. Shelly Gen2 and Gen3 devices connect on the MQTT v5 port,
 `v5_port` (1884 by default).
 
 Logins are kept in `logins.toml` in the profiles folder, each password
 hashed. Logins in `homecore.toml`'s `[[broker.clients]]` still work as well;
-see [`[broker]`](../getting-started/configuration.md#broker). homeCore's own
-broker checks each login, not which topics it uses; an external Mosquitto
-does that.
+see [`[broker]`](../getting-started/configuration.md#broker).
+
+homeCore's own broker checks each login, not which topics it uses: a device
+login can publish and read anything on the broker, as a plugin can. Keep the
+broker on a network you trust, and treat a device's password as a key to the
+house. A login can't connect with homeCore's or a plugin's client id. For
+logins limited to their own topics, use an external Mosquitto, which enforces
+them.
 
 ## 2. Turn on the ecosystem
 
