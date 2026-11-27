@@ -30,6 +30,76 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.89, 2026-11-26
+
+- **Settings › Devices over MQTT** (admins; homeCore v0.1.126). Tasmota,
+  Shelly, Zigbee2MQTT and other devices that talk MQTT, managed from the app:
+  - whether the house is ready: the broker open to the network, the device
+    type catalog (added with one button), devices without controls;
+  - turning an ecosystem on, after a preview of the devices it would take in,
+    and off again, keeping its profile;
+  - each ecosystem's devices: what they report and what they are, with
+    Zigbee2MQTT's own suggestions (types and names) used all at once, a type
+    for several at once, or one device's type and name in a sheet that says
+    what the type gives it;
+  - a login for each device, its password shown once with what to type in;
+  - a profile's file, checked as you type and tried on a message before it
+    is saved;
+  - an ecosystem of your own, drafted from a topic the broker carried, a
+    template or a shared file;
+  - **Heard, but not taken in**: what the broker carries that no ecosystem
+    takes in, and which one would.
+
+### Upgrade notes
+
+Needs homeCore v0.1.126; with an older one the page says so.
+
+### Release matrix
+
+**Tagged:** `v0.1.89` (hc-web-svelte).
+
+---
+
+## v0.1.126, 2026-11-26
+
+- **Devices that speak MQTT get their controls.** A device an ecosystem
+  profile takes in used to arrive with readings only: no type, so no schema
+  and no controls in the app. A profile can now say what its devices are (a
+  `device_type` and `name` on a topic, or `[ecosystem.devices]` for one
+  device), and they get that type's schema from the device type catalog. The
+  shipped Tasmota and Shelly profiles say it for relays, lights, covers and
+  sensors.
+- **Profiles change while homeCore runs.** Turning an ecosystem on or off,
+  saying what a device is, and editing a profile apply at once, from the app
+  or the API (`/api/v1/mqtt`). Turned on, an ecosystem takes in what the
+  broker already carried for it. A profile that doesn't load is reported with
+  its line, and the rest still load.
+- **Logins for devices**, made in the app, kept hashed in `logins.toml` in the
+  profiles folder, and checked by the broker as devices connect.
+- **Zigbee2MQTT's device list** suggests each device's type and name.
+- homeCore hears every topic on the broker, so it can show what no ecosystem
+  takes in. The shipped profiles are built in, so a Docker install has them.
+- **Fixed:** in the shipped Tasmota profile, a dual relay's readings and its
+  commands went to two different devices (the readings lacked the
+  `tasmota_` prefix).
+
+### Upgrade notes
+
+- If you copied `tasmota.toml` and use dual relays, replace your copy (or
+  turn Tasmota off and on in the app) and delete the old `<name>_relay1` and
+  `<name>_relay2` devices.
+- For devices from a profile to get controls, the device type catalog must be
+  in the profiles folder; homeCore says so at startup when it isn't, and the
+  app adds it with one button.
+- Update the app to v0.1.89 for Settings › Devices over MQTT.
+
+### Release matrix
+
+**Tagged:** `v0.1.126` (core). Images `hc-runtime-python:0.1.126` and
+`hc-runtime-node:0.1.126`.
+
+---
+
 ## hc-ecowitt v0.1.28, 2026-11-26
 
 - **Devices for sensors you no longer have are removed.** Until now a device
