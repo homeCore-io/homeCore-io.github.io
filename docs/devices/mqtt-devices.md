@@ -79,7 +79,8 @@ cp config/profiles/examples/custom-transforms.rhai config/profiles/
 ```
 
 The catalog matters: it is where a device's controls come from (see the next
-step). Restart homeCore. Its log lists each profile it loaded, and says so if
+step). If you leave it out, **Settings › Devices over MQTT** offers to add it.
+Restart homeCore. Its log lists each profile it loaded, and says so if
 a profile names a device type the catalog doesn't have.
 
 Each device appears the first time it reports, with an ID made from the
@@ -93,24 +94,30 @@ Tasmota and Shelly profiles already say it for the topics that settle it: a
 relay is a `switch`, a Shelly roller a `cover`, a Shelly light a `light`.
 Anything else arrives with its readings and no controls until you say.
 
-Do that in your copy of the profile, by device ID:
+Do it in **Settings › Devices over MQTT**. The page says how many devices
+have no controls; open their ecosystem to see each one with what it reports
+and what it is.
+
+- **Zigbee2MQTT says what most of its devices are**, in the device list it
+  publishes. Its page offers those suggestions, with each device's
+  Zigbee2MQTT name, to use all at once.
+- **Select several** to give them one type.
+- **Open a device** to choose its type, see what that type gives it in the
+  app ("On and off, brightness and warmth"), and name it. **Nothing** takes
+  the type off again.
+
+Changes apply at once; nothing restarts. They are kept in your copy of the
+profile, by device ID, where you can also write them by hand:
 
 ```toml
 [ecosystem.devices.zigbee_living_room_light]
 device_type = "light"
 name        = "Living room light"
-
-[ecosystem.devices.tasmota_hall_dimmer]
-device_type = "dimmer_light"
-name        = "Hall lights"
 ```
 
-Zigbee2MQTT sends every kind of device on the same topic, so its devices all
-need an entry here. The types are those in `device-types.toml`: `switch`,
-`light`, `dimmer_light`, `cover`, `lock`, `climate`, `motion_sensor`,
-`contact_sensor`, `temperature_sensor` and more. The `name` is what homeCore
-shows; a rename in the app is kept separately and still wins. Restart homeCore
-after editing a profile, and the device takes its type on its next report.
+The types are those in `device-types.toml`. The `name` is what homeCore shows;
+a rename in the app is kept separately and still wins. After editing a file by
+hand, restart homeCore.
 
 ## Removing a device
 
@@ -122,8 +129,8 @@ reporting at all, turn off MQTT on the device or remove it from its hub.
 
 | What you see | Why | What to do |
 |---|---|---|
-| The device never appears | It isn't reaching the broker, or its topics don't match the profile | Check its MQTT settings and login. With `RUST_LOG=info,hc_core::state_bridge=debug`, homeCore logs every topic no profile matched. |
-| The device shows readings but no controls | homeCore doesn't know what it is | Give it a `device_type` (step 3), and check `device-types.toml` is in the profiles folder. |
+| The device never appears | It isn't reaching the broker, or its topics don't match the profile | Check its MQTT settings and login. **Heard, but not taken in** on Settings › Devices over MQTT lists what the broker carries that no ecosystem matched, and which shipped one would. With `RUST_LOG=info,hc_core::state_bridge=debug`, homeCore logs every topic no profile matched. |
+| The device shows readings but no controls | homeCore doesn't know what it is | Say what it is in **Settings › Devices over MQTT** (step 3); the page also says when the type catalog is missing. |
 | homeCore won't start after opening the broker | A broker on the network needs logins | Add the `[[broker.clients]]` entries in step 1. |
 | A Tasmota dimmer's commands do nothing | The transform isn't loaded | Copy `custom-transforms.rhai` into the profiles folder; homeCore names a missing transform at startup. |
 | A dual-relay Tasmota has relays with no commands | A profile copied before v0.1.126 named relay devices without the `tasmota_` prefix | Replace your copy of `tasmota.toml` and delete the old `<name>_relay1` devices. |
