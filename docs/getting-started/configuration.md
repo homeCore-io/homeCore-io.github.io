@@ -363,7 +363,7 @@ The embedded broker checks logins but does not enforce per-topic access: it reco
 | `dir` | string | `"config/profiles"` | Folder of ecosystem profile TOML files (Tasmota, Shelly, Zigbee2MQTT and others) that map their topics to homeCore's. Core also reads the device type registry from `device-types.toml` in this folder. |
 
 Topic maps belong in these profile files. A `[[topic_map]]` block in
-`homecore.toml` is not read. See [Topic mapper](../development/topic-mapper).
+`homecore.toml` is not read. [Devices that speak MQTT](../devices/mqtt-devices) sets them up; [Topic mapper](../development/topic-mapper) has every setting.
 
 ### `[rules]`
 
