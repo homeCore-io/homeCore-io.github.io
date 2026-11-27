@@ -31,8 +31,9 @@ For anything else, [add an ecosystem of your own](#adding-an-ecosystem-of-your-o
 ## 1. Let the devices reach the broker
 
 The devices connect to homeCore's MQTT broker, so it has to listen on the
-network. The page's first card says whether it does; **Open it** opens it
-(homeCore restarts once to do that). From then on the broker asks every
+network. The page's first card says whether it does; its **Open it** link
+leads to **Open the broker to the network** (homeCore restarts once to do
+that). From then on the broker asks every
 connection for a login. If you already use plugin runtimes, it is open.
 
 Give each device its own login: open its ecosystem, choose **Logins**, then
