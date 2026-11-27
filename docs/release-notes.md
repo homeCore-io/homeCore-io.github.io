@@ -30,6 +30,49 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.90, 2026-11-26
+
+- **A device's page says which ecosystem it comes in through** (for a device
+  that speaks MQTT), with a link to change what it is, or to say what it is
+  when no type has been given.
+- **A copy of a shipped profile that differs from homeCore's says so.** In
+  Settings › Devices over MQTT, the profile's file can be compared with
+  homeCore's, and homeCore's taken in its place; the devices you said what
+  they are stay as you said.
+- **Fixed:** on a device's page, the History period buttons (24 h, 7 d, 30 d)
+  never marked the chosen period as selected for screen readers.
+
+### Upgrade notes
+
+The ecosystem link and comparing with homeCore's copy need homeCore
+v0.1.127.
+
+### Release matrix
+
+**Tagged:** `v0.1.90` (hc-web-svelte).
+
+---
+
+## v0.1.127, 2026-11-26
+
+- **`GET /api/v1/mqtt/devices/{id}`** says which ecosystem a device comes in
+  through, and what the profile says it is.
+- **A copy of a shipped profile that differs from homeCore's is reported as
+  such (`differs_from_shipped`, devices aside), and a POST to
+  `/api/v1/mqtt/files/{file}/shipped` takes homeCore's copy in place of
+  yours, keeping the devices you described.
+
+### Upgrade notes
+
+None.
+
+### Release matrix
+
+**Tagged:** `v0.1.127` (core). Images `hc-runtime-python:0.1.127` and
+`hc-runtime-node:0.1.127`.
+
+---
+
 ## App v0.1.89, 2026-11-26
 
 - **Settings › Devices over MQTT** (admins; homeCore v0.1.126). Tasmota,
