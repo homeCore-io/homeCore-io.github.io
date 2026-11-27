@@ -203,10 +203,16 @@ attribute = "on"
 
 ### Full or partial updates
 
-A scalar (`attribute`) topic always merges into the device's existing
-state. A JSON topic replaces the whole state by default. Set
-`partial = true` on a JSON topic that carries only some of a device's
-attributes, so it does not wipe the rest.
+A topic's reading merges into what the device already reports: Tasmota's
+`POWER` and `SENSOR` topics feed one device, and neither wipes what the other
+said. Set `partial = false` on a JSON topic that carries the device's whole
+state, for keys it leaves out to be dropped. (Before homeCore 0.1.128 a JSON
+topic replaced the whole state unless it said `partial = true`.)
+
+A message with nothing in it (a retained topic cleared) changes nothing, and
+neither does one with nothing the `field_map` maps. A value a coercion can't
+read is left out: Zigbee2MQTT's `"state": "LOCK"` says nothing about `on`.
+A command that doesn't set a topic's `attribute` publishes nothing to it.
 
 ### Saying what a device is
 
@@ -312,6 +318,12 @@ json_field = "state"               # extract .state from JSON payload
   online  = true
   offline = false
 ```
+
+An availability topic is for every device of the profile it speaks for:
+the one with the topic's own ID (`prefix` and `{device}`), and those the
+profile's state topics make with a `device_id` that uses the same capture.
+`shellies/sh1/online` is for `shelly_sh1_relay0` and `shelly_sh1_relay1`.
+It makes no device: a device appears with its first reading.
 
 ---
 
