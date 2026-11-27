@@ -30,6 +30,65 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## v0.1.129, 2026-11-27
+
+- **Fixed: after a restart, core heard at most 100 of the broker's retained
+  messages.** The rest (device states, availability, plugin manifests) were
+  dropped, so a larger house came back with stale devices and plugins with no
+  actions and no REST access until they published again. Core now hears
+  them all.
+- **Automations:**
+  - rule text with a character such as `°` or `—` could stop every rule until
+    homeCore restarted;
+  - a time of day fired twice when clocks go back and never when they go
+    forward; a sun time for another date used today's UTC offset;
+  - a wait for one attribute resumed on any report from the device; delays
+    sharing a cancel key were not all cancelled; a restarted or exited run
+    left a fade or wait running; conditions kept reading an attribute a
+    device stopped reporting; the catch-up of time rules at startup could be
+    lost;
+  - a °C device that once sent a stray °F hint was converted until restart;
+    color temperatures and temperature offsets are no longer converted.
+- **Security:**
+  - anything on the broker could get a REST key by publishing a manifest for
+    any plugin id; only plugins installed or configured in homeCore get one;
+  - a runtime's page could be pointed at another homeCore; it now takes a new
+    key only once the old homeCore refuses the old one;
+  - plugin config redaction missed inline tables, multi-line strings and
+    secret lists;
+  - the log stream and plugin action streams let a whitelisted address in as
+    admin even with a user's token, and the log stream stayed open after
+    sign-out; one plugin's stream could be read through another's URL;
+  - a key that may only read devices sees commands sent to them with codes,
+    PINs and passwords masked;
+  - runtime logins are verified once and then recognized, with at most two
+    slow checks at once.
+- **Plugins and settings:**
+  - stopping or uninstalling a crash-looping plugin restarted it;
+  - a plugin installed onto a second runtime stayed on the first too;
+    removing a runtime could leave plugins placed on it;
+  - setting the temperature unit, or saving an invalid value in
+    Configuration, could start homeCore on default settings; two saves at
+    once could lose one; a plugin config that isn't valid TOML is refused;
+  - a plugin config save keeps a section it empties, with its comments;
+  - the runtime host retries a failed broker login instead of exiting.
+- The "Unknown device_type" warning no longer appears for a device whose
+  plugin sends its own schema.
+
+### Upgrade notes
+
+A plugin that asks for REST access gets it only if homeCore knows it: listed
+in `homecore.toml`, installed from the registry or placed on a runtime, or
+given its own `[[broker.clients]]` login. A plugin you run yourself without
+one of those no longer gets a key; give it a `[[broker.clients]]` entry.
+
+### Release matrix
+
+**Tagged:** `v0.1.129` (core). Images `hc-runtime-python:0.1.129` and
+`hc-runtime-node:0.1.129`.
+
+---
+
 ## App v0.1.92, 2026-11-27
 
 - **An ecosystem's Devices, Logins and Profile tabs share one header**: the
