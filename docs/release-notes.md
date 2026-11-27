@@ -30,6 +30,75 @@ a release nobody outside the workspace can find out about.
 
 ---
 
+## App v0.1.91, 2026-11-27
+
+- **Several devices' type can be set from a phone.** On an ecosystem's page,
+  **Select several** turns the rows into checkboxes for **Set type**.
+- **Settings › Devices over MQTT lists the profiles' warnings**, such as a
+  topic two profiles both claim.
+- **Fixed:**
+  - a profile's file with unsaved changes was lost without a word on leaving
+    the page; the app now asks first;
+  - saving a new file under the name of one that already exists overwrote it;
+  - clearing a profile's file in the editor made the editor disappear;
+  - going from one ecosystem's page to another's kept showing the first one's
+    devices, and a slow answer could overwrite a newer one;
+  - a type sheet sent the device's name back even when it was not changed;
+  - a drag that ended outside a sheet or dialog closed it;
+  - a broker whose state homeCore could not tell was shown as closed;
+  - being signed out showed a bare error rather than saying to sign in again.
+
+### Upgrade notes
+
+The warnings list needs homeCore v0.1.128.
+
+### Release matrix
+
+**Tagged:** `v0.1.91` (hc-web-svelte).
+
+---
+
+## v0.1.128, 2026-11-27
+
+- **Fixed: every MQTT message reached core twice** since v0.1.126, so a
+  command to a device that speaks MQTT was relayed twice. Core no longer
+  subscribes to overlapping topics.
+- **Devices over MQTT**, fixes from a bug hunt:
+  - a message a profile maps to nothing, or an empty one, no longer clears a
+    device's state; a profile's state now merges into what the device had
+    unless the profile says `partial = false`;
+  - a value a coercion can't read (an `ON`/`OFF` field that says something
+    else) is skipped rather than failing the whole message;
+  - a command without the attribute a topic sends is dropped rather than
+    published empty; a command to some devices could stop core;
+  - an ecosystem's online/offline topic now covers the devices it speaks for
+    and never creates a device;
+  - devices that belong to a plugin are left alone by profiles;
+  - the devices of a profile that is removed or turned off are marked offline;
+  - topics two profiles both claim are reported in the log and in the
+    overview's new `warnings`;
+  - topics core relays commands to are no longer listed as heard;
+  - the preview of an ecosystem looks at the last 15 minutes of messages.
+- **Broker logins:**
+  - a removed or reset device login pushes its connection off;
+  - a device login can't take a client id that a `[[broker.clients]]` entry
+    or a plugin uses, and a configured client's id is its own;
+  - a device that reconnects is recognized without the slow password check
+    each time, and at most two such checks run at once;
+  - a `logins.toml` that can't be read is left alone rather than rewritten.
+
+### Upgrade notes
+
+None. On the embedded broker a device login can still read and publish any
+topic; use an external Mosquitto to limit it per login.
+
+### Release matrix
+
+**Tagged:** `v0.1.128` (core). Images `hc-runtime-python:0.1.128` and
+`hc-runtime-node:0.1.128`.
+
+---
+
 ## App v0.1.90, 2026-11-26
 
 - **A device's page says which ecosystem it comes in through** (for a device
